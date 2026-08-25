@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: tinybench-lm
+Version: 0.1.0
+Summary: A reproducible, benchmark-oriented language model under 50M parameters
+Requires-Python: >=3.11
+Requires-Dist: datasets>=3.0
+Requires-Dist: numpy>=1.26
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: tokenizers>=0.20
+Requires-Dist: torch>=2.5
+Requires-Dist: tqdm>=4.66

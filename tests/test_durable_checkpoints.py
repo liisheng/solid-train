@@ -62,6 +62,7 @@ from tinybench_lm.checkpointing import (
 )
 from tinybench_lm.data import PackedTokenDataset
 from tinybench_lm.provenance import build_initial_model, state_dict_sha256
+from tinybench_lm.schedule import ScheduleCursor, ScheduleResumeError
 from tinybench_lm.training_recipe import (
     BatchPlan,
     TrainingIntegrityError,

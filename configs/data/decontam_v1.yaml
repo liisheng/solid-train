@@ -1,0 +1,138 @@
+# Frozen benchmark decontamination protocol (Plan Sections 5.1, 10.1, 10.3).
+#
+# FROZEN: calibrated on planted fixtures only, before any real-corpus scan. The
+# content of this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/data_protocols.py (FROZEN_PROTOCOL_SHA256). Loading fails closed
+# if the bytes change. Any change must be published as
+# configs/data/decontam_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# No benchmark data has been downloaded and no real-corpus quarantine rate has been
+# measured. Task identities below are frozen so their examples can be covered by
+# decontamination once revisions are pinned; the revisions themselves are BLOCKED,
+# not invented.
+
+protocol: decontamination
+version: v1
+frozen: true
+calibration: planted-fixtures-only
+calibrated_before_real_corpus_scan: true
+
+change_control:
+  immutable: true
+  on_change: create configs/data/decontam_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/data_protocols.py::FROZEN_PROTOCOL_SHA256
+
+# Identical matching normalization to dedup_v1. Matching only; stored text is never rewritten.
+matching_normalization:
+  unicode_form: NFKC
+  case: lowercase
+  case_scope: matching_only
+  whitespace: collapse_runs_to_single_space
+  strip_ends: true
+  preserve_stored_text: true
+  must_equal: configs/data/dedup_v1.yaml::matching_normalization
+
+# All three plan-mandated quarantine rules. A document is quarantined when ANY rule fires.
+quarantine_rules:
+  - rule_id: RULE_1_COMPLETE_ITEM_SUBSTRING
+    reason_code: BENCHMARK_ITEM_SUBSTRING
+    definition: a complete normalized benchmark prompt or answer occurs as a substring of the normalized document
+    word_boundary_aligned: true
+    minimum_item_words: 1
+    # Deliberately conservative: no per-item length floor. Short benchmark answers
+    # may quarantine broadly. Fail-closed is preferred over leakage.
+  - rule_id: RULE_2_LONGEST_CONTIGUOUS_OVERLAP
+    reason_code: BENCHMARK_CONTIGUOUS_OVERLAP
+    definition: longest contiguous run of normalized words shared by the document and one benchmark item
+    unit: word
+    minimum_words: 50
+    threshold_comparison: greater_or_equal
+  - rule_id: RULE_3_SHINGLE_COVERAGE
+    reason_code: BENCHMARK_SHINGLE_COVERAGE
+    definition: distinct benchmark shingles matched in the document covering a fraction of the document words
+    shingle_unit: word
+    shingle_size: 13
+    minimum_distinct_shingles: 3
+    minimum_document_word_coverage: 0.10
+    coverage_denominator: normalized_document_word_count
+    coverage_numerator: distinct document word positions covered by matched shingles
+    threshold_comparison: greater_or_equal
+
+decision:
+  rule_evaluation_order: [RULE_1_COMPLETE_ITEM_SUBSTRING, RULE_2_LONGEST_CONTIGUOUS_OVERLAP, RULE_3_SHINGLE_COVERAGE]
+  primary_reason_code: first_rule_that_fires_in_declared_order
+  all_matched_rules_recorded: true
+  action_on_match: QUARANTINE
+  clean_reason_code: CLEAN
+  fail_closed: true
+
+boundary_review:
+  # Fixed review sample around every rule boundary, with reason-coded counts preserved.
+  contiguous_overlap_band_words: 5
+  shingle_coverage_band: 0.02
+  sample_per_band: 20
+  sample_selection: lowest_document_id_first
+  reason_code: BOUNDARY_REVIEW_SAMPLE
+
+# Frozen task identities. Revisions are pinned by the evaluation protocol freeze; until
+# then real-corpus decontamination is BLOCKED rather than silently partial.
+benchmark_scope:
+  required_tasks:
+    - task_id: hellaswag
+      harness_task: hellaswag
+      tier: required_official
+    - task_id: arc_easy
+      harness_task: arc_easy
+      tier: required_official
+    - task_id: piqa
+      harness_task: piqa
+      tier: required_official
+    - task_id: winogrande
+      harness_task: winogrande
+      tier: required_official
+    - task_id: wikitext_103_perplexity
+      harness_task: wikitext
+      tier: required_official
+      note: exact organizer-specified split, slice, and denominator are BLOCKED on organizer answer
+  secondary_tasks:
+    - task_id: arc_challenge
+      harness_task: arc_challenge
+      tier: secondary_non_official
+    - task_id: sciq
+      harness_task: sciq
+      tier: secondary_non_official
+    - task_id: logiqa
+      harness_task: logiqa
+      tier: secondary_non_official
+    - task_id: mathqa
+      harness_task: mathqa
+      tier: secondary_non_official
+  revision_pinning:
+    dataset_revision: PENDING_PIN
+    harness_commit: PENDING_PIN
+    status: BLOCKED
+    blocker: lm-evaluation-harness commit and dataset revisions are not pinned yet, and organizer answers for the required suite are outstanding
+    owner: operator
+    next_action: pin the harness commit and every task/dataset revision in the evaluation protocol freeze, then re-run decontamination coverage before G1
+    splits_required_in_decontamination: all_scored_splits
+  secondary_results_may_influence_training: false
+
+readiness:
+  real_corpus_scan_requires_all_revisions_pinned: true
+  fixture_calibration_allowed_while_blocked: true
+
+reason_codes:
+  keep:
+    - CLEAN
+  quarantine:
+    - BENCHMARK_ITEM_SUBSTRING
+    - BENCHMARK_CONTIGUOUS_OVERLAP
+    - BENCHMARK_SHINGLE_COVERAGE
+  fail_closed:
+    - BENCHMARK_REVISIONS_NOT_PINNED
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_task: true

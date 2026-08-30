@@ -1,0 +1,241 @@
+# Frozen integrity filters for accepted corpus documents (Plan Section 5.2).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/source_manifest.py (FROZEN_CORPUS_PROTOCOL_SHA256). Loading fails
+# closed if the bytes change, so a threshold cannot drift silently after fixture
+# calibration. Any change must be published as configs/data/filters_v2.yaml with a
+# recorded reason; never edit v1 in place.
+#
+# Every threshold below was calibrated on planted local fixtures only. No real-source
+# removal rate has been measured and nothing here claims one. Filters read the stored
+# document text and never rewrite it.
+
+protocol: filters
+version: v1
+frozen: true
+calibration: planted-fixtures-only
+calibrated_before_real_corpus_acquisition: true
+preserve_stored_text: true
+
+change_control:
+  immutable: true
+  on_change: create configs/data/filters_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/source_manifest.py::FROZEN_CORPUS_PROTOCOL_SHA256
+
+# Frozen evaluation order. Every filter is evaluated and recorded; the primary reason
+# code is the first one that fails in this order, so a rejection reason is stable.
+evaluation_order:
+  - SOURCE_POLICY
+  - PROVENANCE
+  - LICENSE
+  - REVISION
+  - EMPTY
+  - BINARY
+  - MALFORMED
+  - LENGTH
+  - CREDENTIALS
+  - CONTACT_DUMP
+  - ENGLISH
+  - PROSE_FORMULA_ONLY
+  - PROSE_TEX_DUMP
+  - PROSE_ANSWER_LIST
+  - PROSE_MARKUP
+
+structural:
+  empty:
+    minimum_stripped_characters: 1
+    reason_code: REJECT_EMPTY
+  binary:
+    null_byte_forbidden: true
+    maximum_control_character_ratio: 0.002
+    control_characters: unicode category Cc excluding tab, newline, carriage return
+    reason_code: REJECT_BINARY
+  malformed:
+    minimum_printable_character_ratio: 0.95
+    maximum_single_character_ratio: 0.30
+    replacement_character_forbidden: true
+    reason_code: REJECT_MALFORMED
+  length:
+    minimum_characters: 200
+    maximum_characters: 2000000
+    minimum_words: 40
+    maximum_words: 200000
+    short_reason_code: REJECT_TOO_SHORT
+    long_reason_code: REJECT_TOO_LONG
+
+credentials:
+  case_insensitive: true
+  patterns:
+    - pattern_id: private_key_block
+      regex: '-----BEGIN [A-Z ]*PRIVATE KEY-----'
+    - pattern_id: aws_access_key_id
+      regex: 'AKIA[0-9A-Z]{16}'
+    - pattern_id: github_personal_token
+      regex: 'ghp_[0-9A-Za-z]{36}'
+    - pattern_id: slack_token
+      regex: 'xox[baprs]-[0-9A-Za-z-]{10,}'
+    - pattern_id: signed_web_token
+      regex: 'eyJ[0-9A-Za-z_-]{10,}\.[0-9A-Za-z_-]{10,}\.[0-9A-Za-z_-]{10,}'
+    - pattern_id: assigned_secret
+      regex: '(api[_-]?key|secret[_-]?key|client[_-]?secret|access[_-]?token|password|passwd)\s*[:=]\s*\S{8,}'
+  entropy:
+    candidate_regex: '[A-Za-z0-9+/=_-]{24,}'
+    minimum_token_characters: 24
+    minimum_shannon_bits_per_character: 3.5
+    mixed_letters_and_digits_required: true
+    measurement: shannon entropy over the token characters, base 2
+  reason_code: REJECT_CREDENTIAL_LIKE
+
+contact_dump:
+  email_regex: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+  phone_regex: '(\+?\d{1,3}[ .-]?)?(\(\d{3}\)|\d{3})[ .-]\d{3}[ .-]\d{4}'
+  email_match_threshold: 5
+  phone_match_threshold: 5
+  contact_line_ratio_threshold: 0.20
+  minimum_lines_for_ratio: 3
+  threshold_comparison: greater_or_equal
+  reason_code: REJECT_CONTACT_DUMP
+
+english:
+  detector: deterministic_function_word_estimator_v1
+  detector_note: >-
+    A frozen, dependency-free estimator so the threshold is reproducible offline.
+    Replacing it with a trained language identifier requires filters_v2, not an edit here.
+  minimum_probability: 0.65
+  reference_function_word_coverage: 0.25
+  minimum_words_for_estimate: 20
+  probability_definition: >-
+    min(1, function_word_coverage / reference_function_word_coverage) multiplied by the
+    ASCII share of alphabetic characters; 0.0 when the document has no alphabetic word.
+  function_words:
+    - a
+    - about
+    - after
+    - all
+    - also
+    - an
+    - and
+    - any
+    - are
+    - as
+    - at
+    - be
+    - because
+    - been
+    - before
+    - between
+    - both
+    - but
+    - by
+    - can
+    - could
+    - do
+    - does
+    - each
+    - for
+    - from
+    - had
+    - has
+    - have
+    - how
+    - if
+    - in
+    - into
+    - is
+    - it
+    - its
+    - may
+    - more
+    - most
+    - must
+    - no
+    - not
+    - of
+    - on
+    - one
+    - only
+    - or
+    - other
+    - our
+    - out
+    - over
+    - same
+    - should
+    - since
+    - so
+    - some
+    - such
+    - than
+    - that
+    - the
+    - their
+    - them
+    - then
+    - there
+    - these
+    - they
+    - this
+    - those
+    - through
+    - to
+    - two
+    - under
+    - up
+    - use
+    - used
+    - was
+    - we
+    - were
+    - what
+    - when
+    - where
+    - which
+    - while
+    - who
+    - will
+    - with
+    - would
+    - you
+    - your
+  reason_code: REJECT_NOT_ENGLISH
+
+# OpenWebMath prose retention (Plan Section 5.2): keep explanatory sentences, reject
+# formula-only pages, heavy TeX dumps, answer lists, and markup-dominated documents.
+prose:
+  applies_to_profiles: [openwebmath]
+  formula_only:
+    minimum_prose_sentences: 3
+    prose_sentence_minimum_alphabetic_words: 5
+    sentence_terminators: '.!?'
+    minimum_alphabetic_word_ratio: 0.55
+    reason_code: REJECT_FORMULA_ONLY
+  tex_dump:
+    command_regex: '\\[A-Za-z]+'
+    maximum_command_density_per_100_words: 8.0
+    math_span_regexes:
+      - '\$\$.*?\$\$'
+      - '\$[^$]+\$'
+      - '\\\(.*?\\\)'
+      - '\\\[.*?\\\]'
+    maximum_math_span_character_ratio: 0.25
+    reason_code: REJECT_TEX_DUMP
+  answer_list:
+    line_regexes:
+      - '^\s*\d+\s*[.)]\s*[A-Da-d]\s*$'
+      - '^\s*\(?[A-Da-d]\)?\s*[.)]?\s*(answer|ans)\b'
+      - '^\s*answer\s*[:=]'
+      - '^\s*\d+\s*[.)]\s*[-+]?\d+(\.\d+)?\s*$'
+    maximum_answer_line_ratio: 0.30
+    minimum_lines_for_ratio: 3
+    reason_code: REJECT_ANSWER_LIST
+  markup_dominated:
+    markup_characters: '<>{}[]|'
+    maximum_markup_character_ratio: 0.10
+    reason_code: REJECT_MARKUP_DOMINATED
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_source: true
+  emit_per_filter: true

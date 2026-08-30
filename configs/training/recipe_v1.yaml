@@ -1,0 +1,237 @@
+# Frozen training recipe: WSD learning rate, AdamW decay groups, precision policy, counters.
+# Plan Sections 7, 7.1-7.2, 8.4, 15.
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/training_recipe.py (FROZEN_TRAINING_RECIPE_SHA256). Loading fails closed
+# if the bytes change, so the optimizer hyperparameters, the LR shape, the target global
+# batch, the precision fallback rule, and the fail-closed vocabulary cannot drift after a run
+# has been started under a run ID derived from them. Any change must be published as
+# configs/training/recipe_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# Plan Section 7 verbatim starting values:
+#   - AdamW, betas 0.9/0.95, epsilon 1e-8.
+#   - Weight decay 0.1, excluding embeddings and all normalization weights.
+#   - Global batch 262,144 loss tokens/update = 256 full 1,024-token sequences.
+#   - Gradient clipping at global norm 1.0.
+#   - BF16; FP16 + GradScaler fallback if BF16 is unsupported or unstable.
+#   - Warmup approximately 1% of the selected horizon.
+#   - WSD: warmup, stable peak LR, then linear LR decay to zero in each branch.
+#   - Peak LR selected by P4 and F1/F2.
+#
+# Nothing in this file starts a run, measures throughput, measures BF16 stability, or
+# selects a peak LR or a horizon. Those stay NOT_RUN under `readiness` rather than being
+# invented.
+
+protocol: training_recipe
+version: v1
+frozen: true
+calibration: unit-tests-only-no-training-run
+consumes: configs/data/schedule_v1.yaml materialized schedules; configs/branches/exposure_v1.yaml branch LR shape
+
+change_control:
+  immutable: true
+  on_change: create configs/training/recipe_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/training_recipe.py::FROZEN_TRAINING_RECIPE_SHA256
+  # Plan Section 15: "A learning-rate or semantic change creates a new run ID; never mutate
+  # a failed lineage." The freeze is what makes a silent semantic change detectable.
+  frozen_before_any_run_id_is_issued: true
+
+# --------------------------------------------------------------------------------------
+# Optimizer (Plan Section 7)
+# --------------------------------------------------------------------------------------
+
+optimizer:
+  algorithm: adamw
+  beta1: 0.9
+  beta2: 0.95
+  epsilon: 1.0e-8
+  weight_decay: 0.1
+  gradient_clip_global_norm: 1.0
+  # Two groups, never one undifferentiated parameters() call.
+  groups:
+    - group_name: decay
+      weight_decay: 0.1
+      contains: linear projection weights (attention and SwiGLU)
+      required_parameter_rank: 2
+    - group_name: no_decay
+      weight_decay: 0.0
+      contains: embedding weights and all normalization weights
+  decay_exclusions:
+    - embedding_weights
+    - normalization_weights
+  # The output head reuses the input embedding Parameter, so unique enumeration puts that
+  # one shared storage allocation in `no_decay` exactly once.
+  unique_parameter_enumeration: true
+  every_trainable_parameter_in_exactly_one_group: true
+  reason_code_on_group_violation: RECIPE_DECAY_GROUP_VIOLATION
+
+# --------------------------------------------------------------------------------------
+# Global batch (Plan Section 7). Identical to configs/branches/exposure_v1.yaml.
+# --------------------------------------------------------------------------------------
+
+batch:
+  target_loss_tokens_per_update: 262144
+  sequences_per_update: 256
+  sequence_length: 1024
+  loss_tokens_formula: micro_batch_size * sequence_length * gradient_accumulation
+  # Accumulation must divide the target exactly; a remainder would make the recorded
+  # tokens/update a rounded claim rather than a counted fact.
+  exact_division_required: true
+  update_alignment_required: true
+  reason_code_on_unaligned: RECIPE_HORIZON_NOT_UPDATE_ALIGNED
+  reason_code_on_batch_mismatch: RECIPE_BATCH_NOT_TARGET
+  final_scope_enforces_target: true
+  pilot_scope_may_deviate_with_label: true
+
+# --------------------------------------------------------------------------------------
+# Learning rate: WSD only (Plan Sections 7 and 8.4)
+# --------------------------------------------------------------------------------------
+
+learning_rate:
+  schedule: wsd
+  phases: [warmup, stable, linear_decay]
+  warmup_fraction_of_horizon: 0.01
+  warmup_rounding: nonnegative_half_up
+  minimum_warmup_updates: 1
+  # k is a zero-based optimizer-update index over a horizon of K updates.
+  warmup_formula: peak_lr * (k + 1) / warmup_updates
+  stable_formula: peak_lr
+  decay_formula: peak_lr * (K - 1 - k) / (K - 1 - decay_start_update)
+  decay_start_update_formula: K - decay_updates
+  decay_end_value: 0.0
+  minimum_decay_updates: 2
+  # Plan Section 8.4: "LR follows the same update count but is identical for all arms and
+  # linearly decays from the parent LR to zero." A branch is the whole-horizon decay case of
+  # the same function: warmup_updates = 0 and decay_updates = K.
+  branch_decay_identical_across_arms: true
+  branch_decay_formula: parent_lr * (K - 1 - k) / (K - 1)
+  branch_is_full_horizon_decay_case: true
+  # Explicitly removed from the final campaign.
+  cosine_decay_permitted: false
+  minimum_learning_rate_floor_permitted: false
+  reason_code_on_forbidden_shape: RECIPE_LR_SHAPE_FORBIDDEN
+  reason_code_on_invalid_phases: RECIPE_LR_PHASE_INVALID
+  # Plan Section 15: "Never use an undecayed peak-LR mainline checkpoint as the release
+  # fallback." decay_updates = 0 is a legal mainline lineage but never a release candidate.
+  undecayed_lineage_permitted: true
+  undecayed_release_candidate_permitted: false
+  reason_code_on_undecayed_release: RECIPE_UNDECAYED_RELEASE_CANDIDATE
+
+# --------------------------------------------------------------------------------------
+# Precision (Plan Sections 3.1 and 7)
+# --------------------------------------------------------------------------------------
+
+precision:
+  preferred: bfloat16
+  preferred_uses_grad_scaler: false
+  fallback: float16
+  fallback_uses_grad_scaler: true
+  fallback_conditions:
+    - bf16_unsupported_by_device
+    - bf16_measured_unstable
+  measured_stability_required_for_final_scope: true
+  unmeasured_final_scope_status: BLOCKED
+  unmeasured_pilot_scope_status: DEFERRED
+  reason_code_on_unmeasured_final: RECIPE_PRECISION_UNMEASURED
+
+# --------------------------------------------------------------------------------------
+# Fail-closed conditions (Plan Section 15)
+# --------------------------------------------------------------------------------------
+
+fail_closed:
+  nan_or_inf: RECIPE_NON_FINITE
+  invalid_token_ids: RECIPE_TOKEN_ID_OUT_OF_RANGE
+  impossible_counters: RECIPE_COUNTER_IMPOSSIBLE
+  schedule_or_config_hash_drift: RECIPE_HASH_DRIFT
+  semantic_change_under_existing_run_id: RECIPE_RUN_ID_SEMANTIC_CHANGE
+  never_mutate_a_failed_lineage: true
+  resume_requires_hash_verification: true
+
+# --------------------------------------------------------------------------------------
+# Run identity (Plan Section 15)
+# --------------------------------------------------------------------------------------
+
+run_identity:
+  id_algorithm: sha256
+  id_prefix: run-
+  id_hex_length: 16
+  semantic_fields:
+    - recipe_digest
+    - model_config_hash
+    - peak_lr
+    - total_updates
+    - warmup_updates
+    - decay_updates
+    - loss_tokens_per_update
+    - weight_decay
+    - beta1
+    - beta2
+    - epsilon
+    - gradient_clip_global_norm
+    - precision_dtype
+    - grad_scaler
+    - seed
+    - train_schedule_content_hash
+  on_semantic_change: issue_a_new_run_id_and_a_new_run_directory
+
+# --------------------------------------------------------------------------------------
+# Per-update audit record (task 3.12 expected behavior)
+# --------------------------------------------------------------------------------------
+
+update_record:
+  required_fields:
+    - run_id
+    - update_index
+    - phase
+    - learning_rate
+    - loss
+    - grad_norm
+    - consumed_loss_tokens
+    - loss_tokens_per_update
+    - precision_dtype
+    - grad_scaler
+    - schedule_content_hash
+    - schedule_cursor
+  consumed_tokens_formula: (update_index + 1) * loss_tokens_per_update
+  monotonic_update_index: true
+  monotonic_schedule_cursor: true
+  # The pilot random flat-stream sampler has no integer cursor; null is the only permitted
+  # absence and it is labeled PILOT_ONLY in the record.
+  cursor_null_permitted_for_pilot_sampler: true
+
+# --------------------------------------------------------------------------------------
+# Readiness. Unit-test construction is allowed while these are NOT_RUN.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  unit_test_construction_allowed: true
+  measured_bf16_stability: NOT_RUN
+  selected_peak_lr: NOT_RUN
+  selected_horizon_updates: NOT_RUN
+  measured_safe_microbatch: NOT_RUN
+  blocker: no P4/F1/F2 LR campaign, no measured BF16 stability run, and no measured sustained throughput exist yet
+  owner: operator
+  next_action: run P1-P4 and F1/F2 to select the peak LR, measure BF16 stability and safe microbatch, then freeze the horizon at G4
+
+reason_codes:
+  ok:
+    - RECIPE_OK
+  fail_closed:
+    - RECIPE_BATCH_NOT_TARGET
+    - RECIPE_COUNTER_IMPOSSIBLE
+    - RECIPE_DECAY_GROUP_VIOLATION
+    - RECIPE_HASH_DRIFT
+    - RECIPE_HORIZON_NOT_UPDATE_ALIGNED
+    - RECIPE_LR_PHASE_INVALID
+    - RECIPE_LR_SHAPE_FORBIDDEN
+    - RECIPE_NON_FINITE
+    - RECIPE_PRECISION_UNMEASURED
+    - RECIPE_RUN_ID_SEMANTIC_CHANGE
+    - RECIPE_TOKEN_ID_OUT_OF_RANGE
+    - RECIPE_UNDECAYED_RELEASE_CANDIDATE
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_update: true

@@ -1,0 +1,226 @@
+# Frozen pipeline benchmark contract: stage identities, required per-stage metrics, the
+# forecast method, and the degradation policy (Plan Section 5.5, Sections 12 and 13 G1).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/pipeline_bench.py (FROZEN_PIPELINE_BENCH_SHA256). Loading fails closed
+# if the bytes change, so a stage identity, a mandatory-stage flag, or the omission order
+# cannot drift after calibration. Any change must be published as
+# configs/data/pipeline_bench_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# Nothing here acquires a corpus, runs a real pipeline, or records a real measurement.
+# Every number below is a contract constant (a mode fraction, a tolerance, a unit
+# definition), never an observed throughput. No 1% or 2-5% slice has been benchmarked; the
+# readiness section reports NOT_RUN rather than inventing a rate.
+
+protocol: pipeline_bench
+version: v1
+frozen: true
+calibration: fixture-timings-only
+
+change_control:
+  immutable: true
+  on_change: create configs/data/pipeline_bench_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/pipeline_bench.py::FROZEN_PIPELINE_BENCH_SHA256
+
+# --------------------------------------------------------------------------------------
+# Benchmark modes (Plan Section 5.5: "a stratified 1% slice and a 2-5% slice")
+# --------------------------------------------------------------------------------------
+
+modes:
+  - mode_id: slice_1pct
+    required: true
+    exact_fraction: 0.01
+    stratified_required: true
+    description: complete pipeline over a stratified 1% slice of every declared source
+  - mode_id: slice_2_to_5pct
+    required: true
+    minimum_fraction: 0.02
+    maximum_fraction: 0.05
+    stratified_required: true
+    description: complete pipeline over a configurable stratified 2-5% slice
+
+mode_rules:
+  fraction_tolerance: 1.0e-09
+  fraction_out_of_range_reason_code: BENCH_MODE_FRACTION_OUT_OF_RANGE
+  slice_not_stratified_reason_code: BENCH_SLICE_NOT_STRATIFIED
+  both_modes_required_before_g1_forecast: true
+
+# --------------------------------------------------------------------------------------
+# Stage identities. Each stage names the frozen protocol it executes, so a benchmark
+# artifact identifies which mandatory mechanism actually ran (Plan Sections 5.1-5.4).
+# --------------------------------------------------------------------------------------
+
+stages:
+  - stage_id: stream_and_filter
+    order: 1
+    protocol_refs: [configs/data/sources_v1.yaml, configs/data/filters_v1.yaml]
+    omittable: false
+    plan_never_bypass: false
+  - stage_id: exact_and_mirror_dedup
+    order: 2
+    protocol_refs: [configs/data/dedup_v1.yaml]
+    omittable: false
+    plan_never_bypass: false
+  - stage_id: within_source_near_dedup
+    order: 3
+    protocol_refs: [configs/data/dedup_v1.yaml]
+    omittable: false
+    plan_never_bypass: false
+  - stage_id: expanded_within_source_full_corpus_near_dedup
+    order: 4
+    protocol_refs: [configs/data/dedup_v1.yaml]
+    omittable: true
+    omission_order: 1
+    plan_never_bypass: false
+    description: >-
+      The one optional pass. Plan Section 5.5 names it as the first and only scope
+      reduction when the forecast misses the schedule.
+  - stage_id: cross_source_near_dedup
+    order: 5
+    protocol_refs: [configs/data/dedup_v1.yaml]
+    omittable: false
+    plan_never_bypass: true
+  - stage_id: split_reserved_isolation
+    order: 6
+    protocol_refs: [configs/data/dedup_v1.yaml, configs/data/shards_v1.yaml]
+    omittable: false
+    plan_never_bypass: true
+  - stage_id: benchmark_decontamination
+    order: 7
+    protocol_refs: [configs/data/decontam_v1.yaml]
+    omittable: false
+    plan_never_bypass: true
+  - stage_id: tokenize_and_pack
+    order: 8
+    protocol_refs: [configs/data/tokenizer_v1.yaml, configs/data/shards_v1.yaml]
+    omittable: false
+    plan_never_bypass: false
+
+# --------------------------------------------------------------------------------------
+# Required per-stage counters (Plan Section 5.5, verbatim list)
+# --------------------------------------------------------------------------------------
+
+required_stage_metrics:
+  - documents_per_second
+  - input_gigabytes_per_second
+  - peak_rss_bytes
+  - temporary_disk_amplification
+  - output_bytes
+  - extrapolated_wall_time_seconds
+
+metric_definitions:
+  gigabyte_definition: decimal_1e9
+  gigabyte_bytes: 1000000000
+  documents_per_second: accepted_and_rejected_documents_processed / elapsed_seconds
+  input_gigabytes_per_second: input_bytes / gigabyte_bytes / elapsed_seconds
+  peak_rss_bytes: maximum_resident_set_size_observed_during_the_stage
+  temporary_disk_amplification: peak_temporary_disk_bytes / input_bytes
+  output_bytes: bytes_written_by_the_stage
+  extrapolated_wall_time_seconds: elapsed_seconds / slice_fraction
+
+metric_rules:
+  metric_missing_reason_code: BENCH_METRIC_MISSING
+  metric_not_measured_reason_code: BENCH_METRIC_NOT_MEASURED
+  zero_elapsed_reason_code: BENCH_ZERO_ELAPSED
+  negative_and_non_finite_values_are_never_measurements: true
+  absent_measurement_status: NOT_RUN
+
+# --------------------------------------------------------------------------------------
+# Forecast (Plan Section 5.5, Section 12 dated schedule)
+# --------------------------------------------------------------------------------------
+
+forecast:
+  extrapolation: linear_in_slice_fraction
+  formula: full_corpus_seconds = measured_elapsed_seconds / slice_fraction
+  run_total_is_sum_of_enabled_stage_extrapolations: true
+  statuses: [FIT, MISS, NOT_RUN]
+  requires_deadline_seconds: true
+  without_deadline_status: NOT_RUN
+  misses_schedule_reason_code: BENCH_FORECAST_MISSES_SCHEDULE
+  absence_of_evidence_is_never_pass: true
+
+# --------------------------------------------------------------------------------------
+# Degradation policy (Plan Section 5.5, final sentence)
+# --------------------------------------------------------------------------------------
+
+degradation_policy:
+  omission_order:
+    - expanded_within_source_full_corpus_near_dedup
+  never_omit:
+    - cross_source_near_dedup
+    - split_reserved_isolation
+    - benchmark_decontamination
+  full_integrity_stages_enabled_in_every_profile: true
+  mandatory_stage_omitted_reason_code: BENCH_MANDATORY_STAGE_OMITTED
+  mandatory_stage_disabled_reason_code: BENCH_MANDATORY_STAGE_DISABLED
+  omission_order_violated_reason_code: BENCH_OMISSION_ORDER_VIOLATED
+  fail_closed: true
+
+scope_reduction_decision:
+  requires_dated_decision_record: true
+  required_fields: [date, owner, reason, omitted_stage_ids, forecast_reference]
+  date_format: "%Y-%m-%d"
+  record_missing_reason_code: BENCH_SCOPE_DECISION_RECORD_MISSING
+  applies_to_profile_ids: [full_v1, degraded_v1]
+
+# --------------------------------------------------------------------------------------
+# Benchmark artifact contract. An artifact that cannot be audited is not a benchmark.
+# --------------------------------------------------------------------------------------
+
+artifact:
+  schema_version: pipeline_bench_v1
+  required_fields:
+    - schema_version
+    - protocol_digest
+    - mode_id
+    - slice_fraction
+    - stratified
+    - mandatory_stage_ids
+    - omittable_stage_ids
+    - never_omit_stage_ids
+    - stages
+    - forecast
+    - results
+  incomplete_reason_code: BENCH_ARTIFACT_INCOMPLETE
+  digest_mismatch_reason_code: BENCH_ARTIFACT_PROTOCOL_MISMATCH
+
+# --------------------------------------------------------------------------------------
+# Readiness. Fixture-timing calibration is allowed while these are NOT_RUN.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  fixture_timing_calculations_allowed: true
+  measured_1pct_benchmark: NOT_RUN
+  measured_2_to_5pct_benchmark: NOT_RUN
+  measured_pipeline_forecast: NOT_RUN
+  real_corpus_slice_benchmark: DEFERRED
+  blocker: no corpus has been acquired and the final tokenizer has not been built, so no slice has been streamed
+  owner: operator
+  next_action: acquire pinned sources, build the final tokenizer, run the 1% then the 2-5% slice, then record the measured forecast
+
+reason_codes:
+  ok:
+    - BENCH_OK
+  fail_closed:
+    - BENCH_MODE_FRACTION_OUT_OF_RANGE
+    - BENCH_SLICE_NOT_STRATIFIED
+    - BENCH_STAGE_UNREGISTERED
+    - BENCH_STAGE_MISSING
+    - BENCH_STAGE_ORDER_MISMATCH
+    - BENCH_STAGE_DUPLICATED
+    - BENCH_METRIC_MISSING
+    - BENCH_METRIC_NOT_MEASURED
+    - BENCH_ZERO_ELAPSED
+    - BENCH_MANDATORY_STAGE_OMITTED
+    - BENCH_MANDATORY_STAGE_DISABLED
+    - BENCH_OMISSION_ORDER_VIOLATED
+    - BENCH_FORECAST_MISSES_SCHEDULE
+    - BENCH_SCOPE_DECISION_RECORD_MISSING
+    - BENCH_ARTIFACT_INCOMPLETE
+    - BENCH_ARTIFACT_PROTOCOL_MISMATCH
+
+counters:
+  preserve_per_stage_counts: true
+  emit_reason_coded_results: true

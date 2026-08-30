@@ -1,0 +1,223 @@
+# Frozen final-tokenizer contract (Plan Section 5.3, Section 15).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/tokenizer.py (FROZEN_TOKENIZER_PROTOCOL_SHA256). Loading fails closed
+# if the bytes change, so a vocabulary size, special-token ID, BOS policy, or sample
+# stratification cannot drift after fixture calibration. Any change must be published as
+# configs/data/tokenizer_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# Nothing here trains the real tokenizer. The deterministic 2 GB stratified sample cannot
+# be drawn while source revisions are unpinned, so the final build is reported as DEFERRED
+# below rather than claimed. Fixture-scale builds are allowed and are labelled FIXTURE.
+
+protocol: tokenizer
+version: v1
+frozen: true
+calibration: planted-fixtures-only
+calibrated_before_real_corpus_acquisition: true
+
+change_control:
+  immutable: true
+  on_change: create configs/data/tokenizer_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/tokenizer.py::FROZEN_TOKENIZER_PROTOCOL_SHA256
+
+# --------------------------------------------------------------------------------------
+# Model construction. Reversibility is the binding requirement: a lossy normalizer such
+# as NFKC would silently destroy input, so no normalizer is applied to tokenizer input.
+# Matching normalization for dedup/decontamination lives in dedup_v1.yaml and operates on
+# a separate matching copy, never on the text handed to the tokenizer.
+# --------------------------------------------------------------------------------------
+
+model:
+  algorithm: byte_level_bpe
+  library: huggingface_tokenizers
+  reversible: true
+  normalizer: none
+  normalizer_rationale: NFKC and case folding are lossy and would break byte-exact round trips
+  pre_tokenizer: ByteLevel
+  pre_tokenizer_add_prefix_space: false
+  pre_tokenizer_use_regex: true
+  decoder: ByteLevel
+  initial_alphabet: byte_level_256
+  min_frequency: 2
+  bpe_dropout: null
+
+# --------------------------------------------------------------------------------------
+# Vocabulary. Exactly 12,288 IDs, agreeing with the frozen final architecture.
+# --------------------------------------------------------------------------------------
+
+vocabulary:
+  exact_total_ids: 12288
+  must_equal_model_config_vocab_size: true
+  model_config_path: configs/final_49m.json
+  model_config_key: vocab_size
+  storage_dtype: uint16
+  maximum_representable_id: 65535
+  fill_unused_ids: true
+  filler_token_prefix: "<|reserved_"
+  filler_token_suffix: "|>"
+  filler_token_id_digits: 5
+  filler_tokens_are_never_emitted: true
+  fill_rationale: a fixture-scale or low-merge build must still expose exactly 12,288 IDs
+
+# --------------------------------------------------------------------------------------
+# Stable special-token IDs (Plan Section 5.3: "Stable special token IDs", "Exactly 12,288
+# IDs including BOS/EOS/PAD/UNK if used"). These four IDs are frozen at 0-3 and are
+# assigned before any merge, so they never move when the corpus changes.
+# --------------------------------------------------------------------------------------
+
+special_tokens:
+  - token_id: 0
+    token: "<|bos|>"
+    role: BOS
+    emitted_in_packed_stream: false
+    note: reserved with a stable ID; insertion is governed by bos_policy below
+  - token_id: 1
+    token: "<|endoftext|>"
+    role: EOS
+    emitted_in_packed_stream: true
+    note: inserted between documents in every packed shard
+  - token_id: 2
+    token: "<|pad|>"
+    role: PAD
+    emitted_in_packed_stream: false
+    note: batch padding only; padded positions are excluded from loss and gradient
+  - token_id: 3
+    token: "<|unk|>"
+    role: UNK
+    emitted_in_packed_stream: false
+    note: reserved and unreachable because the byte-level alphabet is complete
+
+special_token_ids_are_stable: true
+
+# --------------------------------------------------------------------------------------
+# BOS policy. Explicit, and identical in training and evaluation by construction: both
+# paths call the same encoder and read this one policy.
+# --------------------------------------------------------------------------------------
+
+bos_policy:
+  policy_id: BOS_RESERVED_NOT_PREPENDED_V1
+  prepend_bos_to_each_document: false
+  prepend_bos_to_evaluation_context: false
+  identical_in_training_and_evaluation: true
+  rationale: >-
+    The packed training stream separates documents with EOS only, so a BOS never appears
+    during training. Prepending one at evaluation time would score the model on a prefix
+    distribution it never saw. BOS keeps a stable reserved ID so a future v2 can enable it
+    without renumbering the vocabulary.
+  official_wikitext_bos_handling:
+    status: DEFERRED
+    blocker: organizer has not specified WikiText-103 BOS/EOS handling, context, stride, or denominator
+    owner: operator
+    next_action: publish tokenizer_v2 or an evaluation protocol addendum once the organizer answers
+
+document_boundaries:
+  append_eos_to_every_document: true
+  eos_token_id: 1
+  never_strip_eos_when_packing: true
+
+# --------------------------------------------------------------------------------------
+# Byte fallback. "No silent unknown-text loss" (Plan Section 5.3).
+# --------------------------------------------------------------------------------------
+
+byte_fallback:
+  mechanism: byte_level_alphabet_complete
+  required_alphabet_size: 256
+  unknown_text_loss_permitted: false
+  unk_token_expected_unreachable: true
+
+# --------------------------------------------------------------------------------------
+# Deterministic source-stratified sample manifest representing 2 GB, matching the stable
+# source mixture frozen in sources_v1.yaml (Plan Sections 4.1, 5.3).
+# --------------------------------------------------------------------------------------
+
+sample_manifest:
+  represented_bytes: 2147483648
+  represented_bytes_note: 2 GiB of source UTF-8 text, allocated by stable post-filter share
+  stratification: stable_source_shares
+  source_shares_from: configs/data/sources_v1.yaml::stable_sources
+  share_key: stable_share
+  allocation: largest_remainder_on_integer_bytes
+  allocation_tie_break: declared_source_order
+  selection_salt: "tokenizer_v1_stratified_sample"
+  document_order: ascending_sha256_of_salt_and_source_id_and_document_id
+  quota_fill_rule: include_documents_in_deterministic_order_until_target_bytes_reached
+  measured_bytes_unit: utf8
+  plan_digest_algorithm: sha256
+  plan_digest_scope: canonical_json_sorted_keys
+
+# --------------------------------------------------------------------------------------
+# Frozen round-trip fixtures (Plan Section 5.3: Unicode, punctuation, whitespace, math,
+# code-like text). The verifier requires byte-exact recovery for every entry.
+# --------------------------------------------------------------------------------------
+
+roundtrip_fixtures:
+  - fixture_id: unicode
+    text: "Caf\u00e9 \u2014 na\u00efve r\u00e9sum\u00e9, \u03a9\u03bc\u03ad\u03b3\u03b1, \u65e5\u672c\u8a9e\u306e\u30c6\u30ad\u30b9\u30c8, \u0440\u0443\u0441\u0441\u043a\u0438\u0439, \U0001f680\U0001f642, \U0001d70b \u2248 3.14159\n"
+  - fixture_id: punctuation
+    text: "\"Quoted,\" she said; then: (parenthetical) [bracketed] {braced} -- em\u2014dash... 100%! #hash @at &amp; a/b\\c\n"
+  - fixture_id: whitespace
+    text: "leading and trailing   \n\ttab\tseparated\t\n\n\nthree blank lines\r\nmixed CRLF\u00a0nbsp\u2003emspace\n"
+  - fixture_id: math
+    text: "Let f(x) = \\sum_{i=1}^{n} x_i^2 \\le \\epsilon. Then \\int_0^1 f(x)\\,dx \u2248 0.3333 \u2265 1/4, and \u2200x \u2203y: x\u00b7y \u2260 0.\n"
+  - fixture_id: code_like
+    text: "def f(x: int) -> int:\n\tif x > 0 and x != 1:\n\t\treturn x << 2\n\treturn -x  # negate\n\nprint(f\"{f(3)=}\")\n"
+
+# --------------------------------------------------------------------------------------
+# Required verification checks. Absent evidence is never a PASS.
+# --------------------------------------------------------------------------------------
+
+verification:
+  required_checks:
+    - vocabulary.exact_total_ids
+    - vocabulary.matches_model_config
+    - vocabulary.uint16_compatible
+    - special_tokens.stable_ids
+    - bos_policy.shared_by_training_and_evaluation
+    - byte_fallback.alphabet_complete
+    - byte_fallback.unk_unreachable
+    - roundtrip.frozen_fixtures
+    - document_boundaries.eos_between_documents
+  absent_evidence_status: NOT_RUN
+  fail_closed: true
+
+# --------------------------------------------------------------------------------------
+# Readiness. The real 2 GB build is gated, not executed.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  final_2gb_build:
+    status: DEFERRED
+    blocker: >-
+      no stable source revision is pinned and no 2 GB stratified sample has been drawn, so
+      the deterministic final sample manifest cannot be materialized
+    owner: operator
+    next_action: >-
+      pin every stable source revision and record its license review, draw the deterministic
+      2 GB stratified sample, then run scripts/build_tokenizer.py --mode final before G1
+  fixture_build_allowed_while_deferred: true
+  fixture_build_scope: FIXTURE
+  final_build_scope: FINAL
+  measured_compression_ratio: NOT_RUN
+  measured_sample_bytes: NOT_RUN
+  measured_merge_count: NOT_RUN
+
+# --------------------------------------------------------------------------------------
+# Token counting identity, consumed by the source manifest (sources_v1.yaml).
+# --------------------------------------------------------------------------------------
+
+token_counter:
+  final_counter_id: final_tokenizer_v1
+  provisional_counter_id: provisional_whitespace_words
+  final_counter_available: false
+  final_counter_blocker: the final 12,288-ID tokenizer artifact has not been built
+  counts_document_eos: false
+
+pilot_path:
+  script: scripts/prepare_data.py
+  scope: PILOT_ONLY
+  vocabulary: 8192
+  final_use_prohibited: true
+  note: bounded smoke-test preparation only; it is not the final tokenizer contract

@@ -5,18 +5,25 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
+FINAL_CONFIG_PATH = Path("configs/final_49m.json")
+FINAL_PARAMETER_COUNT = 49_658_368
+COMPETITION_PARAMETER_CAP = 50_000_000
+FINAL_CAP_HEADROOM = COMPETITION_PARAMETER_CAP - FINAL_PARAMETER_COUNT
+
+
 @dataclass(frozen=True)
 class ModelConfig:
-    vocab_size: int = 16_384
+    vocab_size: int = 12_288
     max_seq_len: int = 1_024
-    n_layers: int = 12
+    n_layers: int = 14
     d_model: int = 512
     n_heads: int = 8
-    n_kv_heads: int = 8
-    d_ff: int = 1_536
+    n_kv_heads: int = 4
+    d_ff: int = 1_504
     rope_theta: float = 10_000.0
     rms_norm_eps: float = 1e-5
     dropout: float = 0.0
+    bias: bool = False
     tie_embeddings: bool = True
 
     def __post_init__(self) -> None:

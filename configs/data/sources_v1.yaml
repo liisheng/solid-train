@@ -1,0 +1,324 @@
+# Frozen source registry, manifest schema, and allow/deny corpus policy
+# (Plan Sections 4.1-4.5, 5.2, 11.2).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/source_manifest.py (FROZEN_CORPUS_PROTOCOL_SHA256). Loading fails
+# closed if the bytes change, so a share, threshold, or prohibition cannot drift
+# silently. Any change must be published as configs/data/sources_v2.yaml with a
+# recorded reason; never edit v1 in place.
+#
+# Nothing here downloads or approves a corpus. No source revision is pinned, no
+# license has been reviewed, and no accepted token count has been measured. Those
+# are operator-gated and reported as BLOCKED below rather than invented.
+
+protocol: sources
+version: v1
+frozen: true
+calibration: planted-fixtures-only
+calibrated_before_real_corpus_acquisition: true
+
+change_control:
+  immutable: true
+  on_change: create configs/data/sources_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/source_manifest.py::FROZEN_CORPUS_PROTOCOL_SHA256
+
+# --------------------------------------------------------------------------------------
+# Streaming document record / manifest schema (Plan Section 5.2 last bullet)
+# --------------------------------------------------------------------------------------
+
+manifest_schema:
+  format: jsonl
+  streaming: true
+  one_record_per_document: true
+  deterministic_order: sort_by_source_id_then_document_id
+  required_fields:
+    - source_id
+    - revision
+    - document_id
+    - url
+    - url_status
+    - raw_sha256
+    - license
+    - boundary
+    - action
+    - reason_code
+    - filter_decisions
+    - accepted_token_count
+    - token_counter_id
+  raw_hash:
+    algorithm: sha256
+    scope: original_document_utf8_bytes
+    computed_before_any_filter: true
+    preserve_stored_text: true
+  document_id:
+    stability: stable across reruns of the same pinned revision
+    required: true
+  url:
+    record_when_publication_permitted: true
+    withheld_status: WITHHELD_BY_SOURCE_POLICY
+    absent_status: NOT_PROVIDED_BY_SOURCE
+    present_status: RECORDED
+  license:
+    required: true
+    unrecorded_reason_code: REJECT_LICENSE_NOT_RECORDED
+  filter_decisions:
+    record_every_evaluated_filter: true
+    record_measurement: true
+    primary_reason_code: first_failing_filter_in_declared_evaluation_order
+  accepted_token_count:
+    required_for: accepted_records_only
+    must_be_positive_integer: true
+    rejected_records_value: null
+    measured_with: final_tokenizer
+    final_measurement_status: DEFERRED
+    blocker: the final 12,288-ID tokenizer does not exist yet (Plan Section 5.3)
+    owner: operator
+    next_action: rebuild every manifest with the final tokenizer before the G1 mixture reconciliation
+    provisional_counter_id: provisional_whitespace_words
+    final_counter_id: final_tokenizer_v1
+
+# --------------------------------------------------------------------------------------
+# Allowed stable sources (Plan Section 4.1). Shares are post-filter token shares
+# measured with the final tokenizer.
+# --------------------------------------------------------------------------------------
+
+stable_sources:
+  - source_id: fineweb_edu
+    boundary: stable_train
+    purpose: educational and explanatory English
+    dataset: FineWeb-Edu
+    intended_revision: sample-10BT or a larger pinned revision
+    stable_share: 0.70
+    target_tokens_at_11b: 7700000000
+    declared_license: ODC-By 1.0 as published by the dataset card
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: general
+  - source_id: dclm
+    boundary: stable_train
+    purpose: general-language diversity
+    dataset: DCLM Baseline, or an approved general FineWeb fallback
+    intended_revision: PENDING_PIN
+    stable_share: 0.20
+    target_tokens_at_11b: 2200000000
+    declared_license: dataset-card license, review recorded per revision
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: general
+  - source_id: openwebmath
+    boundary: stable_train
+    purpose: mathematical and scientific explanations
+    dataset: OpenWebMath, prose-filtered
+    intended_revision: PENDING_PIN
+    stable_share: 0.07
+    target_tokens_at_11b: 770000000
+    declared_license: dataset-card license, review recorded per revision
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: openwebmath
+  - source_id: narrative
+    boundary: stable_train
+    purpose: long-form continuation and co-reference
+    dataset: public-domain narrative, preferably licensed Common Pile Gutenberg
+    intended_revision: PENDING_PIN
+    stable_share: 0.03
+    target_tokens_at_11b: 330000000
+    declared_license: public domain or CC-compatible, recorded per title
+    per_document_license_required: true
+    url_publication_permitted: true
+    prose_profile: narrative
+
+# --------------------------------------------------------------------------------------
+# Reserved reasoning pool (Plan Section 4.3). Selected first, then excluded from
+# stable training and both validation splits.
+# --------------------------------------------------------------------------------------
+
+reserved_sources:
+  - source_id: reserved_science
+    boundary: reserved
+    purpose: science and technical explanation
+    reserved_share: 0.35
+    target_tokens_at_minimum: 136535000
+    selection: deterministic topic-filtered high-quality educational text
+    intended_revision: PENDING_PIN
+    declared_license: inherited from the pinned educational source revision
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: general
+  - source_id: reserved_textbook
+    boundary: reserved
+    purpose: textbook and instructional prose
+    reserved_share: 0.25
+    target_tokens_at_minimum: 97525000
+    selection: OpenStax titles with individually reviewed licenses, and Wikibooks
+    intended_revision: PENDING_PIN
+    declared_license: per-title, never assumed uniform across OpenStax titles
+    per_document_license_required: true
+    url_publication_permitted: true
+    prose_profile: general
+  - source_id: reserved_wikipedia
+    boundary: reserved
+    purpose: general Wikipedia article text
+    reserved_share: 0.20
+    target_tokens_at_minimum: 78020000
+    selection: pinned English Wikipedia snapshot
+    intended_revision: PENDING_PIN
+    declared_license: CC BY-SA 4.0 as published by the snapshot
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: general
+  - source_id: reserved_edu_decile
+    boundary: reserved
+    purpose: top-decile broad educational text
+    reserved_share: 0.15
+    target_tokens_at_minimum: 58515000
+    selection: highest-score FineWeb-Edu excluding the science subset
+    intended_revision: PENDING_PIN
+    declared_license: ODC-By 1.0 as published by the dataset card
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: general
+  - source_id: reserved_math_prose
+    boundary: reserved
+    purpose: explanatory mathematics in prose, not formula dumps
+    reserved_share: 0.05
+    target_tokens_at_minimum: 19505000
+    selection: explanatory OpenWebMath
+    intended_revision: PENDING_PIN
+    declared_license: dataset-card license, review recorded per revision
+    per_document_license_required: false
+    url_publication_permitted: true
+    prose_profile: openwebmath
+
+reserved_pool:
+  required_tokens: 300023808
+  margin: 1.30
+  computed_minimum: 390030950.4
+  minimum_accepted_tokens: 390100000
+  selected_before_stable_and_validation: true
+
+# --------------------------------------------------------------------------------------
+# Validation splits (Plan Section 4.4) and corpus profiles (Plan Section 4.2)
+# --------------------------------------------------------------------------------------
+
+validation_splits:
+  - split_id: validation_dev
+    boundary: validation_dev
+    minimum_tokens: 10000000
+    maximum_tokens: 20000000
+    use: training decisions and model selection
+  - split_id: validation_final
+    boundary: validation_final
+    minimum_tokens: 10000000
+    maximum_tokens: 20000000
+    use: opened once after branch completion for confirmation
+
+protected_slices: [broad_general, educational_science, narrative_coreference, math_technical]
+
+profiles:
+  - profile_id: full_v1
+    minimum_accepted_stable_tokens: 11000000000
+    intended_consumed_range: approximately 12-20B, measured
+  - profile_id: degraded_v1
+    minimum_accepted_stable_tokens: 8000000000
+    intended_consumed_range: approximately 9-14B, with repetition disclosed
+    requires_dated_decision_record: true
+
+# --------------------------------------------------------------------------------------
+# Deny policy (Plan Sections 4.5 and 11.2). A candidate is rejected when its source
+# identity or declared provenance matches any category below.
+# --------------------------------------------------------------------------------------
+
+prohibited_categories:
+  - policy_id: PROHIBITED_SYNTHETIC_TEXT
+    description: synthetic stories, generated instruction data, or hosted-model-generated corpus text
+    match_source_ids: [synthetic_stories, generated_instructions, hosted_model_corpus, synthetic_textbooks]
+    match_provenance_flags: [synthetic, generated_text, hosted_model_generated, model_written]
+  - policy_id: PROHIBITED_MODEL_DERIVED_SUPERVISION
+    description: logits, probabilities, rankings, or hidden states copied from another model
+    match_source_ids: [model_logit_dump, model_ranking_dump, hidden_state_dump]
+    match_provenance_flags: [model_logits, model_probabilities, model_rankings, model_hidden_states, model_supervision]
+  - policy_id: PROHIBITED_BENCHMARK_EXAMPLES
+    description: official benchmark examples used as training material
+    match_source_ids: [hellaswag_train, arc_train, piqa_train, winogrande_train, benchmark_examples]
+    match_provenance_flags: [benchmark_example, benchmark_split]
+  - policy_id: PROHIBITED_BENCHMARK_TARGETED
+    description: benchmark-targeted retrieval or generated examples
+    match_source_ids: [benchmark_targeted_retrieval, benchmark_targeted_generation]
+    match_provenance_flags: [benchmark_targeted, benchmark_retrieval]
+  - policy_id: PROHIBITED_LARGE_CODE_CORPUS
+    description: large code corpora
+    match_source_ids: [the_stack, github_code, codeparrot, starcoderdata]
+    match_provenance_flags: [large_code_corpus]
+  - policy_id: PROHIBITED_RAW_COMMON_CRAWL
+    description: unfiltered raw Common Crawl
+    match_source_ids: [common_crawl_raw, cc_wet_raw, cc_warc_raw]
+    match_provenance_flags: [raw_common_crawl, unfiltered_crawl]
+  - policy_id: PROHIBITED_FULL_PILE
+    description: the full Pile, whose quality and licensing complexity is unnecessary here
+    match_source_ids: [pile_full, the_pile]
+    match_provenance_flags: [full_pile]
+  - policy_id: PROHIBITED_HOSTED_MODEL_ANNOTATION
+    description: a hosted model used to label, rewrite, or score training documents
+    match_source_ids: [hosted_model_labeled, hosted_model_rewritten, hosted_model_scored]
+    match_provenance_flags: [hosted_model_labeled, hosted_model_rewritten, hosted_model_scored, hosted_model_filtered]
+
+deny_policy:
+  reason_code: REJECT_PROHIBITED_SOURCE
+  unregistered_source_reason_code: REJECT_SOURCE_NOT_ALLOWED
+  allow_list_is_exhaustive: true
+  fail_closed: true
+
+# --------------------------------------------------------------------------------------
+# Acquisition readiness. Fixture calibration is allowed while these are BLOCKED.
+# --------------------------------------------------------------------------------------
+
+revision_pinning:
+  status: BLOCKED
+  blocker: no source dataset revision has been pinned and no per-title license review has been recorded
+  owner: operator
+  next_action: pin every source revision, record each license review, then rebuild manifests before G1
+  per_document_revision_required: true
+  unpinned_reason_code: REJECT_UNPINNED_REVISION
+
+license_review:
+  status: BLOCKED
+  blocker: license review for OpenStax titles, narrative titles, and every pinned dataset revision has not been performed
+  owner: operator
+  next_action: record a per-title or per-revision license review decision before accepting real documents
+
+readiness:
+  real_corpus_acquisition_requires_pinned_revisions: true
+  fixture_calibration_allowed_while_blocked: true
+  measured_removal_rates: NOT_RUN
+  measured_accepted_tokens: NOT_RUN
+
+reason_codes:
+  accept:
+    - ACCEPTED
+  reject:
+    - REJECT_SOURCE_NOT_ALLOWED
+    - REJECT_PROHIBITED_SOURCE
+    - REJECT_MISSING_PROVENANCE
+    - REJECT_LICENSE_NOT_RECORDED
+    - REJECT_UNPINNED_REVISION
+    - REJECT_EMPTY
+    - REJECT_BINARY
+    - REJECT_MALFORMED
+    - REJECT_TOO_SHORT
+    - REJECT_TOO_LONG
+    - REJECT_CREDENTIAL_LIKE
+    - REJECT_CONTACT_DUMP
+    - REJECT_NOT_ENGLISH
+    - REJECT_FORMULA_ONLY
+    - REJECT_TEX_DUMP
+    - REJECT_ANSWER_LIST
+    - REJECT_MARKUP_DOMINATED
+  fail_closed:
+    - SOURCE_REVISIONS_NOT_PINNED
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_source: true

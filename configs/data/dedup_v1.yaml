@@ -1,0 +1,96 @@
+# Frozen deduplication protocol (Plan Section 5.1).
+#
+# FROZEN: calibrated on planted fixtures only, before any real-corpus scan. The
+# content of this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/data_protocols.py (FROZEN_PROTOCOL_SHA256). Loading fails closed
+# if the bytes change, so a numeric threshold cannot drift silently after
+# calibration. Any change must be published as configs/data/dedup_v2.yaml with a
+# recorded reason; never edit v1 in place.
+#
+# No real-corpus removal rate has been measured. Nothing here claims one.
+
+protocol: dedup
+version: v1
+frozen: true
+calibration: planted-fixtures-only
+calibrated_before_real_corpus_scan: true
+
+change_control:
+  immutable: true
+  on_change: create configs/data/dedup_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/data_protocols.py::FROZEN_PROTOCOL_SHA256
+
+# Normalization is used for matching only. Stored training text is never rewritten.
+matching_normalization:
+  unicode_form: NFKC
+  case: lowercase
+  case_scope: matching_only
+  whitespace: collapse_runs_to_single_space
+  strip_ends: true
+  preserve_stored_text: true
+
+exact_dedup:
+  algorithm: sha256
+  scope: normalized_full_document
+  reason_code: EXACT_DUPLICATE
+
+mirror_check:
+  algorithm: sha256
+  scope: normalized_prefix
+  prefix_characters: 512
+  reason_code: MIRROR_DUPLICATE
+
+near_dedup:
+  shingle:
+    unit: word
+    size: 5
+  minhash:
+    permutations: 128
+    element_hash: sha256_first_8_bytes_big_endian
+    permutation_family: (a * h + b) mod prime
+    prime: 2305843009213693951
+    coefficient_derivation: sha256("dedup_v1:minhash:<seed>:<index>:<a|b>")
+    seed: 20260829
+  estimated_jaccard_threshold: 0.85
+  threshold_comparison: greater_or_equal
+  # 128 permutations make estimates multiples of 1/128; the decision boundary
+  # therefore sits between 108/128 = 0.84375 (keep) and 109/128 = 0.8515625 (near duplicate).
+  comparison_scope: within_source_and_cross_source
+  reason_code: NEAR_DUPLICATE
+
+clustering:
+  method: union_find
+  merged_by: [EXACT_DUPLICATE, MIRROR_DUPLICATE, NEAR_DUPLICATE]
+  representative_rule: lowest_document_id_kept
+  deterministic_order: sort_by_document_id
+
+boundary_isolation:
+  boundaries: [stable_train, reserved, validation_dev, validation_final]
+  query: every candidate against all accepted training clusters
+  estimated_jaccard_threshold: 0.85
+  no_cluster_may_cross_boundaries: true
+  reason_code: CLUSTER_CROSSES_BOUNDARY
+  fail_closed: true
+
+boundary_review:
+  # Fixed review sample around every decision boundary, with reason-coded counts preserved.
+  estimated_jaccard_band: 0.03
+  sample_per_band: 20
+  sample_selection: lowest_document_id_first
+  reason_code: BOUNDARY_REVIEW_SAMPLE
+
+reason_codes:
+  keep:
+    - UNIQUE
+  drop:
+    - EXACT_DUPLICATE
+    - MIRROR_DUPLICATE
+    - NEAR_DUPLICATE
+  fail_closed:
+    - CLUSTER_CROSSES_BOUNDARY
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_source: true

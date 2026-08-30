@@ -6,5 +6,6 @@ checkpoints/
 runs/
 __pycache__/
 .pytest_cache/
+.hypothesis/
 *.pyc
 .kiro/

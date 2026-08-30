@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from .config import ModelConfig
-from .data import PackedTokenDataset
+from .data import TrainingSource
 from .model import TinyBenchLM
 
 
@@ -40,8 +40,8 @@ def save_checkpoint(
     optimizer: torch.optim.Optimizer,
     config: ModelConfig,
     args: argparse.Namespace,
-    train_data: PackedTokenDataset,
-    validation_data: PackedTokenDataset,
+    train_data: TrainingSource,
+    validation_data: TrainingSource,
     step: int,
     best_validation_loss: float,
 ) -> None:
@@ -57,6 +57,9 @@ def save_checkpoint(
             "step": step,
             "best_validation_loss": best_validation_loss,
             "rng_state": capture_rng_state(),
+            # Data-source resume state. For the pilot sampler this is a bit-generator blob;
+            # for a materialized schedule it is one integer schedule_cursor plus the schedule
+            # content hash. The key name is part of the frozen format-v2 contract.
             "data_rng_state": {
                 "train": train_data.state_dict(),
                 "validation": validation_data.state_dict(),
@@ -71,8 +74,8 @@ def restore_checkpoint_state(
     checkpoint: dict[str, object],
     model: TinyBenchLM,
     optimizer: torch.optim.Optimizer,
-    train_data: PackedTokenDataset,
-    validation_data: PackedTokenDataset,
+    train_data: TrainingSource,
+    validation_data: TrainingSource,
 ) -> tuple[int, float, bool]:
     """Restore training state and report whether the resume is reproducible."""
     model.load_state_dict(checkpoint["model"])

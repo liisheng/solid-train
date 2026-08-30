@@ -1,3 +1,24 @@
+"""PILOT ONLY: bounded corpus download, small tokenizer, and flat train/validation packing.
+
+This is the pilot smoke-test path. It is deliberately preserved so the existing bounded
+end-to-end checks keep working, and it is NOT the final tokenizer or the final data
+contract:
+
+- It trains a small pilot vocabulary (8,192 by default), not the frozen 12,288-ID tokenizer.
+- It applies an NFKC normalizer, which is lossy and therefore not reversible.
+- It writes one flat `train.bin`/`validation.bin` pair with no source tags, no reserved
+  pool, and no near-duplicate cluster isolation.
+
+This monolithic flat output contract is superseded. The final data contract is the
+source-tagged uint16 shard layout with independent split manifests, frozen in
+`configs/data/shards_v1.yaml`, implemented by `src/tinybench_lm/shards.py`, and produced by
+`scripts/build_shards.py`.
+
+The final tokenizer contract lives in `configs/data/tokenizer_v1.yaml` and is implemented by
+`src/tinybench_lm/tokenizer.py`; build and verify it with `scripts/build_tokenizer.py`.
+Never use this script's output for the final campaign.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -11,6 +32,20 @@ import numpy as np
 from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, trainers
 from tqdm import tqdm
 
+
+#: This module is pilot-only. The final tokenizer contract is tokenizer_v1.
+PILOT_ONLY = True
+PILOT_SCOPE = "PILOT_ONLY"
+FINAL_TOKENIZER_CONTRACT = "configs/data/tokenizer_v1.yaml"
+#: The final data output contract. This script's flat train/validation pair is superseded.
+FINAL_SHARD_CONTRACT = "configs/data/shards_v1.yaml"
+PILOT_BANNER = (
+    "PILOT ONLY: this builds a small pilot tokenizer and a flat train/validation split for "
+    f"smoke tests. It is not the final tokenizer contract ({FINAL_TOKENIZER_CONTRACT}); use "
+    "scripts/build_tokenizer.py for that. The flat train.bin/validation.bin output is "
+    f"superseded by the source-tagged shard contract ({FINAL_SHARD_CONTRACT}); use "
+    "scripts/build_shards.py for that."
+)
 
 SPECIAL_TOKENS = ["<|endoftext|>", "<|pad|>", "<|unk|>"]
 
@@ -116,7 +151,10 @@ def pack_tokens(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Download, tokenize, and pack a bounded public corpus")
+    parser = argparse.ArgumentParser(
+        description="PILOT ONLY: download, tokenize, and pack a bounded public corpus for smoke tests",
+        epilog=PILOT_BANNER,
+    )
     parser.add_argument("--dataset", default="HuggingFaceFW/fineweb-edu")
     parser.add_argument("--subset", default="sample-10BT")
     parser.add_argument("--split", default="train")
@@ -133,6 +171,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    print(PILOT_BANNER)
     args = parse_args()
     args.cache_dir = args.cache_dir.resolve()
     args.output_dir = args.output_dir.resolve()
@@ -147,6 +186,11 @@ def main() -> None:
     tokenizer = train_tokenizer(raw_path, tokenizer_path, args.vocab_size)
     token_stats = pack_tokens(raw_path, tokenizer, args.output_dir, args.validation_fraction)
     metadata = {
+        "scope": PILOT_SCOPE,
+        "final_tokenizer_contract": FINAL_TOKENIZER_CONTRACT,
+        "final_shard_contract": FINAL_SHARD_CONTRACT,
+        "output_contract": "flat train.bin/validation.bin (superseded by shards_v1)",
+        "final_use_prohibited": True,
         "dataset": args.dataset,
         "subset": args.subset,
         "split": args.split,

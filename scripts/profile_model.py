@@ -9,11 +9,12 @@ from pathlib import Path
 import torch
 
 from tinybench_lm import ModelConfig, TinyBenchLM
+from tinybench_lm.config import FINAL_CONFIG_PATH
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Measure training throughput without downloading data")
-    parser.add_argument("--config", type=Path, default=Path("configs/baseline_49m.json"))
+    parser.add_argument("--config", type=Path, default=FINAL_CONFIG_PATH)
     parser.add_argument("--sequence-length", type=int, default=512)
     parser.add_argument("--micro-batch-size", type=int, default=4)
     parser.add_argument("--gradient-accumulation", type=int, default=1)

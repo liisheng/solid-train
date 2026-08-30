@@ -1,0 +1,217 @@
+# Frozen source-tagged shard namespaces, split manifests, isolation rules, and the
+# mixture/profile verification contract (Plan Sections 4.1-4.4, 5.4, and Section 13 G1).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/shards.py (FROZEN_SHARD_PROTOCOL_SHA256). Loading fails closed if the
+# bytes change, so a namespace, threshold, or tolerance cannot drift silently. Any change
+# must be published as configs/data/shards_v2.yaml with a recorded reason; never edit v1
+# in place.
+#
+# This file replaces the monolithic flat train.bin/validation.bin output contract used by
+# the pilot path (scripts/prepare_data.py). Nothing here acquires a corpus or produces
+# billion-token shards. No shard token count has been measured; the real-scale mixture
+# reconciliation is reported as NOT_RUN below rather than invented.
+
+protocol: shards
+version: v1
+frozen: true
+calibration: tiny-local-fixtures-only
+supersedes: flat train.bin/validation.bin monolithic output contract (pilot only)
+
+change_control:
+  immutable: true
+  on_change: create configs/data/shards_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/shards.py::FROZEN_SHARD_PROTOCOL_SHA256
+
+# --------------------------------------------------------------------------------------
+# Packed storage contract (Plan Section 5.4)
+# --------------------------------------------------------------------------------------
+
+storage:
+  dtype: uint16
+  byte_order: little
+  bytes_per_token: 2
+  maximum_representable_id: 65535
+  file_suffix: .bin
+  digest_algorithm: sha256
+  digest_scope: packed_shard_bytes
+  document_boundary: eos_appended_to_every_document
+  deterministic_document_order: sort_by_document_id
+  one_source_per_shard: true
+  never_pre_mix_sources_on_disk: true
+  shard_id_format: "{namespace}/shard_{index:05d}"
+  default_shard_token_budget: 268435456
+
+# --------------------------------------------------------------------------------------
+# Source-tagged shard namespaces (Plan Section 5.4, verbatim directory layout)
+# --------------------------------------------------------------------------------------
+
+namespaces:
+  stable_train:
+    fineweb_edu: stable/fineweb_edu
+    dclm: stable/dclm
+    openwebmath: stable/openwebmath
+    narrative: stable/narrative
+  reserved:
+    reserved_science: reserved/science
+    reserved_textbook: reserved/textbook
+    reserved_wikipedia: reserved/wikipedia
+    reserved_edu_decile: reserved/edu_decile
+    reserved_math_prose: reserved/math_prose
+
+# Validation splits are source-stratified over the same sources, in their own namespace
+# roots so a validation shard can never be confused with a training shard.
+validation_namespace_prefixes:
+  validation_dev: validation_dev
+  validation_final: validation_final
+
+# --------------------------------------------------------------------------------------
+# Independent split manifests. Each split owns one manifest file; validation_dev and
+# validation_final are never written into a shared document (Plan Section 4.4).
+# --------------------------------------------------------------------------------------
+
+splits:
+  - split_id: stable_train
+    boundary: stable_train
+    manifest_file: stable_train.manifest.json
+    namespace_group: stable_train
+    source_stratified: false
+    requires_protected_slice: false
+  - split_id: reserved
+    boundary: reserved
+    manifest_file: reserved.manifest.json
+    namespace_group: reserved
+    source_stratified: false
+    requires_protected_slice: false
+    selected_before_stable_and_validation: true
+  - split_id: validation_dev
+    boundary: validation_dev
+    manifest_file: validation_dev.manifest.json
+    namespace_group: validation_dev
+    source_stratified: true
+    requires_protected_slice: true
+  - split_id: validation_final
+    boundary: validation_final
+    manifest_file: validation_final.manifest.json
+    namespace_group: validation_final
+    source_stratified: true
+    requires_protected_slice: true
+
+manifest_independence:
+  separate_files: true
+  disjoint_shard_ids: true
+  disjoint_relative_paths: true
+  disjoint_document_ids: true
+  reason_code: SPLIT_MANIFESTS_NOT_INDEPENDENT
+
+# --------------------------------------------------------------------------------------
+# Cluster isolation (Plan Sections 4.3, 4.4, 5.1 last bullets)
+# --------------------------------------------------------------------------------------
+
+isolation:
+  boundaries: [stable_train, reserved, validation_dev, validation_final]
+  no_cluster_may_cross_boundary: true
+  boundary_reason_code: CLUSTER_CROSSES_BOUNDARY
+  protected_slice_isolation: true
+  protected_slice_reason_code: CLUSTER_CROSSES_PROTECTED_SLICE
+  protected_slices: [broad_general, educational_science, narrative_coreference, math_technical]
+  validation_requires_declared_slice: true
+  undeclared_slice_reason_code: VALIDATION_SLICE_NOT_DECLARED
+  slices_frozen_before_proxy_training: true
+  dedup_protocol: configs/data/dedup_v1.yaml
+  fail_closed: true
+
+# --------------------------------------------------------------------------------------
+# Mixture verification (Plan Sections 4.1-4.3, Section 13 G1)
+# --------------------------------------------------------------------------------------
+
+mixture_verification:
+  measured_with: final_tokenizer
+  final_token_counter_id: final_tokenizer_v1
+  provisional_token_counter_id: provisional_whitespace_words
+  requires_final_token_counter: true
+  provisional_status: DEFERRED
+  provisional_blocker: the final 12,288-ID tokenizer has not been built, so no post-filter share is measured
+  provisional_owner: operator
+  provisional_next_action: build the final tokenizer, repack every namespace, then rerun the G1 mixture reconciliation
+  stable_share_absolute_tolerance: 0.005
+  reserved_share_absolute_tolerance: 0.010
+  share_out_of_tolerance_reason_code: MIXTURE_SHARE_OUT_OF_TOLERANCE
+  scopes:
+    fixture: tiny local shards; token totals and shares are DEFERRED, never PASS
+    final: real shards; token totals and shares are evaluated PASS or FAIL
+
+# --------------------------------------------------------------------------------------
+# Corpus profiles (Plan Section 4.2) and the reserved margin (Plan Section 4.3)
+# --------------------------------------------------------------------------------------
+
+profiles:
+  - profile_id: full_v1
+    minimum_accepted_stable_tokens: 11000000000
+    intended_consumed_range: approximately 12-20B, measured
+    requires_dated_decision_record: false
+  - profile_id: degraded_v1
+    minimum_accepted_stable_tokens: 8000000000
+    intended_consumed_range: approximately 9-14B, with repetition disclosed
+    requires_dated_decision_record: true
+    decision_record_required_fields: [profile_id, date, owner, reason]
+    decision_record_date_format: "%Y-%m-%d"
+
+profile_selection:
+  prefer_highest_eligible_profile: true
+  below_all_thresholds_reason_code: PROFILE_BELOW_THRESHOLD
+  missing_decision_record_reason_code: DEGRADED_DECISION_RECORD_MISSING
+  fail_closed: true
+
+reserved_pool:
+  required_tokens: 300023808
+  margin: 1.30
+  minimum_accepted_tokens: 390100000
+  margin_not_met_reason_code: RESERVED_MARGIN_NOT_MET
+
+validation_split_tokens:
+  minimum: 10000000
+  maximum: 20000000
+  out_of_range_reason_code: VALIDATION_SPLIT_TOKENS_OUT_OF_RANGE
+
+# --------------------------------------------------------------------------------------
+# Readiness. Fixture calibration is allowed while these are NOT_RUN.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  fixture_shard_production_allowed: true
+  measured_shard_token_counts: NOT_RUN
+  measured_mixture_shares: NOT_RUN
+  measured_profile_selection: NOT_RUN
+  billion_token_shard_production: DEFERRED
+  blocker: no corpus has been acquired and the final tokenizer has not been built
+  owner: operator
+  next_action: acquire pinned sources, build the final tokenizer, produce real shards, then run the G1 reconciliation
+
+reason_codes:
+  ok:
+    - SHARD_OK
+  fail_closed:
+    - SHARD_SOURCE_MIXED
+    - SHARD_BOUNDARY_MIXED
+    - SHARD_MISSING_SOURCE_TAG
+    - SHARD_NAMESPACE_UNREGISTERED
+    - SHARD_DTYPE_NOT_UINT16
+    - SHARD_TOKEN_ID_OUT_OF_RANGE
+    - SHARD_DIGEST_MISMATCH
+    - SHARD_DOCUMENT_BOUNDARY_MISMATCH
+    - SPLIT_MANIFESTS_NOT_INDEPENDENT
+    - CLUSTER_CROSSES_BOUNDARY
+    - CLUSTER_CROSSES_PROTECTED_SLICE
+    - VALIDATION_SLICE_NOT_DECLARED
+    - MIXTURE_SHARE_OUT_OF_TOLERANCE
+    - VALIDATION_SPLIT_TOKENS_OUT_OF_RANGE
+    - RESERVED_MARGIN_NOT_MET
+    - PROFILE_BELOW_THRESHOLD
+    - DEGRADED_DECISION_RECORD_MISSING
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_namespace: true

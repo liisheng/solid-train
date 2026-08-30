@@ -1,0 +1,256 @@
+# Frozen A/B/C exposure identity and annealing contract (Plan Sections 8.1-8.5).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/branches.py (FROZEN_BRANCH_PROTOCOL_SHA256). Loading fails closed if the
+# bytes change, so an arm definition, an annealing formula, a batch layout, or an identity
+# requirement cannot drift after fixture calibration -- and above all cannot drift after an
+# arm outcome is observed. Any change must be published as
+# configs/branches/exposure_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# Plan Section 8.3: "Before scheduling, create fixed stable and reserved exposure lists. B
+# and C MUST use identical exposure multisets, including multiplicity ... Only temporal
+# placement may differ between B and C. For the A-versus-B quality contrast, also create a
+# disjoint `stable_control` exposure list with the same number of sequences as the reserved
+# list. At every B reserved-data position, A consumes the corresponding `stable_control`
+# exposure; at every other position A and B consume the same ordered common-stable
+# exposure. A and B otherwise share parent, LR, batch layout, optimizer, and RNG policy."
+#
+# This file constructs exposure lists and arm schedules over tiny local shards only. It does
+# not select a branch size from a measured throughput, does not bind a parent checkpoint
+# hash, and does not run an arm. Those stay NOT_RUN / BLOCKED under `readiness` below rather
+# than being invented.
+
+protocol: branch_exposure
+version: v1
+frozen: true
+calibration: tiny-local-fixtures-only
+consumes: configs/data/schedule_v1.yaml materialized schedules over configs/data/shards_v1.yaml manifests
+
+change_control:
+  immutable: true
+  on_change: create configs/branches/exposure_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/branches.py::FROZEN_BRANCH_PROTOCOL_SHA256
+  # The strongest reason this file is frozen: a post-hoc arm redefinition would silently
+  # convert a preregistered comparison into a chosen one.
+  frozen_before_any_arm_outcome_is_observed: true
+
+# --------------------------------------------------------------------------------------
+# Batch layout (Plan Sections 7.1 and 8.4). Identical for every arm.
+# --------------------------------------------------------------------------------------
+
+batch_layout:
+  sequences_per_update: 256
+  sequence_length: 1024
+  loss_tokens_per_update: 262144
+  loss_tokens_formula: sequences_per_update * sequence_length
+  identical_across_arms: true
+  reason_code_on_mismatch: BRANCH_SEQUENCES_PER_UPDATE_MISMATCH
+
+# --------------------------------------------------------------------------------------
+# The three arms (Plan Section 8.2)
+# --------------------------------------------------------------------------------------
+
+arms:
+  - arm_id: A
+    purpose: ordinary decay control
+    stable_share: 1.0
+    reserved_share: 0.0
+    reserved_placement: none
+    # A is B with the reserved sequences replaced position-for-position by disjoint
+    # stable_control sequences, so B-versus-A isolates data quality, not an unrelated draw.
+    derives_from: B
+    replacement: reserved_positions_take_stable_control
+  - arm_id: B
+    purpose: quality-data effect
+    stable_share: 0.5
+    reserved_share: 0.5
+    reserved_placement: constant
+    stable_sequences_per_update: 128
+    reserved_sequences_per_update: 128
+  - arm_id: C
+    purpose: schedule-timing effect
+    stable_share: 0.5
+    reserved_share: 0.5
+    reserved_placement: linearly_annealed
+    reserved_sequences_per_update: reserved_in_update(k)
+
+comparisons:
+  # Plan Section 8.6 names H2 primary and H1 secondary. Recorded here only so the arms that
+  # must be comparable are unambiguous; no analysis is performed by this contract.
+  primary: C_versus_B_temporal_placement
+  secondary: B_versus_A_data_quality
+
+# --------------------------------------------------------------------------------------
+# Exposure lists (Plan Section 8.3)
+# --------------------------------------------------------------------------------------
+
+exposure_lists:
+  common_stable:
+    boundary: stable_train
+    sequences_formula: stable_sequences_per_update * update_count
+    consumed_in_order_by: [A, B, C]
+  reserved:
+    boundary: reserved
+    sequences_formula: reserved_sequences_per_update * update_count
+    consumed_in_order_by: [B, C]
+  stable_control:
+    boundary: stable_train
+    # "the same number of sequences as the reserved list"
+    sequences_formula: same_as_reserved
+    consumed_in_order_by: [A]
+    disjoint_from: [common_stable, reserved]
+    reason_code_on_overlap: BRANCH_EXPOSURE_NOT_DISJOINT
+
+identity:
+  # hash(sorted(doc_id, token_offset, length, multiplicity)) -- order independent, so two
+  # arms consuming the same data in a different order hash identically.
+  stable_exposure_hash: sha256_of_sorted_reference_multiset
+  reserved_exposure_hash: sha256_of_sorted_reference_multiset
+  stable_control_exposure_hash: sha256_of_sorted_reference_multiset
+  # Order sensitive, so temporal placement is visible.
+  training_order_hash: sha256_of_ordered_reference_sequence
+  required_assertions:
+    - B.stable_exposure_hash == C.stable_exposure_hash
+    - B.reserved_exposure_hash == C.reserved_exposure_hash
+    - B.training_order_hash != C.training_order_hash
+    - A.stable_exposure_hash == B.stable_exposure_hash
+    - A.reserved_sequence_count == 0
+    - A.stable_control_sequence_count == B.reserved_sequence_count
+    - A.reserved_positions == B.reserved_positions
+    - A.training_order_hash != B.training_order_hash
+  reason_code_on_stable_mismatch: BRANCH_STABLE_MULTISET_MISMATCH
+  reason_code_on_reserved_mismatch: BRANCH_RESERVED_MULTISET_MISMATCH
+  reason_code_on_equal_order: BRANCH_ORDER_HASH_IDENTICAL
+  reason_code_on_unmatched_position: BRANCH_POSITION_NOT_MATCHED
+
+# --------------------------------------------------------------------------------------
+# Exact annealing schedule (Plan Section 8.4)
+# --------------------------------------------------------------------------------------
+
+annealing:
+  minimum_update_count: 2
+  reason_code_on_invalid_update_count: BRANCH_UPDATE_COUNT_INVALID
+  p_reserved: k / (K - 1)
+  cumulative_reserved: floor(256 * k * (k + 1) / (2 * (K - 1)) + 0.5)
+  cumulative_reserved_at_minus_one: 0
+  reserved_in_update: cumulative_reserved(k) - cumulative_reserved(k - 1)
+  rounding: nonnegative_half_up
+  # Evaluated in exact integer arithmetic as (2 * n + d) // (2 * d) with
+  # n = sequences_per_update * k * (k + 1) and d = 2 * (K - 1); no float rounds anywhere.
+  integer_evaluation: (2 * n + d) // (2 * d)
+  invariants:
+    update_0_all_stable: true
+    update_K_minus_1_all_reserved: true
+    total_reserved_sequences: 128 * K
+    total_reserved_share: 0.5
+    nonnegative_per_update: true
+    at_most_sequences_per_update: true
+  reason_code_on_count_mismatch: BRANCH_RESERVED_COUNT_MISMATCH
+
+# --------------------------------------------------------------------------------------
+# Shared policy that must be identical across arms (Plan Section 8.3)
+# --------------------------------------------------------------------------------------
+
+shared_policy:
+  fields: [parent_binding_id, sequences_per_update, sequence_length, parent_lr, update_count, optimizer_policy, rng_policy]
+  parent: one common parent checkpoint per A/B/C set
+  learning_rate:
+    identical_across_arms: true
+    shape: linear_decay_from_parent_lr_to_zero
+    # Plan 8.4: "LR follows the same update count but is identical for all arms and
+    # linearly decays from the parent LR to zero."
+    formula: parent_lr * (K - 1 - k) / (K - 1)
+  optimizer_policy: adamw_groups_frozen_by_task_3_12
+  rng_policy: identical_seed_and_stream_derivation_across_arms
+  reason_code_on_divergence: BRANCH_ARM_POLICY_DIVERGED
+
+# --------------------------------------------------------------------------------------
+# Branch sizes (Plan Section 8.1). Selection requires a MEASURED 3070 throughput.
+# --------------------------------------------------------------------------------------
+
+branch_sizes:
+  unit: loss_tokens
+  update_alignment_required: true
+  reason_code_on_unaligned: BRANCH_TOKENS_NOT_UPDATE_ALIGNED
+  bands:
+    - band_id: below_12k
+      measured_tps_minimum: null
+      measured_tps_exclusive_maximum: 12000
+      primary_tokens_per_arm: 200015872
+      primary_updates_per_arm: 763
+      confirmation_tokens_per_arm: 50069504
+      confirmation_updates_per_arm: 191
+    - band_id: 12k_to_below_15k
+      measured_tps_minimum: 12000
+      measured_tps_exclusive_maximum: 15000
+      primary_tokens_per_arm: 300154880
+      primary_updates_per_arm: 1145
+      confirmation_tokens_per_arm: 100139008
+      confirmation_updates_per_arm: 382
+    - band_id: at_least_15k_with_calendar_reserve
+      measured_tps_minimum: 15000
+      measured_tps_exclusive_maximum: null
+      requires_calendar_reserve: true
+      primary_tokens_per_arm: 600047616
+      primary_updates_per_arm: 2289
+      confirmation_tokens_per_arm: 100139008
+      confirmation_updates_per_arm: 382
+  calendar:
+    branch_training_deadline: September 16
+    evaluation_and_one_recovery_slot: September 17
+  set_counts:
+    primary_sets: 1
+    confirmation_sets: 1
+    parents_per_set: 1
+
+# --------------------------------------------------------------------------------------
+# Parent binding (Plan Section 8.5). The append-only manifest itself is task 3.14 scope;
+# this contract only fixes the sentinel and the ordering rule the arms must respect.
+# --------------------------------------------------------------------------------------
+
+parent_binding:
+  pending_sentinel: PENDING_PARENT_HASH
+  hash_exists_at_freeze_time: false
+  bind_before_any_arm_runs: true
+  bind_before_any_arm_outcome_is_observed: true
+  append_only_manifest: true
+  manifest_owner_task: "3.14"
+  identical_across_arms_in_one_set: true
+  reason_code_on_divergence: BRANCH_ARM_POLICY_DIVERGED
+
+# --------------------------------------------------------------------------------------
+# Readiness. Fixture construction is allowed while these are NOT_RUN / BLOCKED.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  fixture_arm_construction_allowed: true
+  measured_3070_throughput: NOT_RUN
+  selected_branch_size_band: NOT_RUN
+  bound_parent_checkpoint_hash: NOT_RUN
+  arm_runs_completed: NOT_RUN
+  arm_outcomes_observed: NOT_RUN
+  blocker: no corpus, no mainline parent checkpoint, and no measured 3070 sustained throughput exist yet
+  owner: operator
+  next_action: measure sustained 3070 throughput on real shards, then select a band and bind the parent hash before any arm runs
+
+reason_codes:
+  ok:
+    - BRANCH_OK
+  fail_closed:
+    - BRANCH_ARM_POLICY_DIVERGED
+    - BRANCH_EXPOSURE_NOT_DISJOINT
+    - BRANCH_ORDER_HASH_IDENTICAL
+    - BRANCH_POSITION_NOT_MATCHED
+    - BRANCH_RESERVED_COUNT_MISMATCH
+    - BRANCH_RESERVED_MULTISET_MISMATCH
+    - BRANCH_SEQUENCES_PER_UPDATE_MISMATCH
+    - BRANCH_STABLE_MULTISET_MISMATCH
+    - BRANCH_SUPPLY_EXHAUSTED
+    - BRANCH_TOKENS_NOT_UPDATE_ALIGNED
+    - BRANCH_UPDATE_COUNT_INVALID
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_arm: true

@@ -7,14 +7,29 @@ name = "tinybench-lm"
 version = "0.1.0"
 description = "A reproducible, benchmark-oriented language model under 50M parameters"
 requires-python = ">=3.11"
+
+# Runtime dependencies are pinned exactly. Open-ended ranges would let a fresh install
+# silently resolve a different tokenizer, dataset, or evaluation-harness protocol than the
+# one that produced our recorded evidence. Every version below was verified as installed
+# and working; see constraints/verified-py311-windows.txt for the full transitive set and
+# `python scripts/check_environment.py` for the check command.
 dependencies = [
-  "datasets>=3.0",
-  "lm-eval>=0.4.12",
-  "numpy>=1.26",
-  "pyyaml>=6.0",
-  "tokenizers>=0.20",
-  "torch>=2.5",
-  "tqdm>=4.66",
+  "datasets==3.2.0",
+  "lm-eval==0.4.12",
+  "numpy==1.26.4",
+  "pyyaml==6.0.2",
+  "tokenizers==0.20.3",
+  "torch==2.5.1",
+  "tqdm==4.67.1",
+]
+
+# Test tooling is optional and separate from the runtime contract, so a runtime-only or
+# release install never pulls it in. `hypothesis` is the property-testing dependency used
+# by the alignment and preservation property suites.
+[project.optional-dependencies]
+test = [
+  "hypothesis==6.130.5",
+  "pytest==8.3.5",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,0 +1,162 @@
+# Frozen materialized mixture-schedule contract (Plan Sections 5.4, 7.2, 8.3).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/schedule.py (FROZEN_SCHEDULE_PROTOCOL_SHA256). Loading fails closed if
+# the bytes change, so an ordering rule, buffer bound, or cursor semantic cannot drift
+# after fixture calibration. Any change must be published as
+# configs/data/schedule_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# Plan Section 5.4: "A mixture is a materialized index schedule, not a repacked dataset.
+# Each schedule contains deterministic (shard_id, token_offset, length) references and a
+# content hash. Resume restores one integer schedule cursor. Use shard-level shuffle,
+# sequential reads inside shards, and a bounded local shuffle buffer."
+#
+# This file replaces the final-training random flat-stream sampling used by the pilot
+# path. It does not acquire a corpus and does not build a real-scale schedule; no schedule
+# over real shards has been materialized, and that is reported NOT_RUN below rather than
+# invented.
+
+protocol: schedule
+version: v1
+frozen: true
+calibration: tiny-local-fixtures-only
+supersedes: random flat-stream sampling for final training (PackedTokenDataset, pilot only)
+consumes: configs/data/shards_v1.yaml split manifests
+
+change_control:
+  immutable: true
+  on_change: create configs/data/schedule_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/schedule.py::FROZEN_SCHEDULE_PROTOCOL_SHA256
+
+# --------------------------------------------------------------------------------------
+# Immutable schedule records (Plan Section 5.4)
+# --------------------------------------------------------------------------------------
+
+entry:
+  # The exact reference tuple the plan names. Order is part of the freeze because the
+  # content hash is computed over the serialized records.
+  reference_fields: [shard_id, token_offset, length]
+  source_tag_fields: [source_id, namespace]
+  # A record covers sequence_length + label_shift tokens: the extra token is the final
+  # next-token target, so inputs and targets come from one contiguous in-shard read.
+  label_shift: 1
+  length_formula: sequence_length + label_shift
+  non_overlapping_within_shard: true
+  immutable_records: true
+
+identity:
+  schedule_id_format: "{split_id}/seed{seed}/len{sequence_length}"
+  content_hash_algorithm: sha256
+  content_hash_scope: canonical JSON of the schedule payload with sorted keys
+  binds_manifest_content_hash: true
+  binds_protocol_digest: true
+  reason_code_on_mismatch: SCHEDULE_CONTENT_HASH_MISMATCH
+
+# --------------------------------------------------------------------------------------
+# Ordering: shard-level shuffle, sequential in-shard reads, bounded local shuffle
+# --------------------------------------------------------------------------------------
+
+ordering:
+  shard_level_shuffle: true
+  sequential_reads_inside_shard: true
+  bounded_local_shuffle: true
+  # A bounded buffer keeps the read pattern sequential enough for the 16GB host: an entry
+  # can be displaced by strictly fewer than this many positions from its sequential
+  # stream position, so page-cache locality is preserved while sources still interleave.
+  default_local_shuffle_buffer_sequences: 1024
+  minimum_local_shuffle_buffer_sequences: 1
+  maximum_local_shuffle_buffer_sequences: 65536
+  maximum_displacement_formula: local_shuffle_buffer_sequences - 1
+  displacement_reason_code: SCHEDULE_LOCAL_SHUFFLE_UNBOUNDED
+  # Derived from (protocol digest, manifest content hash, split, sequence length, seed) so
+  # ordering never depends on global interpreter RNG state.
+  rng: numpy_pcg64_seeded_by_sha256_of_schedule_identity
+  deterministic_for_identical_inputs: true
+
+# --------------------------------------------------------------------------------------
+# Resume: one integer cursor (Plan Sections 5.4 and 7.2)
+# --------------------------------------------------------------------------------------
+
+cursor:
+  state_key: schedule_cursor
+  state_type: nonnegative_integer
+  state_format_version: 1
+  binds_schedule_content_hash: true
+  # Schedule hash plus one integer completely determines the consumed training input.
+  determines_consumed_input: true
+  restores_exact_next_sequence: true
+  reason_code_on_hash_change: SCHEDULE_CONTENT_HASH_MISMATCH
+  reason_code_on_out_of_range: SCHEDULE_CURSOR_OUT_OF_RANGE
+  save_only_at_accumulation_boundaries: true
+
+# --------------------------------------------------------------------------------------
+# Source quotas (Plan Sections 4.1-4.3 shares, materialized as sequence counts)
+# --------------------------------------------------------------------------------------
+
+quotas:
+  unit: sequences
+  reconcile_per_source: true
+  exact_when_requested: true
+  reason_code_on_mismatch: SCHEDULE_SOURCE_QUOTA_MISMATCH
+  reason_code_on_insufficient_supply: SCHEDULE_SOURCE_SUPPLY_EXHAUSTED
+  fail_closed: true
+
+bounds:
+  every_reference_inside_its_shard: true
+  reason_code_out_of_bounds: SCHEDULE_REFERENCE_OUT_OF_BOUNDS
+  reason_code_unknown_shard: SCHEDULE_SHARD_UNKNOWN
+  reason_code_duplicate_reference: SCHEDULE_DUPLICATE_REFERENCE
+  reason_code_boundary_mixed: SCHEDULE_BOUNDARY_MIXED
+  fail_closed: true
+
+# --------------------------------------------------------------------------------------
+# The superseded pilot sampler stays available, explicitly labeled
+# --------------------------------------------------------------------------------------
+
+pilot_sampler:
+  implementation: tinybench_lm.data.PackedTokenDataset
+  status: PILOT_ONLY
+  eligible_for_final_training: false
+  reason: random flat-stream sampling cannot reproduce a source mixture or an exposure order
+  retained_for: bounded smoke tests and the format-v2 RNG/sampler resume evidence
+  resume_state: numpy bit generator state, preserved exactly
+
+final_training_reader:
+  implementation: tinybench_lm.schedule.ScheduledTokenStream
+  access: memory_mapped_uint16
+  reads: sequential_inside_shard
+  resume_state: one integer schedule_cursor bound to the schedule content hash
+
+# --------------------------------------------------------------------------------------
+# Readiness. Fixture calibration is allowed while these are NOT_RUN.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  fixture_schedule_construction_allowed: true
+  measured_real_shard_schedule: NOT_RUN
+  measured_source_quota_reconciliation: NOT_RUN
+  measured_dataloader_throughput: NOT_RUN
+  blocker: no corpus has been acquired, so no real-scale split manifest exists to schedule
+  owner: operator
+  next_action: produce real source-tagged shards, then materialize and hash the mainline schedule
+
+reason_codes:
+  ok:
+    - SCHEDULE_OK
+  fail_closed:
+    - SCHEDULE_CONTENT_HASH_MISMATCH
+    - SCHEDULE_CURSOR_OUT_OF_RANGE
+    - SCHEDULE_REFERENCE_OUT_OF_BOUNDS
+    - SCHEDULE_SHARD_UNKNOWN
+    - SCHEDULE_DUPLICATE_REFERENCE
+    - SCHEDULE_BOUNDARY_MIXED
+    - SCHEDULE_SOURCE_QUOTA_MISMATCH
+    - SCHEDULE_SOURCE_SUPPLY_EXHAUSTED
+    - SCHEDULE_LOCAL_SHUFFLE_UNBOUNDED
+    - SCHEDULE_EMPTY
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_source: true

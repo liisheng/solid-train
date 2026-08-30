@@ -14,6 +14,7 @@ from lm_eval.api.instance import Instance
 
 from tinybench_lm import ModelConfig, TinyBenchLM
 from tinybench_lm.checkpoint import restore_checkpoint_state, save_checkpoint
+from tinybench_lm.config import FINAL_CONFIG_PATH
 from tinybench_lm.data import PackedTokenDataset
 from tinybench_lm.lm_eval_adapter import TinyBenchHarnessLM
 
@@ -47,7 +48,7 @@ def parameter_breakdown(model: TinyBenchLM) -> dict[str, int]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Bounded Phase 1 full-model smoke checks")
-    parser.add_argument("--config", type=Path, default=Path("configs/baseline_49m.json"))
+    parser.add_argument("--config", type=Path, default=FINAL_CONFIG_PATH)
     parser.add_argument(
         "--data-dir", type=Path, default=Path("data/processed/fineweb_edu_pilot")
     )

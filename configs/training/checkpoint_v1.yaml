@@ -1,0 +1,231 @@
+# Frozen checkpoint contract: durable writes, complete state, verified resume, retention.
+# Plan Sections 7.2, 9, 13 G2, 15.
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/checkpointing.py (FROZEN_CHECKPOINT_PROTOCOL_SHA256). Loading fails closed
+# if the bytes change, so what "a checkpoint" means cannot drift after a lineage has been
+# started against it. Any change must be published as configs/training/checkpoint_v2.yaml
+# with a recorded reason; never edit v1 in place.
+#
+# Plan Section 7.2 verbatim: "Save at accumulation boundaries: model, optimizer, scaler, all
+# RNG states, schedule cursor and schedule hash, counters, run ID, config hashes, and best
+# validation state. Write to a temporary file, flush and fsync, checksum, load-test, then
+# rename."
+#
+# Nothing in this file starts a run, measures checkpoint wall time, or verifies a remote
+# copy. Those stay NOT_RUN under `readiness` rather than being claimed.
+
+protocol: checkpoint
+version: v1
+frozen: true
+calibration: tiny-cpu-fixtures-only-no-training-run
+consumes: configs/training/recipe_v1.yaml counters and run identity; configs/data/schedule_v1.yaml cursor
+
+change_control:
+  immutable: true
+  on_change: create configs/training/checkpoint_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/checkpointing.py::FROZEN_CHECKPOINT_PROTOCOL_SHA256
+  frozen_before_any_run_id_is_issued: true
+
+# --------------------------------------------------------------------------------------
+# When a checkpoint may be written (Plan Section 7.2)
+# --------------------------------------------------------------------------------------
+
+boundary:
+  # A save inside an accumulation window would persist a half-accumulated gradient buffer
+  # with counters that describe a completed update, so resume would double-count or drop
+  # microbatches. Only a completed update is a legal save point.
+  save_only_at_accumulation_boundaries: true
+  microbatches_completed_in_update_must_be_zero: true
+  optimizer_step_must_be_complete: true
+  reason_code_on_mid_accumulation_save: CHECKPOINT_NOT_AT_ACCUMULATION_BOUNDARY
+
+# --------------------------------------------------------------------------------------
+# Complete state (Plan Section 7.2). Every key is required; absence fails closed.
+# --------------------------------------------------------------------------------------
+
+payload:
+  durable_format_version: 1
+  # Retained so a durable checkpoint stays readable by the proven format-v2 resume path in
+  # src/tinybench_lm/checkpoint.py. A durable payload is a strict superset of format v2.
+  base_format_version: 2
+  base_format_superset: true
+  required_keys:
+    - checkpoint_format_version
+    - durable_checkpoint_format_version
+    - protocol_digest
+    - model
+    - optimizer
+    - scaler
+    - grad_scaler_enabled
+    - model_config
+    - training_args
+    - step
+    - best_validation_loss
+    - best_validation_state
+    - rng_state
+    - data_rng_state
+    - schedule_content_hash
+    - schedule_cursor
+    - counters
+    - run_id
+    - frozen_config_hashes
+    - weight_sha256
+  required_rng_streams:
+    - python
+    - numpy
+    - torch_cpu
+  cuda_rng_required_when_available: true
+  required_counter_fields:
+    - update_index
+    - updates_completed
+    - consumed_loss_tokens
+    - loss_tokens_per_update
+    - microbatches_completed_in_update
+    - gradient_accumulation
+  consumed_tokens_formula: updates_completed * loss_tokens_per_update
+  updates_completed_formula: update_index + 1
+  required_frozen_config_hashes:
+    - recipe_digest
+    - model_config_hash
+  # The pilot random flat-stream sampler has no integer cursor. Null is the only permitted
+  # absence, and it is labeled PILOT_ONLY in the payload rather than silently omitted.
+  schedule_cursor_null_permitted_for_pilot_sampler: true
+  pilot_schedule_hash_sentinel: PILOT_ONLY_NO_SCHEDULE
+  # A GradScaler is only present under the FP16 fallback; an enabled scaler must carry state.
+  scaler_state_required_when_enabled: true
+  reason_code_on_missing_state: CHECKPOINT_INCOMPLETE_STATE
+
+# --------------------------------------------------------------------------------------
+# Durable write order (Plan Section 7.2). The order is the contract.
+# --------------------------------------------------------------------------------------
+
+durability:
+  write_order:
+    - write_temporary_file
+    - flush
+    - fsync
+    - checksum
+    - independent_load_test
+    - rename
+  temporary_suffix: .tmp
+  checksum_algorithm: sha256
+  # A sidecar manifest records the checksum next to the artifact so a later verification does
+  # not have to trust the artifact to describe itself.
+  sidecar_manifest_suffix: .manifest.json
+  sidecar_manifest_required: true
+  sidecar_written_atomically: true
+  # The load test reopens the temporary file in a fresh mapping and re-derives the weight
+  # hash, so a truncated or partially flushed write is caught before the rename publishes it.
+  independent_load_test_rechecks_weight_hash: true
+  independent_load_test_rechecks_counters: true
+  rename_is_atomic_replace: true
+  # Directory fsync is not available on every platform; failure to fsync a directory is
+  # recorded as informational and never upgraded into a durability claim.
+  directory_fsync_best_effort: true
+  reason_code_on_checksum_mismatch: CHECKPOINT_CHECKSUM_MISMATCH
+  reason_code_on_load_test_failure: CHECKPOINT_LOAD_TEST_FAILED
+  reason_code_on_missing_manifest: CHECKPOINT_MANIFEST_MISSING
+
+# --------------------------------------------------------------------------------------
+# Verification before resume (Plan Sections 7.2, 15)
+# --------------------------------------------------------------------------------------
+
+integrity:
+  verify_before_resume: true
+  verify_checksum_against_manifest: true
+  verify_byte_size: true
+  verify_payload_completeness: true
+  verify_counter_arithmetic: true
+  verify_accumulation_boundary: true
+  verify_weight_hash: true
+  verify_frozen_config_hashes: true
+  verify_run_id: true
+  verify_schedule_binding: true
+  # Plan Section 15: a semantic change creates a new run ID and never mutates a lineage.
+  resume_under_different_run_id_forbidden: true
+  resume_under_drifted_frozen_artifact_forbidden: true
+  reason_code_on_corruption: CHECKPOINT_CORRUPT
+  reason_code_on_frozen_artifact_mismatch: CHECKPOINT_FROZEN_ARTIFACT_MISMATCH
+  reason_code_on_run_id_mismatch: CHECKPOINT_RUN_ID_MISMATCH
+  reason_code_on_counter_violation: CHECKPOINT_COUNTER_IMPOSSIBLE
+  reason_code_on_schedule_mismatch: CHECKPOINT_SCHEDULE_BINDING_MISMATCH
+
+# --------------------------------------------------------------------------------------
+# Retention (Plan Section 9). Deleting the wrong copy is unrecoverable.
+# --------------------------------------------------------------------------------------
+
+retention:
+  keep_latest_recovery_states: 3
+  roles:
+    - role: recovery
+      protected: false
+      note: rolling recovery states; only the latest few are needed to restart
+    - role: branch_parent
+      protected: true
+      note: a branch parent is bound by an append-only hash and can never be regenerated
+    - role: selected_endpoint
+      protected: true
+      note: a selected comparison or release endpoint is evidence
+    - role: fallback
+      protected: true
+      note: the best valid ordinary-decay/stable fallback ships if branches fail
+  # An unverified copy might be the only intact one. Retention therefore proposes a deletion
+  # only for a checkpoint that verified locally and is superseded by a newer verified
+  # recovery state; an unverified copy is retained and reported instead.
+  never_delete_unverified_local_copy: true
+  never_delete_unverified_remote_copy: true
+  deletion_requires_verified_self: true
+  deletion_requires_verified_successor: true
+  remote_copies_are_never_deleted_by_this_repository: true
+  plan_only_no_automatic_deletion: true
+  reason_code_on_unsafe_deletion: CHECKPOINT_RETENTION_UNSAFE_DELETE
+  reason_code_on_unverified_retained: CHECKPOINT_RETENTION_UNVERIFIED_RETAINED
+
+# --------------------------------------------------------------------------------------
+# Fail-closed conditions (Plan Section 15)
+# --------------------------------------------------------------------------------------
+
+fail_closed:
+  corruption: CHECKPOINT_CORRUPT
+  checksum_mismatch: CHECKPOINT_CHECKSUM_MISMATCH
+  incomplete_state: CHECKPOINT_INCOMPLETE_STATE
+  mid_accumulation_save: CHECKPOINT_NOT_AT_ACCUMULATION_BOUNDARY
+  frozen_artifact_mismatch: CHECKPOINT_FROZEN_ARTIFACT_MISMATCH
+  run_id_mismatch: CHECKPOINT_RUN_ID_MISMATCH
+  impossible_counters: CHECKPOINT_COUNTER_IMPOSSIBLE
+  acknowledge_only_after_verified_rename: true
+  never_mutate_a_failed_lineage: true
+
+# --------------------------------------------------------------------------------------
+# Readiness. Absence of a measurement is never PASS.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  tiny_cpu_fixture_verification_allowed: true
+  measured_checkpoint_write_seconds: NOT_RUN
+  measured_checkpoint_size_bytes: NOT_RUN
+  verified_remote_copy: NOT_RUN
+  blocker: no final-scale checkpoint has been written, and remote-copy verification is an operator action outside this repository
+  owner: operator
+  next_action: after G2, write a final-scale checkpoint, record its measured write time and size, copy it off-machine, and verify the remote checksum
+
+reason_codes:
+  ok:
+    - CHECKPOINT_OK
+  fail_closed:
+    - CHECKPOINT_CHECKSUM_MISMATCH
+    - CHECKPOINT_CORRUPT
+    - CHECKPOINT_COUNTER_IMPOSSIBLE
+    - CHECKPOINT_FROZEN_ARTIFACT_MISMATCH
+    - CHECKPOINT_INCOMPLETE_STATE
+    - CHECKPOINT_LOAD_TEST_FAILED
+    - CHECKPOINT_MANIFEST_MISSING
+    - CHECKPOINT_NOT_AT_ACCUMULATION_BOUNDARY
+    - CHECKPOINT_RETENTION_UNSAFE_DELETE
+    - CHECKPOINT_RUN_ID_MISMATCH
+    - CHECKPOINT_SCHEDULE_BINDING_MISMATCH
+  informational:
+    - CHECKPOINT_RETENTION_UNVERIFIED_RETAINED

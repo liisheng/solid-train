@@ -1,0 +1,465 @@
+# Frozen PROVISIONAL evaluation protocol (Plan Sections 2.2, 10.1-10.4).
+#
+# Plan Section 2.2 ends with an explicit instruction: "Until answered, use a versioned
+# `evaluation_provisional_v1` and label it provisional." This file is that version.
+#
+# PROVISIONAL means exactly one thing here: no number produced under this protocol may be
+# presented as an official competition result. The five organizer questions in Section 2.2
+# are unanswered, the lm-evaluation-harness commit is not pinned, and no dataset revision
+# is pinned. Those facts are recorded below as BLOCKED with a blocker, an owner, and a next
+# action; they are never filled in with a plausible-looking guess.
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/evaluation_protocol.py (FROZEN_EVALUATION_PROTOCOL_SHA256). Loading
+# fails closed if the bytes change, so a task list, prompt rendering rule, metric key,
+# seed, or batch policy cannot drift after a score has been recorded against it.
+#
+# When the organizer answers arrive, this file is NOT edited. The promotion workflow in
+# tinybench_lm.evaluation_protocol writes a NEW immutable protocol
+# (configs/evaluation/evaluation_organizer_final_v1.yaml) that declares what it supersedes
+# and pins the provisional digest, so provisional history stays readable instead of being
+# rewritten into a false official record.
+
+protocol: evaluation
+protocol_id: evaluation_provisional_v1
+version: v1
+frozen: true
+
+# --------------------------------------------------------------------------------------
+# Official-vs-provisional status. `official: false` is the single switch that every
+# reporting path checks; `assert_ready_for_official_results` fails closed while it is false.
+# --------------------------------------------------------------------------------------
+
+status:
+  official: false
+  provisional: true
+  label: PROVISIONAL_NOT_OFFICIAL
+  reason: organizer answers to Plan Section 2.2 questions 1-5 are outstanding
+  results_may_be_published_as_official: false
+  results_must_carry_label: true
+  blocker: organizer has not specified num_fewshot, official metric keys, or the WikiText-103 scoring definition
+  owner: operator
+  next_action: send the Section 2.2 questions, then run the promotion workflow to create evaluation_organizer_final_v1
+
+change_control:
+  immutable: true
+  on_change: run tinybench_lm.evaluation_protocol.promote_to_organizer_final to create a NEW protocol; never edit this file
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/evaluation_protocol.py::FROZEN_EVALUATION_PROTOCOL_SHA256
+  protocol_hash_scope: canonical JSON of the identity sections listed in identity.sections
+
+# --------------------------------------------------------------------------------------
+# Protocol identity. The protocol hash covers only these sections, so bookkeeping edits
+# (comments, verification lists, promotion metadata) cannot change the identity that a
+# recorded score was scored under, and a semantic edit always changes it.
+# --------------------------------------------------------------------------------------
+
+identity:
+  sections:
+    - protocol_id
+    - version
+    - status
+    - harness
+    - tasks
+    - prompt_rendering
+    - adapter_policies
+    - model_identity
+    - runtime
+    - wikitext_103
+
+# --------------------------------------------------------------------------------------
+# Harness pin. Plan Section 10.1: "Pin the exact lm-evaluation-harness commit". The commit
+# is not pinned yet, so this is BLOCKED rather than approximated by an installed version.
+# --------------------------------------------------------------------------------------
+
+harness:
+  name: lm-evaluation-harness
+  repository: https://github.com/EleutherAI/lm-evaluation-harness
+  commit: PENDING_PIN
+  commit_status: BLOCKED
+  installed_version_recorded_at_run_time: true
+  blocker: the harness commit used for the final submission has not been chosen or pinned
+  owner: operator
+  next_action: pin one commit SHA before G1 so decontamination and every reported score share it
+  report_every_emitted_metric_key: true
+  report_stderr: true
+
+# --------------------------------------------------------------------------------------
+# Tasks. Required tasks are the Plan Section 10.1 primary table. Secondary tasks are the
+# Plan Section 10.3 clearly-labelled non-official table and can never influence training.
+# Task identities agree with configs/data/decontam_v1.yaml so decontamination covers them.
+# --------------------------------------------------------------------------------------
+
+tasks:
+  required:
+    - task_id: hellaswag
+      harness_task: hellaswag
+      tier: required_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+      official_metric_key: PENDING_ORGANIZER_ANSWER
+    - task_id: arc_easy
+      harness_task: arc_easy
+      tier: required_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+      official_metric_key: PENDING_ORGANIZER_ANSWER
+    - task_id: piqa
+      harness_task: piqa
+      tier: required_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+      official_metric_key: PENDING_ORGANIZER_ANSWER
+    - task_id: winogrande
+      harness_task: winogrande
+      tier: required_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+      metric_keys_status: PROVISIONAL
+      official_metric_key: PENDING_ORGANIZER_ANSWER
+    - task_id: wikitext_103_perplexity
+      harness_task: wikitext
+      tier: required_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - word_perplexity
+        - byte_perplexity
+        - bits_per_byte
+      metric_keys_status: PROVISIONAL
+      official_metric_key: PENDING_ORGANIZER_ANSWER
+      note: the organizer-specified split, slice, normalization, BOS/EOS, context, stride, and denominator are DEFERRED in the wikitext_103 section
+  secondary:
+    - task_id: arc_challenge
+      harness_task: arc_challenge
+      tier: secondary_non_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+    - task_id: sciq
+      harness_task: sciq
+      tier: secondary_non_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+    - task_id: logiqa
+      harness_task: logiqa
+      tier: secondary_non_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+    - task_id: mathqa
+      harness_task: mathqa
+      tier: secondary_non_official
+      dataset_revision: PENDING_PIN
+      revision_status: BLOCKED
+      num_fewshot: 0
+      num_fewshot_status: PROVISIONAL
+      metric_keys:
+        - acc
+        - acc_norm
+      metric_keys_status: PROVISIONAL
+  tier_labels:
+    required_official: REQUIRED_OFFICIAL_TASK_PROVISIONAL_SETTINGS
+    secondary_non_official: SECONDARY_NON_OFFICIAL
+  undeclared_task_label: UNDECLARED_NOT_OFFICIAL
+  undeclared_tasks_require_explicit_opt_in: true
+
+# --------------------------------------------------------------------------------------
+# Prompt rendering. Nothing custom: the harness task definition renders the prompt, and
+# the BOS decision is the frozen tokenizer policy shared with training. Duplicating the
+# policy ID here means a tokenizer_v1 change without a protocol promotion fails a check.
+# --------------------------------------------------------------------------------------
+
+prompt_rendering:
+  source: harness_task_definition
+  custom_template: none
+  doc_to_text: harness_default
+  doc_to_target: harness_default
+  description_prefix: none
+  fewshot_delimiter: harness_default
+  leading_space_handling: preserved_by_continuation_encoding
+  bos_policy_id: BOS_RESERVED_NOT_PREPENDED_V1
+  bos_policy_source: configs/data/tokenizer_v1.yaml
+  bos_policy_key: bos_policy.policy_id
+  identical_in_training_and_evaluation: true
+
+# --------------------------------------------------------------------------------------
+# Adapter token-level semantics (Plan Section 10.2), frozen by task 3.16 and duplicated
+# here as executable expectations. A silent adapter policy change breaks a protocol check.
+# --------------------------------------------------------------------------------------
+
+adapter_policies:
+  scoring: CONTINUATION_ONLY_FLOAT32_LOGSOFTMAX_V1
+  padding: RIGHT_PAD_CAUSAL_NEVER_SCORED_V1
+  truncation: TRUNCATE_CONTEXT_FROM_LEFT_NEVER_CONTINUATION_V1
+  precision: AUTOCAST_CUDA_ONLY_ELSE_FLOAT32_V1
+  bos: BOS_RESERVED_NOT_PREPENDED_V1
+  source: src/tinybench_lm/lm_eval_adapter.py
+
+# --------------------------------------------------------------------------------------
+# Tokenizer and model revisions. Published revisions do not exist yet. Local artifact
+# digests ARE recorded at run time, because those are measured facts about the bytes that
+# produced a score rather than invented release identifiers.
+# --------------------------------------------------------------------------------------
+
+model_identity:
+  tokenizer_revision: PENDING_PIN
+  tokenizer_revision_status: BLOCKED
+  model_revision: PENDING_PIN
+  model_revision_status: BLOCKED
+  local_digests_recorded_at_run_time:
+    - checkpoint_sha256
+    - tokenizer_sha256
+  blocker: the final 12,288-ID tokenizer artifact and candidate checkpoints do not exist yet
+  owner: operator
+  next_action: record released tokenizer and model revisions in the run bundle once G4 artifacts exist
+
+# --------------------------------------------------------------------------------------
+# Device, seed, and batch policy (Plan Section 10.1) plus the Section 10.4 runtime budget.
+# The budget formula is frozen; the measurement behind it is NOT_RUN, not estimated.
+# --------------------------------------------------------------------------------------
+
+runtime:
+  seed: 1234
+  seed_applies_to:
+    - random_seed
+    - numpy_seed
+    - torch_seed
+    - fewshot_seed
+  device_policy: explicit_and_recorded
+  provisional_device: cpu
+  batch_policy:
+    batch_size: 16
+    auto_batch_size: false
+    batch_size_invariance_required: true
+  bootstrap_iters: 1000
+  log_samples: false
+  runtime_budget:
+    formula: p90_measured_runtime * exact_candidate_count * 1.25
+    status: NOT_RUN
+    blocker: G0 smoke benchmarking of every selected task has not been measured
+    owner: operator
+    next_action: run a bounded smoke evaluation at G0 and record p90 runtime per task
+    unmeasured_runtime_claims_forbidden: true
+    forbidden_claim_example: CPU evaluation takes 15-40 minutes
+
+# --------------------------------------------------------------------------------------
+# WikiText-103. Plan Section 2.2 question 3 is the entire blocker: split, slice,
+# normalization, BOS/EOS, context, stride, and denominator are organizer-specified and
+# unknown. Provisional defaults exist so a bounded smoke run is possible, and they are
+# explicitly not reportable as official.
+# --------------------------------------------------------------------------------------
+
+wikitext_103:
+  status: DEFERRED
+  official_scoring_blocked: true
+  blocker: organizer has not specified the WikiText-103 split, slice, normalization, BOS/EOS handling, context, stride, or denominator
+  owner: operator
+  next_action: send Section 2.2 question 3 and promote the answer into evaluation_organizer_final_v1
+  organizer_specified_fields:
+    split: DEFERRED
+    slice: DEFERRED
+    normalization: DEFERRED
+    bos_eos_handling: DEFERRED
+    context_length: DEFERRED
+    stride: DEFERRED
+    denominator: DEFERRED
+  provisional_defaults:
+    label: PROVISIONAL_NOT_OFFICIAL
+    split: test
+    slice: full_split
+    normalization: harness_default_wikitext_detokenizer
+    bos_eos_handling: BOS_RESERVED_NOT_PREPENDED_V1
+    context_length: 1024
+    stride: 1024
+    denominator: harness_default_word_count
+  may_be_reported_as_official: false
+  untouched_until_final: true
+
+# --------------------------------------------------------------------------------------
+# The five Plan Section 2.2 questions. Every answer is null and BLOCKED. `promotion_key`
+# names the field the promotion workflow requires before it will create a final protocol.
+# --------------------------------------------------------------------------------------
+
+organizer_questions:
+  - question_id: Q1_NUM_FEWSHOT
+    question: Official num_fewshot for each required task.
+    status: BLOCKED
+    answer: null
+    promotion_key: num_fewshot
+  - question_id: Q2_METRIC_KEY
+    question: Official metric key for each task (acc, acc_norm, or both).
+    status: BLOCKED
+    answer: null
+    promotion_key: metric_keys
+  - question_id: Q3_WIKITEXT_DEFINITION
+    question: Exact WikiText-103 split, slice, normalization, BOS/EOS handling, context, stride, and denominator.
+    status: BLOCKED
+    answer: null
+    promotion_key: wikitext_103
+  - question_id: Q4_JUDGE_RERUN
+    question: Whether judges rerun evaluation or use submitted raw outputs.
+    status: BLOCKED
+    answer: null
+    promotion_key: judges_rerun_policy
+  - question_id: Q5_WEIGHT_UPLOAD
+    question: Whether the Hugging Face note prohibits only downloading pretrained weights or also uploading our own self-trained weights.
+    status: BLOCKED
+    answer: null
+    promotion_key: own_weight_upload_policy
+
+# --------------------------------------------------------------------------------------
+# Promotion workflow. Answers create a NEW file. This one is never rewritten, so a reader
+# can always see what was provisional at the time each score was recorded.
+# --------------------------------------------------------------------------------------
+
+promotion:
+  mode: create_new_immutable_protocol
+  never_edit_provisional: true
+  provisional_history_retained: true
+  target_protocol_id: evaluation_organizer_final_v1
+  target_path: configs/evaluation/evaluation_organizer_final_v1.yaml
+  digest_sidecar_suffix: .sha256
+  refuse_overwrite: true
+  supersedes_recorded: true
+  provisional_digest_recorded: true
+  required_answers:
+    - num_fewshot
+    - metric_keys
+    - wikitext_103
+    - judges_rerun_policy
+    - own_weight_upload_policy
+  required_wikitext_fields:
+    - split
+    - slice
+    - normalization
+    - bos_eos_handling
+    - context_length
+    - stride
+    - denominator
+  workflow: tinybench_lm.evaluation_protocol.promote_to_organizer_final
+
+# --------------------------------------------------------------------------------------
+# Evidence bundle (Plan Sections 2.1, 10.1). Every score is traceable to one protocol hash
+# and one raw output bundle, or it is not reportable.
+# --------------------------------------------------------------------------------------
+
+evidence_bundle:
+  required_artifacts:
+    command: command.txt
+    raw_results: results.raw.json
+    stderr_log: stderr.log
+    run_metadata: run_metadata.json
+    protocol_hash: protocol_hash.txt
+    manifest: MANIFEST.json
+  manifest_hash_algorithm: sha256
+  required_metadata_keys:
+    - protocol_id
+    - protocol_hash
+    - config_digest
+    - official
+    - label
+    - harness
+    - tasks
+    - sample_counts
+    - runtime_seconds
+    - device
+    - precision
+    - seed
+    - batch_policy
+    - adapter_policies
+    - model_identity
+  fail_closed: true
+
+# --------------------------------------------------------------------------------------
+# Training-influence firewall (Plan Section 10.3). Benchmark scores never feed a training,
+# mixture, or branch decision; those use validation_dev NLL only.
+# --------------------------------------------------------------------------------------
+
+training_influence:
+  secondary_results_may_influence_training: false
+  required_results_may_influence_training: false
+  training_decision_signal: validation_dev_nll_only
+  validation_final_opened: false
+  rationale: >-
+    Selecting a mixture, branch, or checkpoint on benchmark accuracy turns a held-out
+    benchmark into a training signal and makes the reported score meaningless.
+  enforcement: tinybench_lm.evaluation_protocol.assert_no_training_influence
+
+reconciliation:
+  decontamination_protocol: configs/data/decontam_v1.yaml
+  task_identities_must_match: true
+  frozen_before_g1: true
+  rationale: decontamination can only quarantine benchmark items for tasks that are already frozen here
+
+# --------------------------------------------------------------------------------------
+# Verification. Absent evidence is NOT_RUN and an unpinned organizer-dependent field is
+# BLOCKED. Neither is ever reported as PASS.
+# --------------------------------------------------------------------------------------
+
+verification:
+  required_checks:
+    - protocol.frozen_digest
+    - protocol.provisional_label
+    - protocol.identity_hash_deterministic
+    - tasks.required_table_complete
+    - tasks.identities_match_decontamination
+    - tasks.secondary_labeled_non_official
+    - tasks.secondary_excluded_from_training
+    - prompt_rendering.bos_policy_shared
+    - adapter.policy_identity_matches
+    - runtime.seed_and_batch_policy_declared
+    - evidence.bundle_contract_declared
+    - harness.commit_pinned
+    - tasks.dataset_revisions_pinned
+    - wikitext.official_definition_pinned
+    - runtime.budget_measured
+  absent_evidence_status: NOT_RUN
+  organizer_dependent_status: BLOCKED
+  fail_closed: true
+
+notes:
+  - No number produced under this protocol is a final campaign result.
+  - Full benchmark downloads and official WikiText-103 scoring are deferred until this protocol is promoted and candidate artifacts exist.
+  - Current task names remain the provisional defaults until organizer guidance supersedes them.

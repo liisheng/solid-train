@@ -42,13 +42,25 @@ validation.
 ## Local environment
 
 The pilot environment and caches live on `D:\SWE\benchmark-50m-lm` to avoid filling
-the Windows system drive. From PowerShell in this directory:
+the Windows system drive. Runtime dependencies are pinned exactly and bounded by a
+constraints file that was generated from a working install, so a fresh checkout cannot
+silently resolve a different tokenizer, dataset, or evaluation-harness protocol. From
+PowerShell in this directory:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m pip install -e ".[test]" -c constraints\verified-py311-windows.txt
+.\.venv\Scripts\python.exe scripts\check_environment.py
 .\.venv\Scripts\python.exe scripts\count_params.py
 .\.venv\Scripts\python.exe -m pytest
 ```
+
+`scripts\check_environment.py` is the dependency check: it compares the declared pins,
+`constraints\verified-py311-windows.txt`, and the versions actually installed, and exits
+non-zero on any unpinned, missing, or divergent dependency. Test tooling (`pytest`,
+`hypothesis`) is the separate `test` extra, so runtime and release installs omit it.
+GPU/backend choices stay optional and documented; the check reports backend facts as
+information only and never changes model semantics. Verified versions, platform facts,
+and the CUDA wheel option are recorded in `docs/ENVIRONMENT.md`.
 
 Prepare a small public pilot corpus:
 

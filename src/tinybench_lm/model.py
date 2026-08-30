@@ -9,6 +9,9 @@ import torch.nn.functional as F
 from .config import ModelConfig
 
 
+LOSS_IGNORE_INDEX = -100
+
+
 class RMSNorm(nn.Module):
     def __init__(self, dim: int, eps: float) -> None:
         super().__init__()
@@ -51,12 +54,21 @@ class CausalSelfAttention(nn.Module):
         self.n_kv_heads = config.n_kv_heads
         self.head_dim = config.d_model // config.n_heads
         kv_dim = self.n_kv_heads * self.head_dim
-        self.q_proj = nn.Linear(config.d_model, config.d_model, bias=False)
-        self.k_proj = nn.Linear(config.d_model, kv_dim, bias=False)
-        self.v_proj = nn.Linear(config.d_model, kv_dim, bias=False)
-        self.o_proj = nn.Linear(config.d_model, config.d_model, bias=False)
+        self.q_proj = nn.Linear(config.d_model, config.d_model, bias=config.bias)
+        self.k_proj = nn.Linear(config.d_model, kv_dim, bias=config.bias)
+        self.v_proj = nn.Linear(config.d_model, kv_dim, bias=config.bias)
+        self.o_proj = nn.Linear(config.d_model, config.d_model, bias=config.bias)
         self.dropout = config.dropout
         self.rope = RotaryEmbedding(self.head_dim, config.max_seq_len, config.rope_theta)
+
+    def _expand_kv_heads(
+        self, k: torch.Tensor, v: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Expand each KV head across its associated query-head group."""
+        if self.n_heads == self.n_kv_heads:
+            return k, v
+        repeats = self.n_heads // self.n_kv_heads
+        return k.repeat_interleave(repeats, dim=1), v.repeat_interleave(repeats, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, seq_len, _ = x.shape
@@ -64,13 +76,10 @@ class CausalSelfAttention(nn.Module):
         k = self.k_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
         v = self.v_proj(x).view(batch_size, seq_len, self.n_kv_heads, self.head_dim).transpose(1, 2)
         q, k = self.rope(q, k)
-        if self.n_heads != self.n_kv_heads:
-            # PyTorch's native enable_gqa path can fall back to a very slow attention
-            # kernel on Windows. Expanding K/V heads preserves GQA parameter savings
-            # while allowing the optimized fused SDPA kernel to run.
-            repeats = self.n_heads // self.n_kv_heads
-            k = k.repeat_interleave(repeats, dim=1)
-            v = v.repeat_interleave(repeats, dim=1)
+        # PyTorch's native enable_gqa path can fall back to a very slow attention
+        # kernel on Windows. Explicit expansion preserves GQA parameter savings
+        # while allowing the optimized fused SDPA kernel to run.
+        k, v = self._expand_kv_heads(k, v)
         y = F.scaled_dot_product_attention(
             q,
             k,
@@ -86,9 +95,9 @@ class CausalSelfAttention(nn.Module):
 class SwiGLU(nn.Module):
     def __init__(self, config: ModelConfig) -> None:
         super().__init__()
-        self.gate_proj = nn.Linear(config.d_model, config.d_ff, bias=False)
-        self.up_proj = nn.Linear(config.d_model, config.d_ff, bias=False)
-        self.down_proj = nn.Linear(config.d_ff, config.d_model, bias=False)
+        self.gate_proj = nn.Linear(config.d_model, config.d_ff, bias=config.bias)
+        self.up_proj = nn.Linear(config.d_model, config.d_ff, bias=config.bias)
+        self.down_proj = nn.Linear(config.d_ff, config.d_model, bias=config.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.down_proj(F.silu(self.gate_proj(x)) * self.up_proj(x))
@@ -125,19 +134,47 @@ class TinyBenchLM(nn.Module):
         if isinstance(module, (nn.Linear, nn.Embedding)):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
+    @property
+    def output_weight(self) -> nn.Parameter:
+        """The output projection directly reuses the input embedding Parameter."""
+        return self.token_embedding.weight
+
     def forward(
         self, input_ids: torch.Tensor, targets: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        """Run the causal stack and, when targets are supplied, the training loss.
+
+        Padding/ignore policy (Plan Section 3.3):
+        - A target equal to ``LOSS_IGNORE_INDEX`` marks a padded position. Such a
+          position contributes zero loss and zero gradient.
+        - The reported loss is the mean over kept (non-ignored) positions only, so
+          adding padding never rescales the loss of the real tokens.
+        - When every target is ignored the loss is a differentiable exact zero
+          instead of the NaN that mean-reduced cross entropy would produce, and
+          every trainable parameter still receives a zero gradient.
+        """
         if input_ids.size(1) > self.config.max_seq_len:
             raise ValueError(f"Sequence exceeds max_seq_len={self.config.max_seq_len}")
         x = self.token_embedding(input_ids)
         for layer in self.layers:
             x = layer(x)
         x = self.final_norm(x)
-        logits = F.linear(x, self.token_embedding.weight)
+        logits = F.linear(x, self.output_weight)
         loss = None
         if targets is not None:
-            loss = F.cross_entropy(logits.float().reshape(-1, logits.size(-1)), targets.reshape(-1))
+            flat_logits = logits.float().reshape(-1, logits.size(-1))
+            flat_targets = targets.reshape(-1)
+            if torch.any(flat_targets != LOSS_IGNORE_INDEX):
+                loss = F.cross_entropy(
+                    flat_logits,
+                    flat_targets,
+                    ignore_index=LOSS_IGNORE_INDEX,
+                )
+            else:
+                # Cross entropy with mean reduction is NaN when every target is
+                # ignored. Keep a differentiable zero so backward produces zero
+                # gradients for an all-padding batch.
+                loss = flat_logits.sum() * 0.0
         return logits, loss
 
     @torch.inference_mode()

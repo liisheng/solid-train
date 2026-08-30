@@ -1,0 +1,291 @@
+# Frozen alignment checklist (Plan Sections 2.1, 13, 16-17).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/alignment.py (FROZEN_ALIGNMENT_PROTOCOL_SHA256). Loading fails closed if the
+# bytes change. Any change must be published as configs/audit/alignment_v2.yaml with a recorded
+# reason; never edit v1 in place.
+#
+# This is the repository's own answer to "is it aligned with the authoritative plan?" It is a
+# checklist, not a narrative: every entry names a thing to check and the auditor either
+# satisfies it or reports an unexplained difference. Two rules make the answer trustworthy.
+#
+# First, an unexplained difference always fails. The only permitted non-pass is a DEFERRED entry
+# whose category is one of the five things a repository genuinely cannot settle by itself
+# (`deferral_policy.allowed_categories`), and even then only when it names an owner and a next
+# action. "We'll get to it" is not a category.
+#
+# Second, the audit is read-only. It opens files, computes digests, and calls verifiers; it
+# never writes, formats, or repairs anything. That is what makes running it twice meaningful:
+# a second run must produce the identical report and leave every byte untouched.
+#
+# This checklist complements tests/test_alignment_audit.py rather than replacing it. That file
+# holds the task-1 bug-condition property and its deterministic counterexamples, and task 3.21
+# re-runs it unchanged.
+
+protocol: alignment_audit
+version: v1
+frozen: true
+calibration: repository-state-only-read-only
+consumes: every frozen protocol under configs/, the verifier modules under src/tinybench_lm/, and configs/release/evidence_matrix_v1.yaml
+
+change_control:
+  immutable: true
+  on_change: create configs/audit/alignment_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/alignment.py::FROZEN_ALIGNMENT_PROTOCOL_SHA256
+
+audit_policy:
+  read_only: true
+  # Running the audit twice must return the same report and rewrite nothing.
+  idempotent: true
+  unexplained_difference_fails: true
+  statuses: [PASS, FAIL, DEFERRED]
+  reason_code_on_unexplained_difference: AUDIT_UNEXPLAINED_DIFFERENCE
+  reason_code_on_mutation: AUDIT_MUTATED_REPOSITORY
+
+deferral_policy:
+  # The only five things this repository cannot settle on its own.
+  allowed_categories:
+    - measurement
+    - organizer_answer
+    - personal_attestation
+    - public_release
+    - long_running_campaign
+  requires_owner: true
+  requires_next_action: true
+  reason_code_on_unnamed_category: AUDIT_DEFERRAL_CATEGORY_INVALID
+  reason_code_on_missing_detail: AUDIT_DEFERRAL_DETAIL_INCOMPLETE
+
+# --------------------------------------------------------------------------------------
+# Required paths: the artifacts the plan says must exist
+# --------------------------------------------------------------------------------------
+
+required_paths:
+  - entry_id: paths.final_config
+    path: configs/final_49m.json
+  - entry_id: paths.dedup_protocol
+    path: configs/data/dedup_v1.yaml
+  - entry_id: paths.decontam_protocol
+    path: configs/data/decontam_v1.yaml
+  - entry_id: paths.sources_protocol
+    path: configs/data/sources_v1.yaml
+  - entry_id: paths.filters_protocol
+    path: configs/data/filters_v1.yaml
+  - entry_id: paths.tokenizer_protocol
+    path: configs/data/tokenizer_v1.yaml
+  - entry_id: paths.shards_protocol
+    path: configs/data/shards_v1.yaml
+  - entry_id: paths.schedule_protocol
+    path: configs/data/schedule_v1.yaml
+  - entry_id: paths.branch_protocol
+    path: configs/branches/exposure_v1.yaml
+  - entry_id: paths.training_recipe
+    path: configs/training/recipe_v1.yaml
+  - entry_id: paths.checkpoint_protocol
+    path: configs/training/checkpoint_v1.yaml
+  - entry_id: paths.evaluation_protocol
+    path: configs/evaluation/evaluation_provisional_v1.yaml
+  - entry_id: paths.campaign_protocol
+    path: configs/campaign/preregistration_v1.yaml
+  - entry_id: paths.operations_protocol
+    path: configs/operations/measurement_v1.yaml
+  - entry_id: paths.analysis_protocol
+    path: configs/analysis/paired_analysis_v1.yaml
+  - entry_id: paths.release_matrix
+    path: configs/release/evidence_matrix_v1.yaml
+  - entry_id: paths.parameter_counter
+    path: scripts/count_params.py
+  - entry_id: paths.environment_check
+    path: scripts/check_environment.py
+  - entry_id: paths.eligibility_audit
+    path: scripts/audit_eligibility.py
+  - entry_id: paths.model_card_template
+    path: docs/templates/MODEL_CARD.md
+  - entry_id: paths.data_card_template
+    path: docs/templates/DATA_CARD.md
+  - entry_id: paths.ai_disclosure_template
+    path: docs/templates/AI_ASSISTANCE_DISCLOSURE.md
+  - entry_id: paths.built_with_template
+    path: docs/templates/BUILT_WITH.md
+  - entry_id: paths.submission_package_template
+    path: docs/templates/SUBMISSION_PACKAGE.md
+
+# --------------------------------------------------------------------------------------
+# Required values: the frozen architecture (Plan Sections 3.1-3.2)
+# --------------------------------------------------------------------------------------
+
+required_values:
+  - entry_id: architecture.vocab_size
+    path: configs/final_49m.json
+    key: vocab_size
+    expected: 12288
+  - entry_id: architecture.n_layers
+    path: configs/final_49m.json
+    key: n_layers
+    expected: 14
+  - entry_id: architecture.d_model
+    path: configs/final_49m.json
+    key: d_model
+    expected: 512
+  - entry_id: architecture.n_heads
+    path: configs/final_49m.json
+    key: n_heads
+    expected: 8
+  - entry_id: architecture.n_kv_heads
+    path: configs/final_49m.json
+    key: n_kv_heads
+    expected: 4
+  - entry_id: architecture.d_ff
+    path: configs/final_49m.json
+    key: d_ff
+    expected: 1504
+  - entry_id: architecture.max_seq_len
+    path: configs/final_49m.json
+    key: max_seq_len
+    expected: 1024
+  - entry_id: architecture.tie_embeddings
+    path: configs/final_49m.json
+    key: tie_embeddings
+    expected: true
+  - entry_id: architecture.bias
+    path: configs/final_49m.json
+    key: bias
+    expected: false
+  - entry_id: architecture.dropout
+    path: configs/final_49m.json
+    key: dropout
+    expected: 0.0
+
+parameter_contract:
+  path: configs/final_49m.json
+  unique_trainable_parameters: 49658368
+  cap: 50000000
+  headroom: 341632
+  entry_id: architecture.unique_parameter_count
+
+# --------------------------------------------------------------------------------------
+# Frozen digests: every pinned protocol still matches its registry
+# --------------------------------------------------------------------------------------
+
+frozen_digests:
+  - entry_id: digest.data_protocols
+    module: tinybench_lm.data_protocols
+    registry: FROZEN_PROTOCOL_SHA256
+    directory: configs/data
+  - entry_id: digest.corpus_protocols
+    module: tinybench_lm.source_manifest
+    registry: FROZEN_CORPUS_PROTOCOL_SHA256
+    directory: configs/data
+  - entry_id: digest.branch_protocol
+    module: tinybench_lm.branches
+    registry: FROZEN_BRANCH_PROTOCOL_SHA256
+    directory: configs/branches
+  - entry_id: digest.training_recipe
+    module: tinybench_lm.training_recipe
+    registry: FROZEN_TRAINING_RECIPE_SHA256
+    directory: configs/training
+  - entry_id: digest.checkpoint_protocol
+    module: tinybench_lm.checkpointing
+    registry: FROZEN_CHECKPOINT_PROTOCOL_SHA256
+    directory: configs/training
+  - entry_id: digest.campaign_protocol
+    module: tinybench_lm.campaign
+    registry: FROZEN_CAMPAIGN_PROTOCOL_SHA256
+    directory: configs/campaign
+  - entry_id: digest.operations_protocol
+    module: tinybench_lm.operations
+    registry: FROZEN_OPERATIONS_PROTOCOL_SHA256
+    directory: configs/operations
+  - entry_id: digest.analysis_protocol
+    module: tinybench_lm.analysis
+    registry: FROZEN_ANALYSIS_PROTOCOL_SHA256
+    directory: configs/analysis
+  - entry_id: digest.release_matrix
+    module: tinybench_lm.release
+    registry: FROZEN_RELEASE_PROTOCOL_SHA256
+    directory: configs/release
+
+# --------------------------------------------------------------------------------------
+# Verifier outcomes: named checks that must report no FAIL
+# --------------------------------------------------------------------------------------
+
+verifier_outcomes:
+  - entry_id: verifier.parameter_count
+    verifier: parameter_count
+  - entry_id: verifier.eligibility_scan
+    verifier: eligibility_scan
+  - entry_id: verifier.campaign_contract
+    verifier: campaign_contract
+  - entry_id: verifier.release_matrix
+    verifier: release_matrix
+
+# --------------------------------------------------------------------------------------
+# Integrity scans: prohibitions that must remain absent
+# --------------------------------------------------------------------------------------
+
+integrity_scans:
+  - entry_id: integrity.no_pretrained_initialization
+    scan: production_from_pretrained
+  - entry_id: integrity.no_cosine_final_decay
+    scan: cosine_final_decay
+
+# --------------------------------------------------------------------------------------
+# Evidence links: the release matrix must point at artifacts that exist
+# --------------------------------------------------------------------------------------
+
+evidence_links:
+  - entry_id: evidence.release_matrix_paths
+    source: configs/release/evidence_matrix_v1.yaml
+
+# --------------------------------------------------------------------------------------
+# Explicit deferrals. Each names its category, owner, and next action.
+# --------------------------------------------------------------------------------------
+
+deferrals:
+  - entry_id: deferred.hardware_measurement
+    category: measurement
+    requirement: Section 9.1 hardware promotion measurements on both machines
+    owner: operator
+    next_action: run the hardware inventory and sustained real-shard throughput measurement, then record them
+  - entry_id: deferred.corpus_acquisition
+    category: long_running_campaign
+    requirement: real corpus acquisition, dedup, decontamination, and shard production
+    owner: operator
+    next_action: complete the G1 data pipeline on real sources and record the manifests
+  - entry_id: deferred.proxy_campaign
+    category: long_running_campaign
+    requirement: P1-P4, P8, and F1/F2 proxy runs
+    owner: operator
+    next_action: run the minimum campaign and record its manifests before selecting a mixture or LR
+  - entry_id: deferred.wikitext_slice
+    category: organizer_answer
+    requirement: exact WikiText-103 split, slice, normalization, context, stride, and denominator
+    owner: operator
+    next_action: send the Section 2.2 organizer questions and promote a new immutable protocol on reply
+  - entry_id: deferred.teammate_eligibility
+    category: personal_attestation
+    requirement: both teammates confirm eligibility and Devpost registration
+    owner: teammates
+    next_action: each teammate confirms in their own name before submission
+  - entry_id: deferred.public_artifacts
+    category: public_release
+    requirement: public repository, weights, video, and logged-out access checks
+    owner: operator
+    next_action: publish the artifacts and verify each from a logged-out session
+
+reason_codes:
+  ok:
+    - AUDIT_OK
+  fail_closed:
+    - AUDIT_DEFERRAL_CATEGORY_INVALID
+    - AUDIT_DEFERRAL_DETAIL_INCOMPLETE
+    - AUDIT_DIGEST_DRIFT
+    - AUDIT_INTEGRITY_VIOLATION
+    - AUDIT_MUTATED_REPOSITORY
+    - AUDIT_UNEXPLAINED_DIFFERENCE
+    - AUDIT_VERIFIER_FAILED
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_entry: true

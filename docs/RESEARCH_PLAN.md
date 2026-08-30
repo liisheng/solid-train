@@ -1,5 +1,15 @@
 # Core literature and winning plan
 
+> **Historical — superseded by `GIBC-Track01-Final-Plan-v5.md`.**
+>
+> The literature below and its summaries remain accurate and useful. What is superseded is
+> this document's **architecture and campaign recommendations**: where they differ from the
+> authoritative plan, the plan wins. Do not take a configuration, horizon, or evaluation
+> setting from this file.
+>
+> Current architecture: `configs/final_49m.json`. Current campaign:
+> `configs/campaign/preregistration_v1.yaml`.
+
 **Revised:** 26 August 2026  
 **Scope:** only foundational, reputable work that directly informs a strong, eligible
 50M-parameter submission. Frontier side quests have been removed.

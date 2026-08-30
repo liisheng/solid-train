@@ -1,10 +1,32 @@
 # TinyBench-LM
 
 TinyBench-LM is a from-scratch, decoder-only language model designed for the GIBC V2
-50-million-parameter track. The primary baseline contains **49,295,872 trainable
-parameters**, including its token embeddings and tied output head.
+50-million-parameter track. The final architecture contains **49,658,368 unique trainable
+parameters** — every parameter counted once, including the token embedding, which is the
+same tensor as the output head rather than a second copy of it. That leaves **341,632**
+parameters of headroom under the 50,000,000 cap. Verify it yourself with
+`scripts\count_params.py`; the number is enforced by test, not by assertion.
 
-This repository is an early pilot. It currently provides:
+**Random initialization.** No pretrained weights, no fine-tuning of another model, and no
+distillation. The eligibility scan (`src\tinybench_lm\eligibility.py`) fails closed on
+`from_pretrained()`, remote weight fetching, or a teacher dependency in the training path,
+and `src\tinybench_lm\provenance.py` records a step-zero weight hash before the first
+optimizer step.
+
+**What it is not.** A general assistant. A 49.66M-parameter model trained on a bounded
+public corpus is a research artifact for a parameter-capped track, not a source of facts or
+advice.
+
+## Status
+
+No final training run has happened. Benchmark scores, perplexity, throughput, memory,
+training time, and compute are therefore **not reported here** — reporting them would mean
+inventing them. The machine-readable status of every submission claim, with its evidence
+path and verifier, is `configs/release/evidence_matrix_v1.yaml`; render it with
+`src\tinybench_lm\release.py`. Nothing in that matrix is `PASS` unless a named verifier has
+actually run.
+
+This repository currently provides:
 
 - a RoPE + RMSNorm + SwiGLU causal Transformer using PyTorch SDPA;
 - exact parameter-cap verification;
@@ -15,8 +37,10 @@ This repository is an early pilot. It currently provides:
 - local text generation and a hardware throughput profiler.
 - an `lm-evaluation-harness` adapter for the competition benchmarks.
 
-Measured local results and the evidence-to-experiment plan are in
-`docs/PILOT_REPORT.md` and `docs/RESEARCH_PLAN.md`.
+`docs/PILOT_REPORT.md` and `docs/RESEARCH_PLAN.md` are **historical**. Their measurements
+were real, but they describe a superseded 49,295,872-parameter architecture; both carry a
+banner saying so. Treat the authoritative execution plan and the frozen configs under
+`configs/` as current.
 
 ## Mental model
 
@@ -33,11 +57,22 @@ each candidate continuation.
 
 ## Architecture
 
-The baseline in `configs/baseline_49m.json` uses 12 layers, a 512-wide residual
-stream, 8 attention heads, a 1,536-wide SwiGLU feed-forward network, a 16,384-token
-vocabulary, and a 1,024-token maximum context. Input and output embeddings share the
-same parameter tensor. The smaller pilot config is intended only for fast pipeline
-validation.
+The final architecture in `configs/final_49m.json` uses **14 layers**, a **512**-wide
+residual stream, **8 query heads with 4 key/value heads** (grouped-query attention), a
+**1,504**-wide SwiGLU feed-forward network, a **12,288**-token vocabulary, and a **1,024**-token
+maximum context. Attention is pre-norm RMSNorm with RoPE at theta 10,000; there are no
+biases and dropout is zero. Input and output embeddings are one shared parameter tensor,
+which is why the counter enumerates unique `Parameter` objects rather than state-dict
+entries.
+
+```text
+49,658,368 = 6,291,456 embedding + 14 × 3,097,600 per layer + 512 final norm
+```
+
+`configs/README.md` records what each config is for. `baseline_49m.json` is a compatibility
+alias for the same final architecture; `pilot_12m.json` is for fast pipeline validation only;
+`deep_thin_gqa_49m.json` is a rejected research candidate kept for reproducibility. Neither
+pilot nor rejected config is a final model candidate.
 
 ## Local environment
 
@@ -119,5 +154,34 @@ duplicates from HellaSwag, ARC-Easy, PIQA, WinoGrande, and the held-out WikiText
 slice must be excluded. Public benchmark training splits will not be added unless
 their use is explicitly confirmed as acceptable and disclosed.
 
-The decontamination report, final data mixture, and full-run configuration remain to
-be produced before a competition training run.
+These are not aspirations. The data-safety protocols under `configs/data/` are frozen and
+pinned by SHA-256, so a threshold cannot be edited after a scan; the eligibility scan fails
+closed on pretrained weights, distillation, or a teacher dependency; and the campaign's
+decision thresholds were frozen in `configs/campaign/preregistration_v1.yaml` before any
+outcome exists. What has *not* happened is the measurement: no corpus has been acquired, no
+decontamination rate has been measured, and no run has started. Every such item is `NOT_RUN`
+or `BLOCKED` in the evidence matrix rather than quietly omitted.
+
+## Evidence and status
+
+`configs/release/evidence_matrix_v1.yaml` maps every competition contract item and every
+G0–G6 gate to a path, a verifier, a status, and a failure policy:
+
+- **`PASS`** — a named verifier ran and the artifact exists. Only the parameter cap and the
+  no-pretrained-weights scan currently qualify.
+- **`BLOCKED`** — an organizer, teammate, or host must act first; the owner and next action
+  are recorded. Personal eligibility and the exact WikiText-103 slice are here.
+- **`NOT_RUN`** / **`TBD`** — the artifact or measurement does not exist yet.
+
+`src\tinybench_lm\release.py` enforces that a `PASS` names a verifier and a path that exist
+and that a `BLOCKED` names an owner, so ticking a box early fails a test. Submission
+templates — model card, data card, AI-assistance disclosure, Built With, and the submission
+package — are in `docs/templates/`.
+
+## Stop conditions and fallback
+
+No additional architecture, data family, optimization method, dashboard, frontend, or
+hosted-model workflow will be added unless measured evidence creates a specific need and the
+critical schedule is ahead. If the branch experiment fails or is incomplete, the submission
+ships the best valid ordinary-decay or stable fallback and reports the experiment as null or
+incomplete. An undecayed peak-LR mainline checkpoint is never released as the fallback.

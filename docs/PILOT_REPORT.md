@@ -1,5 +1,22 @@
 # TinyBench-LM local pilot report
 
+> **Historical — superseded by `GIBC-Track01-Final-Plan-v5.md`.**
+>
+> This is a dated record of a real pilot, and its measurements stay valid *as pilot
+> measurements*: the throughput, peak VRAM, and hardware facts below were observed on the
+> machine and date named here. They are not final-campaign results, and no figure in this
+> document may be reported as one.
+>
+> What the final plan supersedes is the **recommendation**, not the measurement. The
+> 49,295,872-parameter architecture reported here (12 layers, 8 heads, 1,536 FFN, 16,384
+> vocabulary, 704,128 margin) was replaced by the final 49,658,368-parameter architecture
+> (14 layers, 8 query / 4 KV heads, 1,504 FFN, 12,288 vocabulary, 341,632 margin) in
+> `configs/final_49m.json`. Throughput measured on the old architecture does not transfer to
+> the new one.
+>
+> Current architecture: `configs/final_49m.json`. Current status of every claim:
+> `configs/release/evidence_matrix_v1.yaml`.
+
 Date: 26 August 2026  
 Machine: AMD Ryzen 7 7700, 16 GB system RAM, NVIDIA RTX 4070 SUPER 12 GB  
 Working directory: `D:\SWE\benchmark-50m-lm`

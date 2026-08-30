@@ -1,0 +1,322 @@
+# Frozen release evidence matrix (Plan Sections 1-2, 11-17).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/release.py (FROZEN_RELEASE_PROTOCOL_SHA256). Loading fails closed if the
+# bytes change, so an evidence path, a verifier, or a status rule cannot drift. Any change must
+# be published as configs/release/evidence_matrix_v2.yaml with a recorded reason; never edit v1
+# in place.
+#
+# This file answers one question for every promise the submission makes: where is the evidence,
+# who checks it, and what is its status right now? The rule that makes it useful is that a
+# status is never optimistic. Nothing here is `PASS` unless a named verifier has actually run
+# and produced the artifact at the named path. Everything else is:
+#
+#   NOT_RUN  the verifier exists but has not been run, or the artifact does not exist yet
+#   BLOCKED  an external party -- an organizer, a teammate, a host -- must act first
+#   TBD      a value that only a future measurement or campaign can supply
+#   FAIL     a verifier ran and did not pass
+#
+# Plan Section 16's checklist is reproduced here as `contract_items` and Plan Section 13's gates
+# as `gate_items`, so a reader can see the whole submission surface in one place and no item can
+# quietly go missing. Ticking a box early would be the single easiest way to ship an unsupported
+# claim, which is why `status_policy.absence_of_evidence_is_never_pass` is enforced in code.
+
+protocol: release_evidence
+version: v1
+frozen: true
+calibration: repository-paths-and-verifiers-only-no-release
+consumes: configs/operations/measurement_v1.yaml gates; configs/campaign/preregistration_v1.yaml freeze bundle; configs/analysis/paired_analysis_v1.yaml claim rules; configs/evaluation/evaluation_provisional_v1.yaml scoring
+
+change_control:
+  immutable: true
+  on_change: create configs/release/evidence_matrix_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/release.py::FROZEN_RELEASE_PROTOCOL_SHA256
+
+# --------------------------------------------------------------------------------------
+# Status vocabulary and the rule that governs it
+# --------------------------------------------------------------------------------------
+
+status_policy:
+  statuses: [PASS, FAIL, BLOCKED, NOT_RUN, TBD]
+  absence_of_evidence_is_never_pass: true
+  # A PASS must name a verifier and a path that exists.
+  pass_requires_verifier_and_path: true
+  # BLOCKED is only honest when it says who is blocked and what unblocks them.
+  blocked_requires_owner_and_next_action: true
+  # Plan Section 2: personal eligibility and organizer answers are not repository facts.
+  personal_eligibility_status: BLOCKED
+  organizer_answer_status: BLOCKED
+  future_campaign_artifact_status: NOT_RUN
+  future_measurement_status: TBD
+  reason_code_on_unsupported_pass: RELEASE_UNSUPPORTED_PASS
+  reason_code_on_missing_owner: RELEASE_BLOCKER_DETAIL_INCOMPLETE
+  reason_code_on_unknown_status: RELEASE_UNKNOWN_STATUS
+  reason_code_on_missing_verifier: RELEASE_VERIFIER_MISSING
+  reason_code_on_missing_path: RELEASE_PATH_MISSING
+
+# --------------------------------------------------------------------------------------
+# Plan Section 16 compliance checklist, item by item
+# --------------------------------------------------------------------------------------
+
+release_evidence_matrix:
+  contract_items:
+    - item_id: teammates_eligible_registered
+      requirement: both teammates eligible, registered, real names added, one team and one track
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: none-personal-attestation
+      status: BLOCKED
+      owner: teammates
+      next_action: each teammate confirms eligibility and Devpost registration in their own name
+      failure_policy: no submission without both attestations; never assert eligibility on a teammate's behalf
+    - item_id: parameter_cap
+      requirement: final unique trainable parameters at or below 50,000,000
+      path: configs/final_49m.json
+      verifier: scripts/count_params.py
+      status: PASS
+      failure_policy: fail closed; an over-cap model is ineligible and may not be released
+    - item_id: config_and_counter_public
+      requirement: model config and parameter-count script/output public
+      path: configs/final_49m.json
+      verifier: scripts/count_params.py
+      # The artifacts exist and are committed; "public" is gated on publishing the
+      # repository, which has not happened. Committed is not published.
+      status: BLOCKED
+      owner: operator
+      next_action: publish the repository, then re-verify the config and counter output from a logged-out session
+      failure_policy: publish before submission
+    - item_id: step_zero_random_init_evidence
+      requirement: step-zero random-initialization evidence public
+      path: src/tinybench_lm/provenance.py
+      verifier: tests/test_provenance.py
+      status: NOT_RUN
+      failure_policy: a run without step-zero provenance may not be released
+      note: the mechanism exists and is tested; no final run has produced its record
+    - item_id: no_pretrained_weights
+      requirement: no pretrained weights, fine-tuning of another model, or distillation
+      path: src/tinybench_lm/eligibility.py
+      verifier: tests/test_eligibility.py
+      status: PASS
+      failure_policy: fail closed; an ineligible initialization voids the submission
+    - item_id: dataset_disclosure
+      requirement: public dataset revisions, licenses, attribution, filtering and repetition disclosed
+      path: docs/templates/DATA_CARD.md
+      verifier: scripts/audit_source_policy.py
+      status: NOT_RUN
+      failure_policy: no undisclosed source may enter the corpus
+      note: template and auditor exist; no source revision is pinned and no license review recorded
+    - item_id: required_results_reported
+      requirement: required four harness tasks and WikiText perplexity reported with exact protocol
+      path: configs/evaluation/evaluation_provisional_v1.yaml
+      verifier: tests/test_evaluation_protocol.py
+      status: NOT_RUN
+      failure_policy: report provisional values as provisional; never present them as official
+      note: the WikiText slice and settings remain BLOCKED on organizer answers
+    - item_id: evaluation_script_and_raw_results_public
+      requirement: evaluation script and raw results public
+      path: evaluate.py
+      verifier: tests/test_evaluation_adapter.py
+      status: NOT_RUN
+      failure_policy: no score without its raw output bundle
+    - item_id: readme_efficiency_figures
+      requirement: README states hardware, total training time, approximate compute, throughput, memory
+      path: README.md
+      verifier: src/tinybench_lm/operations.py
+      status: TBD
+      failure_policy: every figure derives from a measurement or stays labeled a target
+      note: calculators exist; no hardware measurement has been taken
+    - item_id: public_source_repository
+      requirement: public unrestricted source repository with setup, prerequisites, and usage
+      path: README.md
+      verifier: none-external-access-check
+      status: BLOCKED
+      owner: operator
+      next_action: publish the repository and run the logged-out access check
+      failure_policy: a repository judges cannot open is not a submission
+    - item_id: demo_video
+      requirement: 2-5 minute English public or unlisted video showing the system running
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: none-manual-review
+      status: NOT_RUN
+      failure_policy: never private; show a bounded live smoke run or a timestamped full result
+    - item_id: built_with
+      requirement: Built With includes frameworks, libraries, APIs, datasets, AI tools, and both GPUs
+      path: docs/templates/BUILT_WITH.md
+      verifier: none-manual-review
+      status: NOT_RUN
+      failure_policy: omitting a used tool is a disclosure failure
+    - item_id: ai_assistance_disclosure
+      requirement: AI-assisted project areas disclosed
+      path: docs/templates/AI_ASSISTANCE_DISCLOSURE.md
+      verifier: tests/test_eligibility.py
+      status: NOT_RUN
+      failure_policy: disclose exact assisted areas; forbidden uses void the submission
+    - item_id: screenshots
+      requirement: at least three screenshots, target five
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: none-manual-review
+      status: NOT_RUN
+      failure_policy: screenshots must show real output, never a mock-up
+    - item_id: weights_artifact_accessible
+      requirement: model weights artifact accessible without private credentials
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: none-external-access-check
+      status: BLOCKED
+      owner: operator
+      next_action: publish to a permitted public host and verify from a logged-out session
+      failure_policy: never make one remote host the only verified copy
+    - item_id: logged_out_and_fresh_clone_checks
+      requirement: logged-out and fresh-clone checks pass before submission
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: none-external-access-check
+      status: NOT_RUN
+      failure_policy: a link that only works while signed in has not been verified
+    - item_id: final_hashes_archived
+      requirement: final commit/tag and artifact hashes archived before the deadline
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: src/tinybench_lm/checkpointing.py
+      status: NOT_RUN
+      failure_policy: no release without a recorded final and rollback hash
+    - item_id: monitoring_window
+      requirement: both teammates monitor Devpost and email during September 22-27
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: none-personal-attestation
+      status: BLOCKED
+      owner: teammates
+      next_action: agree the monitoring rota before the submission deadline
+      failure_policy: respond to organizer contact within hours
+
+# --------------------------------------------------------------------------------------
+# Plan Section 13 gates
+# --------------------------------------------------------------------------------------
+
+  gate_items:
+    - item_id: G0
+      requirement: foundation -- eligibility, environments, hardware, model tests, eval smoke, frozen protocols
+      path: configs/operations/measurement_v1.yaml
+      verifier: src/tinybench_lm/operations.py
+      status: NOT_RUN
+      failure_policy: no data work claims a pass before G0 evidence exists
+    - item_id: G1
+      requirement: data -- profile thresholds, provenance, reserved margin, isolation, decontamination, shards
+      path: configs/data/shards_v1.yaml
+      verifier: src/tinybench_lm/shards.py
+      status: NOT_RUN
+      failure_policy: a profile below its frozen threshold fails; never soften the threshold
+    - item_id: G2
+      requirement: tiny end-to-end -- real shards train, resume matches, corruption fails closed, export reloads
+      path: src/tinybench_lm/checkpointing.py
+      verifier: tests/test_durable_checkpoints.py
+      status: NOT_RUN
+      failure_policy: no mainline launch without a verified tiny end-to-end run
+    - item_id: G3
+      requirement: minimum campaign -- P1-P4, P8, F1/F2 complete with manifests and frozen rules applied
+      path: configs/campaign/preregistration_v1.yaml
+      verifier: src/tinybench_lm/campaign.py
+      status: NOT_RUN
+      failure_policy: never select a mixture or LR before its preregistered comparison completes
+    - item_id: G4
+      requirement: final freeze -- two-person bundle approval, real-shard throughput, takeover rehearsal
+      path: configs/campaign/preregistration_v1.yaml
+      verifier: src/tinybench_lm/campaign.py
+      status: NOT_RUN
+      failure_policy: never bypass a failed correctness gate to meet a date
+    - item_id: G5
+      requirement: campaign -- lineage and fallback valid, one primary set and one confirmation, counters reconcile
+      path: configs/branches/exposure_v1.yaml
+      verifier: src/tinybench_lm/branches.py
+      status: NOT_RUN
+      failure_policy: an incomplete experiment is reported incomplete, never omitted
+    - item_id: G6
+      requirement: release -- exports recount below cap, fresh-environment evaluation, public access, approval
+      path: docs/templates/SUBMISSION_PACKAGE.md
+      verifier: src/tinybench_lm/release.py
+      status: NOT_RUN
+      failure_policy: no release without both teammates approving the exact release hash
+
+# --------------------------------------------------------------------------------------
+# Stop conditions and fallbacks (Plan Sections 15 and 17)
+# --------------------------------------------------------------------------------------
+
+stop_conditions:
+  # Plan 17: "Do not add another architecture, data family, optimization method, dashboard,
+  # frontend, or hosted-model workflow unless measured evidence creates a specific need."
+  forbidden_additions:
+    - another_architecture
+    - another_data_family
+    - another_optimization_method
+    - dashboard
+    - frontend
+    - hosted_model_workflow
+  exception_requires: measured evidence of a specific need and a critical schedule that is ahead
+  reason_code_on_scope_creep: RELEASE_SCOPE_CREEP
+
+fallback_policy:
+  # Plan 15
+  ship_best_valid_when_branches_fail: true
+  prefer_ordinary_decay_arm_when_no_effect_supported: A
+  report_null_or_incomplete_honestly: true
+  never_release_undecayed_peak_lr_mainline: true
+  fallback_artifact_id: fallback-v1
+  reason_code_on_undecayed_release: RELEASE_UNDECAYED_FALLBACK
+
+# --------------------------------------------------------------------------------------
+# Superseded documents. Their measured values stay factual; their recommendations do not.
+# --------------------------------------------------------------------------------------
+
+superseded_documents:
+  documents:
+    - path: docs/PILOT_REPORT.md
+      superseded_by: GIBC-Track01-Final-Plan-v5.md
+      preserve: measured pilot throughput, peak VRAM, and dated hardware facts
+      supersede: the 49,295,872-parameter recommendation and its 704,128 margin
+      label_required: historical
+    - path: docs/RESEARCH_PLAN.md
+      superseded_by: GIBC-Track01-Final-Plan-v5.md
+      preserve: literature references and their summaries
+      supersede: architecture recommendations not selected by the final plan
+      label_required: historical
+  reason_code_on_unlabeled_superseded: RELEASE_SUPERSEDED_UNLABELED
+
+# --------------------------------------------------------------------------------------
+# Templates the submission package needs
+# --------------------------------------------------------------------------------------
+
+required_templates:
+  paths:
+    - docs/templates/MODEL_CARD.md
+    - docs/templates/DATA_CARD.md
+    - docs/templates/AI_ASSISTANCE_DISCLOSURE.md
+    - docs/templates/BUILT_WITH.md
+    - docs/templates/SUBMISSION_PACKAGE.md
+  reason_code_on_missing_template: RELEASE_TEMPLATE_MISSING
+
+readiness:
+  template_and_matrix_construction_allowed: true
+  final_run_completed: NOT_RUN
+  required_evaluation_completed: NOT_RUN
+  public_artifacts_published: BLOCKED
+  teammate_approval_recorded: BLOCKED
+  organizer_answers_received: BLOCKED
+  blocker: no final run exists, nothing is published, and organizer answers and teammate attestations are external actions no repository check can supply
+  owner: operator and teammates
+  next_action: complete G0-G3, freeze at G4, run the campaign, then publish artifacts and collect both approvals before claiming any release item
+
+reason_codes:
+  ok:
+    - RELEASE_OK
+  fail_closed:
+    - RELEASE_BLOCKER_DETAIL_INCOMPLETE
+    - RELEASE_PATH_MISSING
+    - RELEASE_SCOPE_CREEP
+    - RELEASE_SUPERSEDED_UNLABELED
+    - RELEASE_TEMPLATE_MISSING
+    - RELEASE_UNDECAYED_FALLBACK
+    - RELEASE_UNKNOWN_STATUS
+    - RELEASE_UNSUPPORTED_PASS
+    - RELEASE_VERIFIER_MISSING
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_item: true

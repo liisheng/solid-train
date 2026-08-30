@@ -1,0 +1,434 @@
+# Frozen campaign preregistration: proxy runs, decision rules, G4 freeze, parent binding.
+# Plan Sections 6.1-6.2, 8.1-8.6, 12-13.
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/campaign.py (FROZEN_CAMPAIGN_PROTOCOL_SHA256). Loading fails closed if
+# the bytes change, so a run definition, a comparison, a decision threshold, a freeze-bundle
+# component, or a parent-selection rule cannot drift after a proxy result is observed. Any
+# change must be published as configs/campaign/preregistration_v2.yaml with a recorded
+# reason; never edit v1 in place.
+#
+# This is the whole reason the file exists. Plan Section 6.1: "Before any proxy result, hash
+# `PREREGISTRATION-mixture-screen.md`". A threshold chosen after seeing a delta is not a
+# threshold; a comparison redefined after seeing an outcome is not a comparison. Freezing the
+# bytes and pinning the digest is what converts "we decided in advance" from a claim into a
+# checkable fact.
+#
+# Nothing in this file runs a proxy, trains an arm, selects a peak LR, binds a parent
+# checkpoint hash, opens `validation_final`, or claims a gate pass. Every such value stays
+# NOT_RUN / BLOCKED under `readiness` rather than being invented.
+
+protocol: campaign_preregistration
+version: v1
+frozen: true
+calibration: configs-and-validators-only-no-campaign-run
+consumes: configs/training/recipe_v1.yaml batch and LR contract; configs/branches/exposure_v1.yaml arm identity and branch sizes; configs/evaluation/evaluation_provisional_v1.yaml scoring protocol
+
+change_control:
+  immutable: true
+  on_change: create configs/campaign/preregistration_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/campaign.py::FROZEN_CAMPAIGN_PROTOCOL_SHA256
+  frozen_before_any_proxy_result_is_observed: true
+  frozen_before_any_arm_outcome_is_observed: true
+
+# --------------------------------------------------------------------------------------
+# Update alignment (Plan Sections 7 and 6.2). Every horizon is a whole number of updates.
+# --------------------------------------------------------------------------------------
+
+batch_layout:
+  sequences_per_update: 256
+  sequence_length: 1024
+  loss_tokens_per_update: 262144
+  loss_tokens_formula: sequences_per_update * sequence_length
+  update_alignment_required: true
+  reason_code_on_unaligned: CAMPAIGN_TOKENS_NOT_UPDATE_ALIGNED
+
+# --------------------------------------------------------------------------------------
+# Proxy architecture (Plan Section 6.2). The final model reduced to 8 layers, nothing else.
+# --------------------------------------------------------------------------------------
+
+proxy_architecture:
+  derives_from: configs/final_49m.json
+  only_difference: n_layers
+  vocab_size: 12288
+  max_seq_len: 1024
+  n_layers: 8
+  d_model: 512
+  n_heads: 8
+  n_kv_heads: 4
+  head_dim: 64
+  d_ff: 1504
+  rope_theta: 10000.0
+  rms_norm_eps: 1.0e-5
+  dropout: 0.0
+  bias: false
+  tie_embeddings: true
+  # 6,291,456 + 8 x 3,097,600 + 512 = 31,072,768
+  unique_trainable_parameters: 31072768
+  parameter_formula: embedding + n_layers * per_layer + final_norm
+  embedding_parameters: 6291456
+  per_layer_parameters: 3097600
+  final_norm_parameters: 512
+  reason_code_on_count_mismatch: CAMPAIGN_PROXY_COUNT_MISMATCH
+
+final_architecture:
+  path: configs/final_49m.json
+  n_layers: 14
+  unique_trainable_parameters: 49658368
+
+# --------------------------------------------------------------------------------------
+# Mixtures (Plan Section 6.1). M-edu moves 15 points from general web to FineWeb-Edu and
+# holds the other two sources fixed; that is the entire manipulation under test.
+# --------------------------------------------------------------------------------------
+
+mixtures:
+  M-base:
+    mixture_id: M-base
+    role: control
+    shares:
+      fineweb_edu: 70
+      general_web: 20
+      openwebmath: 7
+      narrative: 3
+  M-edu:
+    mixture_id: M-edu
+    role: candidate
+    shares:
+      fineweb_edu: 85
+      general_web: 5
+      openwebmath: 7
+      narrative: 3
+  required_share_total: 100
+  # Only these two sources may differ between the two mixtures.
+  held_fixed_sources: [openwebmath, narrative]
+  moved_percentage_points: 15
+  moved_from: general_web
+  moved_to: fineweb_edu
+  reason_code_on_share_total: CAMPAIGN_MIXTURE_SHARES_INVALID
+  reason_code_on_held_source_changed: CAMPAIGN_MIXTURE_HELD_SOURCE_CHANGED
+
+# --------------------------------------------------------------------------------------
+# Minimum campaign runs (Plan Section 6.2)
+# --------------------------------------------------------------------------------------
+
+runs:
+  - run_id: P1
+    model: proxy
+    mixture: M-base
+    learning_rate: 6.0e-4
+    seed_role: base
+    seed: 1001
+    tokens: 150208512
+    updates: 573
+    purpose: estimate noise
+    comparison_group: seed_noise
+  - run_id: P2
+    model: proxy
+    mixture: M-base
+    learning_rate: 6.0e-4
+    seed_role: replicate
+    seed: 1002
+    tokens: 150208512
+    updates: 573
+    purpose: estimate noise
+    comparison_group: seed_noise
+  - run_id: P3
+    model: proxy
+    mixture: M-base
+    learning_rate: 6.0e-4
+    seed_role: replicate
+    seed: 1003
+    tokens: 150208512
+    updates: 573
+    purpose: estimate noise
+    comparison_group: seed_noise
+  - run_id: P4
+    model: proxy
+    mixture: M-base
+    learning_rate: 1.0e-3
+    seed_role: base
+    seed: 1001
+    tokens: 150208512
+    updates: 573
+    purpose: LR comparison
+    comparison_group: learning_rate
+  - run_id: P8
+    model: proxy
+    mixture: M-edu
+    learning_rate: 6.0e-4
+    seed_role: base
+    seed: 1001
+    tokens: 150208512
+    updates: 573
+    purpose: mixture comparison
+    comparison_group: mixture_screen
+  - run_id: F1
+    model: final
+    mixture: M-base
+    learning_rate: SELECTED_FROM_P1_P4
+    seed_role: base
+    seed: 1001
+    tokens: 50069504
+    updates: 191
+    purpose: full-size LR safety
+    comparison_group: full_size_lr_safety
+  - run_id: F2
+    model: final
+    mixture: M-base
+    learning_rate: SELECTED_FROM_P1_P4
+    seed_role: base
+    seed: 1001
+    tokens: 50069504
+    updates: 191
+    purpose: full-size LR safety
+    comparison_group: full_size_lr_safety
+
+#: F1/F2 peak LR is chosen from P1/P4 and does not exist yet.
+pending_learning_rate_sentinel: SELECTED_FROM_P1_P4
+
+# Plan Section 6.2: "If the measured F1/F2 calendar would threaten the September 5 G4 launch,
+# freeze that decision before F1 and use 25,165,824 tokens (96 updates) for both runs
+# instead; never compare unequal run lengths."
+contingency:
+  applies_to: [F1, F2]
+  tokens: 25165824
+  updates: 96
+  decide_before: F1
+  reason: measured F1/F2 calendar threatens the September 5 G4 launch
+  must_apply_to_every_run_in_group: true
+  reason_code_on_late_decision: CAMPAIGN_CONTINGENCY_DECIDED_LATE
+
+# --------------------------------------------------------------------------------------
+# Comparability (Plan Section 6.2: "never compare unequal run lengths")
+# --------------------------------------------------------------------------------------
+
+comparisons:
+  definitions:
+    - comparison_id: mixture_screen
+      candidate: P8
+      control: P1
+      delta: NLL_M-edu - NLL_M-base
+      endpoint: validation_dev mean NLL
+      primary: true
+      equal_length_required: true
+      equal_seed_required: true
+      equal_learning_rate_required: true
+    - comparison_id: learning_rate
+      candidate: P4
+      control: P1
+      delta: NLL_LR1e-3 - NLL_LR6e-4
+      endpoint: validation_dev mean NLL
+      primary: false
+      equal_length_required: true
+      equal_seed_required: true
+      equal_learning_rate_required: false
+    - comparison_id: seed_noise
+      members: [P1, P2, P3]
+      statistic: standard_deviation
+      endpoint: validation_dev mean NLL
+      equal_length_required: true
+      equal_seed_required: false
+      equal_learning_rate_required: true
+      # Three seeds give a 2-degree-of-freedom SD. A noise floor, never a significance test.
+      interpretation: noise_floor_only
+  equal_length_reason_code: CAMPAIGN_UNEQUAL_RUN_LENGTH
+  equal_seed_reason_code: CAMPAIGN_SEED_NOT_COMPARABLE
+  equal_lr_reason_code: CAMPAIGN_LR_NOT_COMPARABLE
+
+# --------------------------------------------------------------------------------------
+# Decision thresholds (Plan Sections 6.1 and 8.6). Frozen exactly; every one must hold.
+# --------------------------------------------------------------------------------------
+
+decision_thresholds:
+  bootstrap:
+    method: paired_document_bootstrap
+    pairing: same documents scored under both candidate and control
+    confidence_level: 0.95
+    requirement: confidence interval lies entirely below zero
+    deterministic_seed_required: true
+  relative_nll_reduction:
+    minimum: 0.003
+    formula: (NLL_control - NLL_candidate) / NLL_control
+    comment: at least 0.3% relative reduction
+  seed_sd_multiple:
+    minimum: 2.0
+    formula: abs(delta) > seed_sd_multiple * measured_P1_P3_seed_sd
+    applies_to: [mixture_screen]
+    # Plan 6.1 says "where applicable": the proxy seed SD bounds a proxy comparison. It is
+    # not transferable to the branch claim, which has its own control (arm B).
+    applies_where: proxy_comparisons_only
+  protected_slice_regression:
+    maximum_relative_regression: 0.01
+    formula: (NLL_candidate - NLL_control) / NLL_control
+    requirement: no protected slice may exceed the maximum
+    slices: [broad_general, educational_science, narrative_coreference, math_technical]
+    control_for_mixture_screen: M-base
+    control_for_innovation_claim: arm_B
+  all_conditions_required: true
+  otherwise: select the control and report the result as null or negative
+  reason_code_on_threshold_not_met: CAMPAIGN_THRESHOLD_NOT_MET
+  reason_code_on_slice_regression: CAMPAIGN_PROTECTED_SLICE_REGRESSION
+
+# --------------------------------------------------------------------------------------
+# Mixture-screen preregistration document (Plan Section 6.1)
+# --------------------------------------------------------------------------------------
+
+mixture_screen_preregistration:
+  document: PREREGISTRATION-mixture-screen.md
+  hash_algorithm: sha256
+  hash_before: any proxy result is observed
+  required_sections:
+    - p1_p8_configs_and_exact_update_count
+    - primary_endpoint
+    - p8_comparison_delta
+    - selection_rule
+    - protected_slice_rule
+    - null_or_negative_reporting_rule
+  primary_endpoint: validation_dev mean NLL
+  p8_comparison_delta: NLL_M-edu - NLL_M-base
+  selection_rule: select M-edu only when every decision threshold holds; otherwise select M-base
+  null_or_negative_reporting_rule: report the result as null or negative rather than reselecting
+  reason_code_on_missing_section: CAMPAIGN_PREREGISTRATION_INCOMPLETE
+  reason_code_on_late_hash: CAMPAIGN_PREREGISTRATION_LATE
+
+# --------------------------------------------------------------------------------------
+# G4 freeze bundle (Plan Section 13 G4). One hash, two-person approval.
+# --------------------------------------------------------------------------------------
+
+freeze_bundle:
+  gate: G4
+  hash_algorithm: sha256
+  single_bundle_hash_required: true
+  required_components:
+    - code
+    - environment
+    - model
+    - tokenizer
+    - corpus
+    - mixture
+    - optimizer
+    - schedule
+    - evaluation
+    - parent_selection_rule
+    - branch_calendar
+    - recovery_policy
+    - fallback
+  approvals_required: 2
+  distinct_approvers_required: true
+  # Plan 13 G4: "Real-shard throughput and takeover rehearsal must pass."
+  required_evidence:
+    - real_shard_throughput
+    - takeover_rehearsal
+  # Plan 13 G4: "Never bypass a failed correctness gate to meet a date."
+  never_bypass_failed_correctness_gate: true
+  target_date: September 5
+  reason_code_on_missing_component: CAMPAIGN_FREEZE_BUNDLE_INCOMPLETE
+  reason_code_on_insufficient_approval: CAMPAIGN_FREEZE_APPROVAL_INSUFFICIENT
+  reason_code_on_missing_evidence: CAMPAIGN_FREEZE_EVIDENCE_MISSING
+
+# --------------------------------------------------------------------------------------
+# Parent selection and append-only binding (Plan Section 8.5)
+# --------------------------------------------------------------------------------------
+
+parent_binding:
+  # Frozen at G4: the rule and the target token count. The hash does not exist yet.
+  selection_rule: the mainline checkpoint at the frozen target parent token count, selected deterministically by update index; ties are impossible because update indices are unique
+  target_parent_tokens_field: target_parent_tokens
+  rule_frozen_at: G4
+  pending_sentinel: PENDING_PARENT_HASH
+  hash_exists_at_freeze_time: false
+  bind_before_any_arm_runs: true
+  bind_before_any_arm_outcome_is_observed: true
+  append_only: true
+  # An append-only manifest is the control: rewriting an entry would let a parent be chosen
+  # after an arm outcome was seen, which is exactly the failure Section 8.5 forbids.
+  rewrite_forbidden: true
+  identical_across_arms_in_one_set: true
+  manifest_schema_version: 1
+  entry_fields: [set_id, arm_ids, target_parent_tokens, parent_checkpoint_hash, bound_at, bound_by, preregistration_hash]
+  reason_code_on_rewrite: CAMPAIGN_PARENT_MANIFEST_REWRITTEN
+  reason_code_on_late_binding: CAMPAIGN_PARENT_BOUND_AFTER_OUTCOME
+  reason_code_on_pending_hash: CAMPAIGN_PARENT_HASH_PENDING
+
+# --------------------------------------------------------------------------------------
+# Branch-size selection and set counts (Plan Sections 8.1 and 8.6)
+# --------------------------------------------------------------------------------------
+
+branch_sets:
+  # Band selection itself lives in configs/branches/exposure_v1.yaml; this fixes how many
+  # sets the campaign preregisters and that the confirmation comes first.
+  size_selection_protocol: configs/branches/exposure_v1.yaml
+  primary_sets: 1
+  confirmation_sets: 1
+  arms_per_set: [A, B, C]
+  confirmation_precedes_primary: true
+  confirmation_endpoint: validation_dev
+  primary_endpoint: validation_final
+  confirmation_parent_distinct_from_primary_parent: true
+  same_direction_confirmation_required: true
+  reason_code_on_missing_confirmation: CAMPAIGN_CONFIRMATION_MISSING
+  reason_code_on_set_count: CAMPAIGN_SET_COUNT_INVALID
+
+# --------------------------------------------------------------------------------------
+# validation_final custody (Plan Section 8.6: "opened once after all branch runs")
+# --------------------------------------------------------------------------------------
+
+validation_final_custody:
+  opened_once: true
+  open_after: all branch runs complete
+  may_not_influence: [training, model_selection, mixture_selection, learning_rate_selection]
+  status: NOT_OPENED
+  reason_code_on_early_open: CAMPAIGN_VALIDATION_FINAL_OPENED_EARLY
+
+# --------------------------------------------------------------------------------------
+# Readiness. Config and validator construction is allowed while these are NOT_RUN / BLOCKED.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  config_and_validator_construction_allowed: true
+  proxy_runs_completed: NOT_RUN
+  proxy_outcomes_observed: NOT_RUN
+  selected_mixture: NOT_RUN
+  selected_peak_learning_rate: NOT_RUN
+  measured_seed_sd: NOT_RUN
+  freeze_bundle_approved: NOT_RUN
+  bound_parent_checkpoint_hash: NOT_RUN
+  branch_runs_completed: NOT_RUN
+  validation_final_opened: NOT_RUN
+  teammate_eligibility_confirmed: BLOCKED
+  blocker: no corpus, no proxy run, no measured seed SD, and no mainline parent checkpoint exist yet; teammate eligibility is a personal attestation no repository check can supply
+  owner: operator
+  next_action: complete G1 data gates, then run P1-P4 and P8 on real shards and record their manifests before selecting any mixture or learning rate
+
+reason_codes:
+  ok:
+    - CAMPAIGN_OK
+  fail_closed:
+    - CAMPAIGN_CONFIRMATION_MISSING
+    - CAMPAIGN_CONTINGENCY_DECIDED_LATE
+    - CAMPAIGN_FREEZE_APPROVAL_INSUFFICIENT
+    - CAMPAIGN_FREEZE_BUNDLE_INCOMPLETE
+    - CAMPAIGN_FREEZE_EVIDENCE_MISSING
+    - CAMPAIGN_LR_NOT_COMPARABLE
+    - CAMPAIGN_MIXTURE_HELD_SOURCE_CHANGED
+    - CAMPAIGN_MIXTURE_SHARES_INVALID
+    - CAMPAIGN_PARENT_BOUND_AFTER_OUTCOME
+    - CAMPAIGN_PARENT_HASH_PENDING
+    - CAMPAIGN_PARENT_MANIFEST_REWRITTEN
+    - CAMPAIGN_PREREGISTRATION_INCOMPLETE
+    - CAMPAIGN_PREREGISTRATION_LATE
+    - CAMPAIGN_PROTECTED_SLICE_REGRESSION
+    - CAMPAIGN_PROXY_COUNT_MISMATCH
+    - CAMPAIGN_SEED_NOT_COMPARABLE
+    - CAMPAIGN_SET_COUNT_INVALID
+    - CAMPAIGN_THRESHOLD_NOT_MET
+    - CAMPAIGN_TOKENS_NOT_UPDATE_ALIGNED
+    - CAMPAIGN_UNEQUAL_RUN_LENGTH
+    - CAMPAIGN_VALIDATION_FINAL_OPENED_EARLY
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_run: true
+  emit_per_comparison: true

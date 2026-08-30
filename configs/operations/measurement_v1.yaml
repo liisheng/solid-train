@@ -1,0 +1,310 @@
+# Frozen two-machine measurement, horizon, and gate contract (Plan Sections 7.1, 9, 10.4, 12-13).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/operations.py (FROZEN_OPERATIONS_PROTOCOL_SHA256). Loading fails closed if
+# the bytes change, so a required measurement, a headroom rule, a horizon formula, or a gate's
+# evidence list cannot drift after a claim has been made against it. Any change must be
+# published as configs/operations/measurement_v2.yaml with a recorded reason; never edit v1
+# in place.
+#
+# Plan Section 9.1 is the reason this file exists, in three words: "Measure rather than
+# assume." Every number the submission reports about speed, memory, horizon, or efficiency
+# must come from a recorded measurement, and every gate must name the evidence it requires.
+# An absent measurement is NOT_RUN and an externally blocked one is BLOCKED; neither may ever
+# become PASS. Plan Section 7.1 applies the same rule to the headline numbers: "'20B' and
+# '402.8 tokens/parameter' remain stretch targets until reached."
+#
+# Nothing in this file measures hardware, promotes a backend, rehearses takeover, schedules a
+# dated campaign, or passes a gate. Every such value stays NOT_RUN / BLOCKED under `readiness`.
+
+protocol: operations_measurement
+version: v1
+frozen: true
+calibration: synthetic-measurements-only-no-hardware-run
+consumes: configs/training/recipe_v1.yaml batch contract; configs/campaign/preregistration_v1.yaml run horizons; configs/branches/exposure_v1.yaml branch sizes
+
+change_control:
+  immutable: true
+  on_change: create configs/operations/measurement_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/operations.py::FROZEN_OPERATIONS_PROTOCOL_SHA256
+  frozen_before_any_measurement_is_claimed: true
+
+# --------------------------------------------------------------------------------------
+# The two lanes (Plan Section 9)
+# --------------------------------------------------------------------------------------
+
+machines:
+  - machine_id: rtx_4070
+    lane: mainline
+    role: final-model capacity, full-size LR safety, continuous stable mainline, canonical archive
+    is_rollback_lane: true
+  - machine_id: rtx_3070
+    lane: data_and_branches
+    role: preprocessing, dedup indexes, tokenizer, packing, proxy experiments, confirmation and primary A/B/C, evaluation and clean export
+    is_rollback_lane: false
+
+# --------------------------------------------------------------------------------------
+# Required hardware measurements (Plan Section 9.1)
+# --------------------------------------------------------------------------------------
+
+hardware_promotion:
+  required_measurements:
+    - gpu_name
+    - vram_total_bytes
+    - bf16_supported
+    - bf16_stable
+    - backend
+    - safe_microbatch
+    - sustained_tokens_per_second
+    - throughput_p10
+    - throughput_median
+    - throughput_p90
+    - peak_ram_bytes
+    - peak_swap_bytes
+    - peak_vram_bytes
+    - dataloader_wait_seconds
+    - checkpoint_seconds
+    - thermal_throttle_reasons
+  # Plan 9.1: "Maximum safe microbatch with at least 10% VRAM headroom."
+  minimum_vram_headroom_fraction: 0.10
+  headroom_formula: (vram_total_bytes - peak_vram_bytes) / vram_total_bytes
+  reason_code_on_insufficient_headroom: OPS_VRAM_HEADROOM_INSUFFICIENT
+  # Plan 9.1: "30-60 minute real-shard sustained throughput."
+  minimum_sustained_seconds: 1800
+  maximum_sustained_seconds: 3600
+  sustained_must_use_real_shards: true
+  reason_code_on_short_window: OPS_THROUGHPUT_WINDOW_TOO_SHORT
+  # Deterministic nearest-rank percentiles, so two machines agree on the same samples.
+  percentile_method: nearest_rank
+  required_percentiles: [10, 50, 90]
+  minimum_samples: 3
+  reason_code_on_insufficient_samples: OPS_INSUFFICIENT_SAMPLES
+  # Plan 9.1: "Promote a backend only if correctness tests pass and sustained
+  # reliability-adjusted throughput improves."
+  backend_promotion:
+    requires_correctness_pass: true
+    requires_throughput_improvement: true
+    compares: sustained_reliability_adjusted_throughput
+    reason_code_on_unjustified_promotion: OPS_BACKEND_PROMOTION_UNJUSTIFIED
+  candidate_backends: [eager_sdpa, compiled_sdpa, flash]
+
+# --------------------------------------------------------------------------------------
+# Horizon calculators (Plan Section 7.1). Pure functions over measured inputs only.
+# --------------------------------------------------------------------------------------
+
+horizon:
+  mainline_parent_time: parent_tokens / measured_4070_tps
+  branch_time: total_branch_tokens / measured_3070_tps
+  evaluation_time: measured_eval_runtime * candidate_count
+  # Plan 10.4: "p90 measured runtime x exact candidate count x 1.25"
+  evaluation_reserve: throughput_p90_runtime * candidate_count * 1.25
+  evaluation_reserve_multiplier: 1.25
+  consumed_tokens: updates * loss_tokens_per_update
+  effective_passes: consumed_tokens / corpus_tokens
+  tokens_per_parameter: consumed_tokens / unique_trainable_parameters
+  active_gpu_hours: active_gpu_seconds / 3600
+  # The standard 6ND forward-plus-backward estimate. Approximate by construction and
+  # always reported as approximate, never as a measurement.
+  approximate_flops: 6 * unique_trainable_parameters * consumed_tokens
+  approximate_flops_is_estimate: true
+  all_dependencies_plus_recovery_reserve_must_fit_before: September 17
+  reason_code_on_unmeasured_input: OPS_UNMEASURED_INPUT
+  reason_code_on_deadline_overrun: OPS_DEADLINE_OVERRUN
+
+# --------------------------------------------------------------------------------------
+# Stretch targets (Plan Section 7.1). Targets, never claims.
+# --------------------------------------------------------------------------------------
+
+stretch_targets:
+  status: NOT_REACHED
+  is_measurement: false
+  # Plan 7.1: "'20B' and '402.8 tokens/parameter' remain stretch targets until reached."
+  consumed_tokens: 20000000000
+  tokens_per_parameter: 402.8
+  # Plan 7.1 lineage table, indexed by MEASURED 4070 real-shard TPS. Reference only.
+  lineage_reference:
+    - tps_minimum: 12000
+      tps_exclusive_maximum: 15000
+      likely_lineage_tokens_minimum: 9000000000
+      likely_lineage_tokens_maximum: 12000000000
+    - tps_minimum: 15000
+      tps_exclusive_maximum: 20000
+      likely_lineage_tokens_minimum: 12000000000
+      likely_lineage_tokens_maximum: 15000000000
+    - tps_minimum: 20000
+      tps_exclusive_maximum: 24000
+      likely_lineage_tokens_minimum: 15000000000
+      likely_lineage_tokens_maximum: 18000000000
+    - tps_minimum: 28000
+      tps_exclusive_maximum: 30000
+      likely_lineage_tokens_minimum: 18000000000
+      likely_lineage_tokens_maximum: 20000000000
+      is_stretch: true
+  # Plan 15 and the preservation rule: an unmeasured fit is a target with a label.
+  unmeasured_targets:
+    - eight_gigabyte_vram_fit
+    - cpu_ram_sufficiency
+    - sustained_throughput
+  reason_code_on_target_claimed_as_measured: OPS_TARGET_CLAIMED_AS_MEASURED
+
+# --------------------------------------------------------------------------------------
+# Gates G0-G6 (Plan Section 13). Each requirement names the evidence it needs.
+# --------------------------------------------------------------------------------------
+
+gates:
+  - gate_id: G0
+    title: Foundation
+    requirements:
+      - requirement_id: teammate_eligibility_registered
+        evidence_key: teammate_eligibility_registered
+        externally_blocked: true
+      - requirement_id: environments_reproduce_both_machines
+        evidence_key: environments_reproduce_both_machines
+      - requirement_id: hardware_identity_measured
+        evidence_key: hardware_identity_measured
+      - requirement_id: model_parameter_mask_tied_export_tests
+        evidence_key: model_parameter_mask_tied_export_tests
+      - requirement_id: eval_adapter_completes_required_tasks
+        evidence_key: eval_adapter_completes_required_tasks
+      - requirement_id: protocols_frozen_before_results
+        evidence_key: protocols_frozen_before_results
+  - gate_id: G1
+    title: Data
+    requirements:
+      - requirement_id: profile_token_threshold_met
+        evidence_key: profile_token_threshold_met
+      - requirement_id: source_revisions_licenses_hashes_complete
+        evidence_key: source_revisions_licenses_hashes_complete
+      - requirement_id: reserved_pool_margin_met
+        evidence_key: reserved_pool_margin_met
+      - requirement_id: split_isolation_passes
+        evidence_key: split_isolation_passes
+      - requirement_id: decontamination_and_fixtures_pass
+        evidence_key: decontamination_and_fixtures_pass
+      - requirement_id: shards_and_schedules_verify
+        evidence_key: shards_and_schedules_verify
+  - gate_id: G2
+    title: Tiny end-to-end
+    requirements:
+      - requirement_id: real_shards_train_and_loss_decreases
+        evidence_key: real_shards_train_and_loss_decreases
+      - requirement_id: interruption_resume_matches_fixture
+        evidence_key: interruption_resume_matches_fixture
+      - requirement_id: corruption_fails_closed
+        evidence_key: corruption_fails_closed
+      - requirement_id: export_reload_matches
+        evidence_key: export_reload_matches
+      - requirement_id: other_machine_evaluates_artifact
+        evidence_key: other_machine_evaluates_artifact
+  - gate_id: G3
+    title: Minimum campaign
+    requirements:
+      - requirement_id: proxy_runs_complete_with_manifests
+        evidence_key: proxy_runs_complete_with_manifests
+      - requirement_id: frozen_decision_rules_applied
+        evidence_key: frozen_decision_rules_applied
+  - gate_id: G4
+    title: Final freeze
+    requirements:
+      - requirement_id: two_person_freeze_bundle_approval
+        evidence_key: two_person_freeze_bundle_approval
+      - requirement_id: real_shard_throughput_measured
+        evidence_key: real_shard_throughput_measured
+      - requirement_id: takeover_rehearsal_passes
+        evidence_key: takeover_rehearsal_passes
+      - requirement_id: no_failed_correctness_gate_bypassed
+        evidence_key: no_failed_correctness_gate_bypassed
+  - gate_id: G5
+    title: Campaign
+    requirements:
+      - requirement_id: stable_lineage_and_fallback_valid
+        evidence_key: stable_lineage_and_fallback_valid
+      - requirement_id: primary_set_and_confirmation_complete_or_marked_incomplete
+        evidence_key: primary_set_and_confirmation_complete_or_marked_incomplete
+      - requirement_id: counters_reconcile
+        evidence_key: counters_reconcile
+      - requirement_id: no_frozen_artifact_changed
+        evidence_key: no_frozen_artifact_changed
+  - gate_id: G6
+    title: Release
+    requirements:
+      - requirement_id: exports_load_and_recount_below_cap
+        evidence_key: exports_load_and_recount_below_cap
+      - requirement_id: required_evaluation_from_fresh_environment
+        evidence_key: required_evaluation_from_fresh_environment
+      - requirement_id: readme_efficiency_figures_reconcile
+        evidence_key: readme_efficiency_figures_reconcile
+      - requirement_id: public_artifacts_accessible
+        evidence_key: public_artifacts_accessible
+        externally_blocked: true
+      - requirement_id: both_teammates_approve_release_hash
+        evidence_key: both_teammates_approve_release_hash
+        externally_blocked: true
+
+gate_policy:
+  # The single most important rule in this file.
+  absence_of_evidence_is_never_pass: true
+  statuses: [PASS, FAIL, BLOCKED, NOT_RUN]
+  missing_evidence_status: NOT_RUN
+  externally_blocked_status: BLOCKED
+  # A gate passes only when every one of its requirements passes.
+  gate_passes_only_if_all_requirements_pass: true
+  blocked_requires_blocker_owner_next_action: true
+  # Plan 13 G4: "Never bypass a failed correctness gate to meet a date."
+  never_bypass_failed_correctness_gate: true
+  reason_code_on_unsupported_pass: OPS_UNSUPPORTED_PASS
+  reason_code_on_incomplete_blocker: OPS_BLOCKER_DETAIL_INCOMPLETE
+
+takeover_rehearsal:
+  # Plan Section 9: "If the 4070 fails, optional branches stop and the 3070 resumes the
+  # latest verified mainline checkpoint. This takeover is rehearsed before G4."
+  rehearsed_before: G4
+  from_machine: rtx_4070
+  to_machine: rtx_3070
+  required_steps:
+    - optional_branches_stop
+    - latest_verified_mainline_checkpoint_identified
+    - checkpoint_verified_on_target_machine
+    - training_resumes_on_target_machine
+  status: NOT_RUN
+  reason_code_on_unrehearsed: OPS_TAKEOVER_NOT_REHEARSED
+
+# --------------------------------------------------------------------------------------
+# Readiness. Calculator and gate construction is allowed while these are NOT_RUN / BLOCKED.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  calculator_and_gate_construction_allowed: true
+  measured_4070_profile: NOT_RUN
+  measured_3070_profile: NOT_RUN
+  sustained_real_shard_throughput: NOT_RUN
+  backend_promoted: NOT_RUN
+  takeover_rehearsed: NOT_RUN
+  dated_campaign_scheduled: NOT_RUN
+  public_artifact_access: BLOCKED
+  teammate_release_approval: BLOCKED
+  blocker: no GPU measurement, no real shards, and no mainline lineage exist yet; public access and teammate approval are external actions no repository check can supply
+  owner: operator
+  next_action: run the Section 9.1 hardware promotion measurements on both machines and record them before any horizon, efficiency, or gate claim
+
+reason_codes:
+  ok:
+    - OPS_OK
+  fail_closed:
+    - OPS_BACKEND_PROMOTION_UNJUSTIFIED
+    - OPS_BLOCKER_DETAIL_INCOMPLETE
+    - OPS_DEADLINE_OVERRUN
+    - OPS_INSUFFICIENT_SAMPLES
+    - OPS_TAKEOVER_NOT_REHEARSED
+    - OPS_TARGET_CLAIMED_AS_MEASURED
+    - OPS_THROUGHPUT_WINDOW_TOO_SHORT
+    - OPS_UNMEASURED_INPUT
+    - OPS_UNSUPPORTED_PASS
+    - OPS_VRAM_HEADROOM_INSUFFICIENT
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_machine: true
+  emit_per_gate: true

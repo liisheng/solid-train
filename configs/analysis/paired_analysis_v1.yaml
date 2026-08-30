@@ -1,0 +1,197 @@
+# Frozen paired-analysis and claim contract (Plan Sections 6.1, 8.6, 15).
+#
+# FROZEN: this file is pinned by a SHA-256 digest in
+# src/tinybench_lm/analysis.py (FROZEN_ANALYSIS_PROTOCOL_SHA256). Loading fails closed if the
+# bytes change, so an endpoint, a resample count, a confidence level, an interpretation, or a
+# required condition cannot drift after a delta has been seen. Any change must be published as
+# configs/analysis/paired_analysis_v2.yaml with a recorded reason; never edit v1 in place.
+#
+# Plan Section 8.6 fixes both endpoints and forbids choosing between them after the fact: "H2
+# remains primary; report H1 as secondary and do not choose which hypothesis to emphasize
+# after seeing results." That is the reason this file is frozen and the reason the analysis
+# code returns an interpretation *code* rather than prose: a module that cannot write a
+# sentence cannot write a favourable one.
+#
+# Nothing in this file scores a model, opens validation_final, runs an arm, or selects a
+# release. Every such value stays NOT_RUN under `readiness`.
+
+protocol: paired_analysis
+version: v1
+frozen: true
+calibration: synthetic-paired-documents-only-no-real-scores
+consumes: configs/campaign/preregistration_v1.yaml decision thresholds; configs/evaluation/evaluation_provisional_v1.yaml scoring protocol; configs/branches/exposure_v1.yaml arm identity
+
+change_control:
+  immutable: true
+  on_change: create configs/analysis/paired_analysis_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/analysis.py::FROZEN_ANALYSIS_PROTOCOL_SHA256
+  frozen_before_any_delta_is_observed: true
+
+# --------------------------------------------------------------------------------------
+# Endpoints (Plan Section 8.6). Primary and secondary are fixed in advance.
+# --------------------------------------------------------------------------------------
+
+endpoints:
+  primary:
+    hypothesis_id: H2
+    delta: NLL_C - NLL_B
+    candidate_arm: C
+    control_arm: B
+    split: validation_final
+    question: does temporal placement of reserved data help
+  secondary:
+    hypothesis_id: H1
+    delta: NLL_B - NLL_A
+    candidate_arm: B
+    control_arm: A
+    split: validation_final
+    question: does reserved-data quality help
+  # Plan 8.6: "do not choose which hypothesis to emphasize after seeing results."
+  emphasis_fixed_before_results: true
+  reason_code_on_reordered_emphasis: ANALYSIS_ENDPOINT_REORDERED
+  # A negative delta favours the candidate, because these are losses.
+  lower_is_better: true
+
+# --------------------------------------------------------------------------------------
+# Paired document bootstrap (Plan Sections 6.1 and 8.6)
+# --------------------------------------------------------------------------------------
+
+bootstrap:
+  method: paired_document_bootstrap
+  # The pairing is the point: the same documents are scored under both arms, and each
+  # resample draws document indices once and applies them to both arms. Resampling the two
+  # arms independently would discard the pairing and inflate the interval.
+  pairing: per_document_difference
+  resamples: 10000
+  confidence_level: 0.95
+  interval_method: percentile
+  lower_percentile: 2.5
+  upper_percentile: 97.5
+  rng: numpy_default_rng
+  deterministic_seed_required: true
+  default_seed: 20260905
+  minimum_documents: 2
+  reason_code_on_insufficient_documents: ANALYSIS_INSUFFICIENT_DOCUMENTS
+  reason_code_on_unpaired_documents: ANALYSIS_DOCUMENTS_NOT_PAIRED
+  reason_code_on_nondeterministic: ANALYSIS_NONDETERMINISTIC
+
+# --------------------------------------------------------------------------------------
+# Required conditions for an annealing claim (Plan Section 8.6, verbatim order)
+# --------------------------------------------------------------------------------------
+
+annealing_claim:
+  required_conditions:
+    - condition_id: ci_below_zero
+      requirement: paired document-bootstrap 95% CI for delta_H2 lies entirely below zero
+    - condition_id: relative_reduction_met
+      requirement: relative NLL reduction is at least 0.3%
+    - condition_id: no_protected_slice_regression
+      requirement: no protected reporting slice regresses more than 1% relative
+    - condition_id: confirmation_same_direction
+      requirement: the earlier short confirmation shows the same direction on validation_dev
+  all_conditions_required: true
+  reason_code_on_unmet_condition: ANALYSIS_CLAIM_NOT_SUPPORTED
+  reason_code_on_missing_confirmation: ANALYSIS_CONFIRMATION_MISSING
+
+quality_claim:
+  # Plan 8.6 applies the same bars to H1, minus the confirmation requirement.
+  required_conditions:
+    - condition_id: ci_below_zero
+      requirement: paired 95% CI for delta_H1 lies entirely below zero
+    - condition_id: relative_reduction_met
+      requirement: relative NLL reduction is at least 0.3%
+    - condition_id: no_protected_slice_regression
+      requirement: no protected slice breaches the 1% regression limit
+  all_conditions_required: true
+
+# --------------------------------------------------------------------------------------
+# Thresholds. Sourced from the campaign contract; restated here only to be checked.
+# --------------------------------------------------------------------------------------
+
+thresholds:
+  source: configs/campaign/preregistration_v1.yaml
+  must_match_source: true
+  confidence_level: 0.95
+  minimum_relative_reduction: 0.003
+  maximum_slice_regression: 0.01
+  protected_slices: [broad_general, educational_science, narrative_coreference, math_technical]
+  slice_control_for_innovation_claim: arm_B
+  reason_code_on_threshold_drift: ANALYSIS_THRESHOLD_DRIFT
+
+# --------------------------------------------------------------------------------------
+# Interpretations (Plan Section 8.6). Every outcome has a name before any outcome exists.
+# --------------------------------------------------------------------------------------
+
+interpretations:
+  definitions:
+    - interpretation_id: QUALITY_AND_TIMING
+      condition: H1 supported and H2 supported
+      meaning: quality and timing both help
+      claim_allowed: true
+    - interpretation_id: QUALITY_ONLY
+      condition: H1 supported and H2 not supported and H2 not harmful
+      meaning: quality helps; annealing timing unsupported
+      claim_allowed: false
+    - interpretation_id: ANNEALING_HARMFUL
+      condition: C loses to B
+      meaning: annealing is harmful; ship B or A by development validation
+      claim_allowed: false
+    - interpretation_id: NULL_RESULT
+      condition: no reliable differences
+      meaning: report null; ship the best valid branch by validation_dev
+      claim_allowed: false
+    - interpretation_id: INCOMPLETE
+      condition: required evidence is absent
+      meaning: report the experiment as incomplete
+      claim_allowed: false
+  # Plan 15: "If the innovation does not replicate, report it as null/inconclusive and do not
+  # claim a positive result."
+  null_and_incomplete_are_valid_outcomes: true
+  never_select_interpretation_after_seeing_results: true
+  reason_code_on_post_hoc_selection: ANALYSIS_POST_HOC_SELECTION
+
+# --------------------------------------------------------------------------------------
+# Fallback (Plan Section 15)
+# --------------------------------------------------------------------------------------
+
+fallback:
+  artifact_id: fallback-v1
+  source: best valid endpoint of the earlier short A/B/C set by the frozen validation_dev rule
+  prefer_when_no_effect_supported: A
+  never_use_undecayed_peak_lr_mainline: true
+  reason_code_on_undecayed_fallback: ANALYSIS_UNDECAYED_FALLBACK
+
+# --------------------------------------------------------------------------------------
+# Readiness. Synthetic-fixture analysis is allowed while these are NOT_RUN.
+# --------------------------------------------------------------------------------------
+
+readiness:
+  synthetic_fixture_analysis_allowed: true
+  branch_runs_completed: NOT_RUN
+  validation_final_opened: NOT_RUN
+  earlier_confirmation_completed: NOT_RUN
+  real_paired_scores_available: NOT_RUN
+  blocker: no arm has been trained and validation_final has never been opened, so no real paired document scores exist
+  owner: operator
+  next_action: complete the earlier confirmation and the primary A/B/C set, then open validation_final exactly once and score all three arms under the frozen evaluation protocol
+
+reason_codes:
+  ok:
+    - ANALYSIS_OK
+  fail_closed:
+    - ANALYSIS_CLAIM_NOT_SUPPORTED
+    - ANALYSIS_CONFIRMATION_MISSING
+    - ANALYSIS_DOCUMENTS_NOT_PAIRED
+    - ANALYSIS_ENDPOINT_REORDERED
+    - ANALYSIS_INSUFFICIENT_DOCUMENTS
+    - ANALYSIS_NONDETERMINISTIC
+    - ANALYSIS_POST_HOC_SELECTION
+    - ANALYSIS_THRESHOLD_DRIFT
+    - ANALYSIS_UNDECAYED_FALLBACK
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_hypothesis: true
+  emit_per_slice: true

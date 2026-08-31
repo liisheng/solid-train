@@ -1,0 +1,58 @@
+{
+  "batch_size": 16,
+  "bootstrap_iters": 0,
+  "checkpoint_sha256": "d040cb8311b08f7b1edbc9603c0677471a4d553903042de79d02789c8de496b5",
+  "device": "cuda",
+  "evidence_scope": "G0_BOUNDED_ADAPTER_SMOKE",
+  "label": "PROVISIONAL_NOT_OFFICIAL",
+  "limit_per_task": 10,
+  "percentile_method": "nearest_rank",
+  "protocol_hash": "c245423ecedf75703d4b38faab6292233a6519350a7750e01e6871ed5baab99e",
+  "protocol_id": "evaluation_provisional_v1",
+  "runs_per_task": 3,
+  "tasks": {
+    "arc_easy": {
+      "p90_runtime_seconds": 20.9511620000012,
+      "runtime_seconds": [
+        20.9511620000012,
+        20.6286265999988,
+        20.6386545000023
+      ]
+    },
+    "hellaswag": {
+      "p90_runtime_seconds": 24.5277027000011,
+      "runtime_seconds": [
+        23.5681045999991,
+        23.0814451000006,
+        24.5277027000011
+      ]
+    },
+    "piqa": {
+      "p90_runtime_seconds": 23.5709184999978,
+      "runtime_seconds": [
+        23.5709184999978,
+        20.2943502000016,
+        21.3975916000018
+      ]
+    },
+    "wikitext_103_perplexity": {
+      "harness_task": "wikitext",
+      "p90_runtime_seconds": 27.7865559999991,
+      "runtime_seconds": [
+        27.7865559999991,
+        22.7692585000004,
+        23.2461736999976
+      ]
+    },
+    "winogrande": {
+      "p90_runtime_seconds": 29.3809555000007,
+      "runtime_seconds": [
+        29.3809555000007,
+        22.4990585000014,
+        22.8705423000029
+      ]
+    }
+  },
+  "tokenizer_sha256": "98451cba42ce4d4ad20745c0ce539a11f1b4a8dcee73a744dc880552233dac87",
+  "training_influence": false
+}

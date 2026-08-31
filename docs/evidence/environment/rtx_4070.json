@@ -1,0 +1,704 @@
+{
+  "facts": {
+    "backend_promotion": "NOT_RUN: sustained-throughput and backend promotion measurement is deferred",
+    "cuda_devices": [
+      "NVIDIA GeForce RTX 4070 SUPER"
+    ],
+    "machine": "AMD64",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_implementation": "CPython",
+    "python_version": "3.12.6",
+    "torch_cuda_available": true,
+    "torch_cuda_build": "12.4",
+    "torch_version": "2.5.1+cu124"
+  },
+  "ok": true,
+  "results": [
+    {
+      "check_id": "python.requires",
+      "observed": "3.12.6",
+      "reason": "interpreter meets the declared floor",
+      "requirement": "python>=3.11",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.datasets",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "datasets==3.2.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.lm-eval",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "lm-eval==0.4.12",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.numpy",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "numpy==1.26.4",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.pyyaml",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "pyyaml==6.0.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.tokenizers",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "tokenizers==0.20.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.torch",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "torch==2.5.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "pin.exact.tqdm",
+      "observed": "==",
+      "reason": "runtime requirement is pinned exactly",
+      "requirement": "tqdm==4.67.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.datasets",
+      "observed": "3.2.0",
+      "reason": "installed version matches the pin",
+      "requirement": "datasets==3.2.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.lm-eval",
+      "observed": "0.4.12",
+      "reason": "installed version matches the pin",
+      "requirement": "lm-eval==0.4.12",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.numpy",
+      "observed": "1.26.4",
+      "reason": "installed version matches the pin",
+      "requirement": "numpy==1.26.4",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.pyyaml",
+      "observed": "6.0.2",
+      "reason": "installed version matches the pin",
+      "requirement": "pyyaml==6.0.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.tokenizers",
+      "observed": "0.20.3",
+      "reason": "installed version matches the pin",
+      "requirement": "tokenizers==0.20.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.torch",
+      "observed": "2.5.1+cu124",
+      "reason": "installed version matches the pin",
+      "requirement": "torch==2.5.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.runtime.tqdm",
+      "observed": "4.67.1",
+      "reason": "installed version matches the pin",
+      "requirement": "tqdm==4.67.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.test.hypothesis",
+      "observed": "6.130.5",
+      "reason": "installed version matches the pin",
+      "requirement": "hypothesis==6.130.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "installed.test.pytest",
+      "observed": "8.3.5",
+      "reason": "installed version matches the pin",
+      "requirement": "pytest==8.3.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.datasets",
+      "observed": "datasets==3.2.0",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "datasets==3.2.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.lm-eval",
+      "observed": "lm-eval==0.4.12",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "lm-eval==0.4.12",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.numpy",
+      "observed": "numpy==1.26.4",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "numpy==1.26.4",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.pyyaml",
+      "observed": "pyyaml==6.0.2",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "pyyaml==6.0.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.tokenizers",
+      "observed": "tokenizers==0.20.3",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "tokenizers==0.20.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.torch",
+      "observed": "torch==2.5.1",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "torch==2.5.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.runtime.tqdm",
+      "observed": "tqdm==4.67.1",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "tqdm==4.67.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.test.hypothesis",
+      "observed": "hypothesis==6.130.5",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "hypothesis==6.130.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.declared.test.pytest",
+      "observed": "pytest==8.3.5",
+      "reason": "constraints file agrees with the declared pin",
+      "requirement": "pytest==8.3.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.absl-py",
+      "observed": "2.5.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "absl-py==2.5.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.aiohappyeyeballs",
+      "observed": "2.7.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "aiohappyeyeballs==2.7.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.aiohttp",
+      "observed": "3.14.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "aiohttp==3.14.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.aiosignal",
+      "observed": "1.4.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "aiosignal==1.4.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.attrs",
+      "observed": "26.1.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "attrs==26.1.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.certifi",
+      "observed": "2026.7.22",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "certifi==2026.7.22",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.chardet",
+      "observed": "6.0.0.post1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "chardet==6.0.0.post1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.charset-normalizer",
+      "observed": "3.5.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "charset-normalizer==3.5.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.click",
+      "observed": "8.5.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "click==8.5.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.colorama",
+      "observed": "0.4.6",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "colorama==0.4.6",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.dataproperty",
+      "observed": "1.1.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "dataproperty==1.1.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.datasets",
+      "observed": "3.2.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "datasets==3.2.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.defusedxml",
+      "observed": "0.7.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "defusedxml==0.7.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.dill",
+      "observed": "0.3.8",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "dill==0.3.8",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.evaluate",
+      "observed": "0.4.6",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "evaluate==0.4.6",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.filelock",
+      "observed": "3.32.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "filelock==3.32.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.frozenlist",
+      "observed": "1.8.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "frozenlist==1.8.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.fsspec",
+      "observed": "2024.9.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "fsspec==2024.9.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.huggingface-hub",
+      "observed": "0.36.2",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "huggingface-hub==0.36.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.hypothesis",
+      "observed": "6.130.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "hypothesis==6.130.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.idna",
+      "observed": "3.19",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "idna==3.19",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.iniconfig",
+      "observed": "2.3.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "iniconfig==2.3.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.jinja2",
+      "observed": "3.1.6",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "jinja2==3.1.6",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.joblib",
+      "observed": "1.5.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "joblib==1.5.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.lm-eval",
+      "observed": "0.4.12",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "lm-eval==0.4.12",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.lxml",
+      "observed": "6.1.2",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "lxml==6.1.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.markupsafe",
+      "observed": "3.0.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "markupsafe==3.0.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.mbstrdecoder",
+      "observed": "1.1.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "mbstrdecoder==1.1.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.more-itertools",
+      "observed": "11.1.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "more-itertools==11.1.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.mpmath",
+      "observed": "1.3.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "mpmath==1.3.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.multidict",
+      "observed": "6.7.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "multidict==6.7.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.multiprocess",
+      "observed": "0.70.16",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "multiprocess==0.70.16",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.narwhals",
+      "observed": "2.25.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "narwhals==2.25.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.networkx",
+      "observed": "3.6.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "networkx==3.6.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.nltk",
+      "observed": "3.10.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "nltk==3.10.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.numpy",
+      "observed": "1.26.4",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "numpy==1.26.4",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.packaging",
+      "observed": "26.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "packaging==26.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pandas",
+      "observed": "3.0.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pandas==3.0.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pathvalidate",
+      "observed": "3.3.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pathvalidate==3.3.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pluggy",
+      "observed": "1.6.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pluggy==1.6.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.portalocker",
+      "observed": "4.3.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "portalocker==4.3.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.propcache",
+      "observed": "0.5.2",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "propcache==0.5.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pyarrow",
+      "observed": "25.0.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pyarrow==25.0.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pytablewriter",
+      "observed": "1.2.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pytablewriter==1.2.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pytest",
+      "observed": "8.3.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pytest==8.3.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.python-dateutil",
+      "observed": "2.9.0.post0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "python-dateutil==2.9.0.post0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pytz",
+      "observed": "2026.3.post1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pytz==2026.3.post1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.pyyaml",
+      "observed": "6.0.2",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "pyyaml==6.0.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.regex",
+      "observed": "2026.7.19",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "regex==2026.7.19",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.requests",
+      "observed": "2.34.2",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "requests==2.34.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.rouge-score",
+      "observed": "0.1.2",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "rouge-score==0.1.2",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.sacrebleu",
+      "observed": "2.6.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "sacrebleu==2.6.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.scikit-learn",
+      "observed": "1.9.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "scikit-learn==1.9.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.scipy",
+      "observed": "1.17.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "scipy==1.17.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.six",
+      "observed": "1.17.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "six==1.17.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.sortedcontainers",
+      "observed": "2.4.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "sortedcontainers==2.4.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.sqlitedict",
+      "observed": "2.1.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "sqlitedict==2.1.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.sympy",
+      "observed": "1.13.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "sympy==1.13.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.tabledata",
+      "observed": "1.3.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "tabledata==1.3.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.tabulate",
+      "observed": "0.10.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "tabulate==0.10.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.tcolorpy",
+      "observed": "0.1.7",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "tcolorpy==0.1.7",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.threadpoolctl",
+      "observed": "3.6.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "threadpoolctl==3.6.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.tokenizers",
+      "observed": "0.20.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "tokenizers==0.20.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.torch",
+      "observed": "2.5.1+cu124",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "torch==2.5.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.tqdm",
+      "observed": "4.67.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "tqdm==4.67.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.typepy",
+      "observed": "1.3.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "typepy==1.3.5",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.typing-extensions",
+      "observed": "4.16.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "typing-extensions==4.16.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.tzdata",
+      "observed": "2026.3",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "tzdata==2026.3",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.urllib3",
+      "observed": "2.7.0",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "urllib3==2.7.0",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.word2number",
+      "observed": "1.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "word2number==1.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.xxhash",
+      "observed": "4.0.1",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "xxhash==4.0.1",
+      "status": "PASS"
+    },
+    {
+      "check_id": "constraints.installed.yarl",
+      "observed": "1.24.5",
+      "reason": "installed transitive version matches the verified constraint",
+      "requirement": "yarl==1.24.5",
+      "status": "PASS"
+    }
+  ]
+}

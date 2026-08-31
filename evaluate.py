@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import lm_eval
-from lm_eval.utils import EnhancedJSONEncoder, make_table
+from lm_eval.utils import handle_non_serializable, make_table
 
 from tinybench_lm.evaluation_protocol import (
     PROVISIONAL_PROTOCOL_PATH,
@@ -82,6 +82,23 @@ def _supported_kwargs(function: Any, candidates: dict[str, Any]) -> dict[str, An
     if any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()):
         return candidates
     return {key: value for key, value in candidates.items() if key in parameters}
+
+
+def _serialize_results(results: dict[str, Any]) -> str:
+    """Serialize the harness payload using its supported non-JSON fallback.
+
+    Task configurations may contain callables such as ``doc_to_text``.  The harness's
+    ``EnhancedJSONEncoder`` only handles dataclasses, while its CLI and evaluation tracker use
+    ``handle_non_serializable`` for these task-config values.  Use the same supported path so a
+    completed evaluation cannot fail while its evidence bundle is being written.
+    """
+    return json.dumps(
+        results,
+        indent=2,
+        default=handle_non_serializable,
+        ensure_ascii=False,
+        sort_keys=True,
+    )
 
 
 def main() -> None:
@@ -208,7 +225,7 @@ def main() -> None:
         raise RuntimeError("lm-evaluation-harness returned no results")
     print(make_table(results))
 
-    raw_json = json.dumps(results, indent=2, cls=EnhancedJSONEncoder, ensure_ascii=False, sort_keys=True)
+    raw_json = _serialize_results(results)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(raw_json.rstrip("\n") + "\n", encoding="utf-8")
 

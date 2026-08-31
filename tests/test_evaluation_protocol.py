@@ -19,6 +19,8 @@ from pathlib import Path
 import pytest
 from hypothesis import given, settings, strategies as st
 
+from evaluate import _serialize_results
+
 from tinybench_lm.data_protocols import ProtocolError, frozen_benchmark_task_ids, protocol_digest
 from tinybench_lm.evaluation_protocol import (
     BLOCKED,
@@ -425,6 +427,20 @@ def _stub_results(task_ids: list[str]) -> dict:
         "n-samples": {task_id: {"original": 8, "effective": 8} for task_id in task_ids},
         "config": {"model": "TinyBenchHarnessLM", "batch_size": 2, "note": "fixture stub, not a measured result"},
     }
+
+
+def test_harness_results_with_callable_task_config_serialize() -> None:
+    """A scored run must not fail while persisting callable-containing task config."""
+    raw_json = _serialize_results(
+        {
+            "results": {"hellaswag": {"acc,none": 0.25}},
+            "configs": {"hellaswag": {"doc_to_text": lambda document: document["text"]}},
+        }
+    )
+
+    payload = json.loads(raw_json)
+    assert payload["results"]["hellaswag"]["acc,none"] == 0.25
+    assert isinstance(payload["configs"]["hellaswag"]["doc_to_text"], str)
 
 
 def _write_stub_bundle(protocol: dict, directory: Path, task_ids: list[str], **overrides):

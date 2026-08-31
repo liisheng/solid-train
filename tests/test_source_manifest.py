@@ -416,7 +416,14 @@ def test_a_document_inherits_its_pinned_source_licence(registry: dict, filters: 
         _candidate("narrative", "doc:narrative", license=None), registry=registry, filters=filters
     )
     assert record.reason_code == ACCEPTED
-    assert record.license == "CC0 1.0"
+    # Read the expected licence from the registry rather than hard-coding it, so a source
+    # substitution does not silently pass a stale assertion.
+    declared = next(
+        entry["declared_license"]
+        for entry in registry["stable_sources"]
+        if entry["source_id"] == "narrative"
+    )
+    assert record.license == declared
 
 
 def test_attribution_metadata_is_preserved(registry: dict, filters: dict) -> None:

@@ -24,13 +24,13 @@ real-corpus removal or quarantine rate has been measured.
 
 # Frozen source registry and integrity filters
 
-`configs/data/sources_v3.yaml` (active), the superseded `sources_v2.yaml` and `sources_v1.yaml`,
-and `configs/data/filters_v1.yaml` are pinned by SHA-256 in
+`configs/data/sources_v4.yaml` (active), the superseded `sources_v3.yaml`, `sources_v2.yaml`
+and `sources_v1.yaml`, and `configs/data/filters_v1.yaml` are pinned by SHA-256 in
 `src/tinybench_lm/source_manifest.py` (`FROZEN_CORPUS_PROTOCOL_SHA256`) under the same
 fail-closed, publish-a-new-version rule. Every superseded version stays in the tree and keeps
 verifying, because a superseded protocol is still evidence of what was frozen and when.
 
-**`data/sources_v3.yaml` is the active source registry.** The chain:
+**`data/sources_v4.yaml` is the active source registry.** The chain:
 
 - **v1** was written before the Track 01 rules text was available and required a per-title
   licence review the rules do not ask for — the rule is *"Credit everything you use in Built
@@ -39,6 +39,13 @@ verifying, because a superseded protocol is still evidence of what was frozen an
   obligation, and pinned all nine source revisions to immutable Hugging Face commits.
 - **v3** resolved the one licence v2 left open and closed the README half of the attribution
   requirement.
+- **v4** replaced two sources that could not be read. `storytracer/US-PD-Books` carries no
+  text at all — it is a catalogue of archive.org URLs — and `mlfoundations/dclm-baseline-1.0`
+  needs the unpinned `zstandard` package. Both had been registered on licence metadata without
+  an availability check. They are now `sedthh/gutenberg_english` (MIT) and
+  `HuggingFaceFW/fineweb` (ODC-By), each streamed at its pinned revision and confirmed to
+  yield text. v4 adds an `availability_policy` section so a source cannot be registered on
+  licence metadata alone again.
 
 The synthetic-text and full-Pile prohibitions are retained deliberately even though the rules
 permit both; each carries a recorded `retention_reason`.

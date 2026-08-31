@@ -6,7 +6,7 @@ where permitted, revision, raw hash, license, and filter reasons"); Section 11.2
 hosted-model-produced training text. This module is the mechanism for all three, backed by
 two frozen configs:
 
-    configs/data/sources_v1.yaml
+    configs/data/sources_v4.yaml
     configs/data/filters_v1.yaml
 
 The guarantees mirror :mod:`tinybench_lm.data_protocols`:
@@ -23,9 +23,10 @@ The guarantees mirror :mod:`tinybench_lm.data_protocols`:
 4. **Non-destructive.** Filters read stored text and never rewrite it. Attribution
    metadata supplied by the caller is preserved verbatim in the manifest.
 
-Nothing here acquires a corpus. Source revisions are unpinned and license review has not
-been performed, so :func:`assert_ready_for_real_corpus_acquisition` fails closed while
-fixture calibration stays allowed.
+Nothing here acquires a corpus. Under ``sources_v4.yaml`` every revision is pinned, every
+declared licence is recorded, and every source has been streamed at its pinned revision and
+confirmed to yield text, so :func:`assert_ready_for_real_corpus_acquisition` no longer fails
+closed. It still does when any of that evidence is removed.
 """
 
 from __future__ import annotations
@@ -53,18 +54,21 @@ from .environment import CheckResult
 #:
 #: v2 superseded v1: the published Track 01 rules require crediting datasets in Built With and
 #: the README, not the per-title licence review v1 demanded, and v2 pinned every revision v1
-#: left as PENDING_PIN. v3 supersedes v2: OpenWebMath's licence was recorded as
-#: PENDING_CARD_READ because of a card-metadata lookup error, and it is ODC-By 1.0.
+#: left as PENDING_PIN. v3 superseded v2: OpenWebMath's licence was recorded as
+#: PENDING_CARD_READ because of a card-metadata lookup error, and it is ODC-By 1.0. v4
+#: supersedes v3: two sources were registered on licence metadata without an availability
+#: check and could not be read -- one carried no text at all.
 #:
 #: Every superseded version stays in the tree and stays pinned, because a superseded protocol
 #: is still evidence of what was frozen and when.
-SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v3.yaml"
+SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v4.yaml"
 SUPERSEDED_SOURCES_PROTOCOL_PATHS: tuple[Path, ...] = (
     DATA_PROTOCOL_DIR / "sources_v1.yaml",
     DATA_PROTOCOL_DIR / "sources_v2.yaml",
+    DATA_PROTOCOL_DIR / "sources_v3.yaml",
 )
 #: The immediately previous version, kept as a name for tests and tooling that want one.
-SUPERSEDED_SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v2.yaml"
+SUPERSEDED_SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v3.yaml"
 FILTERS_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "filters_v1.yaml"
 
 #: SHA-256 of each frozen corpus protocol, over file bytes with CRLF normalized to LF.
@@ -73,6 +77,7 @@ FROZEN_CORPUS_PROTOCOL_SHA256: Mapping[str, str] = {
     "sources_v1.yaml": "308f3e7db0a2c291649d2a869a892d599670b5775f203d5b7f808219e36c5dad",
     "sources_v2.yaml": "c2d67b6da5602a4efc8665c1ba62e33a70af9548c5aa7e9f6d011074c83c93a0",
     "sources_v3.yaml": "1a93b38e3a9582eabfaaced670aae9516c2b6c2054980fa04d43d135f8cd5a56",
+    "sources_v4.yaml": "5c697f01d06f5541245e03e9663a6ef5d1076515a2962fe1c872029e58052b5b",
     "filters_v1.yaml": "a22f631f2df713fb542763cf485b7f3f8db2ac483d69466edaaed8d11ef2453a",
 }
 

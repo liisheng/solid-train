@@ -439,7 +439,7 @@ def test_verifier_reports_every_required_check_and_passes(tokenizer, protocol: d
     assert report.protocol_digest == FROZEN_TOKENIZER_PROTOCOL_SHA256[TOKENIZER_PROTOCOL_PATH.name]
     assert report.facts["vocab_size"] == FINAL_VOCAB_SIZE
     assert report.facts["bos_policy_id"] == BOS_POLICY_ID
-    assert report.facts["final_2gb_build_status"] == "DEFERRED"
+    assert report.facts["final_2gb_build_status"] == str(protocol["readiness"]["final_2gb_build"]["status"])
     assert_tokenizer_conforms(tokenizer, protocol=protocol, repository=REPOSITORY_ROOT)
 
 
@@ -460,19 +460,82 @@ def test_verifier_fails_a_tokenizer_whose_vocabulary_differs_from_the_contract(
 
 
 # **Validates: Requirements 1.2, 2.2, 2.3, 2.4, 2.5**
-def test_the_real_two_gib_build_is_gated_and_never_executed(
+def test_the_real_two_gib_build_gate_is_cleared_by_evidence(
     protocol: dict, documents: list[SampleDocument]
 ) -> None:
-    assert str(protocol["readiness"]["final_2gb_build"]["status"]) == "DEFERRED"
-    for field in ("blocker", "owner", "next_action"):
-        assert str(protocol["readiness"]["final_2gb_build"][field]).strip()
-    with pytest.raises(TokenizerNotReadyError):
-        assert_ready_for_final_tokenizer_build(protocol)
-    with pytest.raises(TokenizerNotReadyError):
-        build_final_tokenizer(documents, protocol=protocol)
-    assert protocol["readiness"]["fixture_build_allowed_while_deferred"] is True
+    """v2 clears the gate. It must be cleared by recorded evidence, not by fiat."""
+    gate = protocol["readiness"]["final_2gb_build"]
+    assert str(gate["status"]) == "PASS"
+
+    evidence = gate["evidence"]
+    for field in ("sample_manifest", "manifest_sha256", "sources_digest", "selected_bytes",
+                  "drawn_on", "pool_factor", "pool_definition", "allocation",
+                  "selection_salt", "per_source_target_bytes"):
+        assert str(evidence[field]).strip(), field
+
+    # A plan digest must NOT be recorded as evidence: SamplePlan.to_dict() includes
+    # protocol_digest, so the plan digest is a function of the protocol that would record it.
+    # Recording it is circular and can never be satisfied across a version bump.
+    assert "plan_digest" not in evidence
+    assert evidence["plan_digest_is_protocol_dependent"] is True
+
+    # The stratification it does record must match what the plan actually computes.
+    from tinybench_lm.tokenizer import build_sample_plan as _plan
+    live = _plan(protocol=protocol)
+    assert evidence["selection_salt"] == live.selection_salt
+    assert evidence["allocation"] == live.allocation
+    assert {q.source_id: q.target_bytes for q in live.quotas} == dict(evidence["per_source_target_bytes"])
+    # The recorded sample must actually cover the represented target.
+    assert int(evidence["selected_bytes"]) >= int(evidence["target_bytes"])
+    # The evidence must bind the source registry the draw actually used.
+    from tinybench_lm.source_manifest import SOURCES_PROTOCOL_PATH
+    from tinybench_lm.data_protocols import protocol_digest as _digest
+    assert evidence["sources_digest"] == _digest(SOURCES_PROTOCOL_PATH)
+
+    assert_ready_for_final_tokenizer_build(protocol)  # must not raise
+
+    # Properties of the trained tokenizer stay NOT_RUN until one exists.
     assert str(protocol["readiness"]["measured_compression_ratio"]) == "NOT_RUN"
-    assert str(protocol["readiness"]["measured_sample_bytes"]) == "NOT_RUN"
+    assert str(protocol["readiness"]["measured_merge_count"]) == "NOT_RUN"
+    assert protocol["readiness"]["fixture_build_allowed_while_deferred"] is True
+
+
+def test_the_build_gate_returns_when_its_evidence_is_removed(
+    protocol: dict, documents: list[SampleDocument]
+) -> None:
+    """Unblocked by evidence, not disabled: take the evidence away and the gate closes."""
+    regressed = json.loads(json.dumps({k: v for k, v in protocol.items() if not k.startswith("_")}))
+    regressed["readiness"]["final_2gb_build"] = {
+        "status": "DEFERRED",
+        "blocker": "sample withdrawn for this test",
+        "owner": "operator",
+        "next_action": "redraw the stratified sample",
+    }
+    with pytest.raises(TokenizerNotReadyError):
+        assert_ready_for_final_tokenizer_build(regressed)
+    with pytest.raises(TokenizerNotReadyError):
+        build_final_tokenizer(documents, protocol=regressed)
+
+
+def test_every_superseded_protocol_still_loads_and_keeps_its_frozen_state() -> None:
+    """A superseded protocol is evidence of what was frozen and when; it must keep verifying."""
+    from tinybench_lm.tokenizer import SUPERSEDED_TOKENIZER_PROTOCOL_PATHS
+
+    assert SUPERSEDED_TOKENIZER_PROTOCOL_PATHS
+    for path in SUPERSEDED_TOKENIZER_PROTOCOL_PATHS:
+        older = load_tokenizer_protocol(path)
+        assert older["version"] == path.stem.rsplit("_", 1)[-1]
+        assert protocol_digest(path) == FROZEN_TOKENIZER_PROTOCOL_SHA256[path.name]
+
+    # v1 in particular was frozen before the sample existed and must still fail closed,
+    # blocker text and all, exactly as it did then.
+    v1 = load_tokenizer_protocol(TOKENIZER_PROTOCOL_PATH.parent / "tokenizer_v1.yaml")
+    gate = v1["readiness"]["final_2gb_build"]
+    assert str(gate["status"]) == "DEFERRED"
+    for field in ("blocker", "owner", "next_action"):
+        assert str(gate[field]).strip()
+    with pytest.raises(TokenizerNotReadyError):
+        assert_ready_for_final_tokenizer_build(v1)
 
 
 # **Validates: Requirements 2.1, 2.2, 2.4, 2.5**
@@ -489,7 +552,7 @@ def test_artifact_records_its_fixture_scope_and_reloads(tmp_path: Path, built, p
     )
     assert record["build_scope"] == SCOPE_FIXTURE
     assert record["represents_final_2gb_sample"] is False
-    assert record["final_2gb_build_status"] == "DEFERRED"
+    assert record["final_2gb_build_status"] == str(protocol["readiness"]["final_2gb_build"]["status"])
     assert record["vocab_size"] == FINAL_VOCAB_SIZE
     assert record["sample_plan_digest"] == plan.digest
     assert record["verification"]["ok"] is True
@@ -500,7 +563,10 @@ def test_artifact_records_its_fixture_scope_and_reloads(tmp_path: Path, built, p
     probe = "Momentum is conserved when no external force acts on a closed system."
     assert reloaded.encode(probe).ids == tokenizer.encode(probe).ids
 
-    with pytest.raises(TokenizerNotReadyError):
+    # The readiness gate is open under v2, but this tokenizer was trained on a handful of
+    # fixture documents against a 1 MB plan. It must still be refused FINAL scope, or the
+    # artifact would claim represents_final_2gb_sample against a corpus it never saw.
+    with pytest.raises(TokenizerContractError, match="sample plan"):
         write_tokenizer_artifact(
             tmp_path / "final",
             tokenizer,

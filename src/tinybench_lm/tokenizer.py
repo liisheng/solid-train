@@ -57,12 +57,26 @@ from .source_manifest import (
     load_source_registry,
 )
 
-TOKENIZER_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "tokenizer_v1.yaml"
+#: v2 superseded v1: the 2 GB stratified sample was drawn from pinned revisions and
+#: independently verified, so `final_2gb_build` became PASS with evidence. v3 supersedes v2:
+#: v2 recorded a `plan_digest` as evidence, which is circular because SamplePlan.to_dict()
+#: includes protocol_digest, so the plan digest is a function of the protocol that records
+#: it. v3 records the protocol-independent stratification facts instead.
+#:
+#: Every superseded version stays pinned as evidence of what was frozen and when.
+TOKENIZER_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "tokenizer_v3.yaml"
+SUPERSEDED_TOKENIZER_PROTOCOL_PATHS: tuple[Path, ...] = (
+    DATA_PROTOCOL_DIR / "tokenizer_v1.yaml",
+    DATA_PROTOCOL_DIR / "tokenizer_v2.yaml",
+)
+SUPERSEDED_TOKENIZER_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "tokenizer_v2.yaml"
 
 #: SHA-256 of the frozen tokenizer contract, over file bytes with CRLF normalized to LF.
 #: Kept separate from the dedup and corpus tables so each protocol family freezes on its own.
 FROZEN_TOKENIZER_PROTOCOL_SHA256: Mapping[str, str] = {
     "tokenizer_v1.yaml": "aa1b655c882f5eb6d8300b6f6ee3e4a962d27a161bb02757fec08bc0bed75918",
+    "tokenizer_v2.yaml": "c42a16e2f67e59827ed21bcee9f23c612f78c9fd5d0458ba85f3d731a36e0064",
+    "tokenizer_v3.yaml": "f8e0f39756144ef222cdf1fdb6d274fb2c3fd3e4cd39cef7f16b53f846a38686",
 }
 
 # --------------------------------------------------------------------------------------
@@ -923,6 +937,23 @@ def write_tokenizer_artifact(
         raise TokenizerContractError(f"unknown build scope {build_scope!r}")
     if build_scope == SCOPE_FINAL:
         assert_ready_for_final_tokenizer_build(resolved)
+        # The readiness gate says the protocol is ready; it says nothing about *this*
+        # tokenizer. Without the two checks below, a tokenizer trained on a handful of
+        # fixture documents could be stamped FINAL and carry
+        # represents_final_2gb_sample: true. Bind the artifact to the real sample plan.
+        expected_bytes = int(resolved["sample_manifest"]["represented_bytes"])
+        if plan.represented_bytes != expected_bytes:
+            raise TokenizerContractError(
+                f"a FINAL artifact must be built from the frozen {expected_bytes:,}-byte "
+                f"sample plan, but this plan represents {plan.represented_bytes:,} bytes"
+            )
+        short = [
+            selection.source_id for selection in selections if not selection.quota_reached
+        ]
+        if short:
+            raise TokenizerContractError(
+                f"a FINAL artifact requires every source to reach its quota; short: {short}"
+            )
 
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,150 @@
+{
+  "bos_policy_id": "BOS_RESERVED_NOT_PREPENDED_V1",
+  "build_scope": "FINAL",
+  "final_2gb_build_status": "PASS",
+  "full_record_note": "the complete record, including all 473,850 selected document ids, is data/tokenizer_final/tokenizer_build.json (29 MB, gitignored)",
+  "protocol": "tokenizer",
+  "protocol_digest": "c42a16e2f67e59827ed21bcee9f23c612f78c9fd5d0458ba85f3d731a36e0064",
+  "protocol_version": "v2",
+  "quota_reached_for_every_source": true,
+  "represents_final_2gb_sample": true,
+  "sample_plan_digest": "b5de5e1f4afabb360afabf7e969c44c4f8389745d35a767cf998564cebd93a95",
+  "sample_plan_summary": {
+    "allocation": "largest_remainder_on_integer_bytes",
+    "quotas": [
+      {
+        "source_id": "fineweb_edu",
+        "stable_share": 0.7,
+        "target_bytes": 1503238554
+      },
+      {
+        "source_id": "dclm",
+        "stable_share": 0.2,
+        "target_bytes": 429496730
+      },
+      {
+        "source_id": "openwebmath",
+        "stable_share": 0.07,
+        "target_bytes": 150323855
+      },
+      {
+        "source_id": "narrative",
+        "stable_share": 0.03,
+        "target_bytes": 64424509
+      }
+    ],
+    "represented_bytes": 2147483648,
+    "selection_salt": "tokenizer_v1_stratified_sample",
+    "sources_digest": "5c697f01d06f5541245e03e9663a6ef5d1076515a2962fe1c872029e58052b5b"
+  },
+  "selected_bytes_total": 2148137287,
+  "selections_summary": [
+    {
+      "quota_reached": true,
+      "selected_bytes": 1503246174,
+      "source_id": "fineweb_edu",
+      "target_bytes": 1503238554
+    },
+    {
+      "quota_reached": true,
+      "selected_bytes": 429503519,
+      "source_id": "dclm",
+      "target_bytes": 429496730
+    },
+    {
+      "quota_reached": true,
+      "selected_bytes": 150324183,
+      "source_id": "openwebmath",
+      "target_bytes": 150323855
+    },
+    {
+      "quota_reached": true,
+      "selected_bytes": 65063411,
+      "source_id": "narrative",
+      "target_bytes": 64424509
+    }
+  ],
+  "special_token_ids": {
+    "BOS": 0,
+    "EOS": 1,
+    "PAD": 2,
+    "UNK": 3
+  },
+  "verification": {
+    "facts": {
+      "bos_policy_id": "BOS_RESERVED_NOT_PREPENDED_V1",
+      "final_2gb_build_status": "PASS",
+      "final_token_counter_id": "final_tokenizer_v1",
+      "provisional_token_counter_id": "provisional_whitespace_words",
+      "vocab_size": 12288
+    },
+    "ok": true,
+    "protocol_digest": "c42a16e2f67e59827ed21bcee9f23c612f78c9fd5d0458ba85f3d731a36e0064",
+    "results": [
+      {
+        "check_id": "vocabulary.exact_total_ids",
+        "observed": "12288",
+        "reason": "vocabulary holds exactly the frozen ID count",
+        "requirement": "exactly 12288 IDs",
+        "status": "PASS"
+      },
+      {
+        "check_id": "vocabulary.matches_model_config",
+        "observed": "12288",
+        "reason": "tokenizer and final model config agree",
+        "requirement": "configs/final_49m.json::vocab_size == 12288",
+        "status": "PASS"
+      },
+      {
+        "check_id": "vocabulary.uint16_compatible",
+        "observed": "12287",
+        "reason": "every ID fits the packed uint16 shard format",
+        "requirement": "highest ID <= 65535",
+        "status": "PASS"
+      },
+      {
+        "check_id": "special_tokens.stable_ids",
+        "observed": "BOS=0, EOS=1, PAD=2, UNK=3",
+        "reason": "BOS/EOS/PAD/UNK hold their frozen IDs",
+        "requirement": "BOS=0, EOS=1, PAD=2, UNK=3",
+        "status": "PASS"
+      },
+      {
+        "check_id": "bos_policy.shared_by_training_and_evaluation",
+        "observed": "training=() evaluation=()",
+        "reason": "BOS_RESERVED_NOT_PREPENDED_V1: training and evaluation derive the same BOS prefix",
+        "requirement": "BOS_RESERVED_NOT_PREPENDED_V1 applied identically",
+        "status": "PASS"
+      },
+      {
+        "check_id": "byte_fallback.alphabet_complete",
+        "observed": "256/256",
+        "reason": "arbitrary input is representable, so no text is silently dropped",
+        "requirement": "all 256 byte-level symbols present",
+        "status": "PASS"
+      },
+      {
+        "check_id": "byte_fallback.unk_unreachable",
+        "observed": "0 probe(s) emitted UNK",
+        "reason": "the complete byte alphabet makes UNK unreachable",
+        "requirement": "<|unk|> is never emitted",
+        "status": "PASS"
+      },
+      {
+        "check_id": "roundtrip.frozen_fixtures",
+        "observed": "5/5 recovered",
+        "reason": "every frozen Unicode/punctuation/whitespace/math/code fixture round-trips",
+        "requirement": "byte-exact round trip for ['unicode', 'punctuation', 'whitespace', 'math', 'code_like']",
+        "status": "PASS"
+      },
+      {
+        "check_id": "document_boundaries.eos_between_documents",
+        "observed": "dtype=uint16 eos_positions=[3, 8]",
+        "reason": "EOS terminates every packed document",
+        "requirement": "2 EOS in a 2-document uint16 stream",
+        "status": "PASS"
+      }
+    ]
+  },
+  "vocab_size": 12288
+}

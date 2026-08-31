@@ -162,6 +162,51 @@ outcome exists. What has *not* happened is the measurement: no corpus has been a
 decontamination rate has been measured, and no run has started. Every such item is `NOT_RUN`
 or `BLOCKED` in the evidence matrix rather than quietly omitted.
 
+## Credits
+
+Every dataset, framework, and tool used, as the Track 01 rules require. Datasets are pinned
+to immutable revisions in `configs/data/sources_v2.yaml`; the revision column is the exact
+Hugging Face commit this project uses.
+
+### Training corpus
+
+| Dataset | Licence | Pinned revision | Role |
+|---|---|---|---|
+| [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | ODC-By 1.0 | `87f09149ef4734204d70ed1d046ddc9ca3f2b8f9` | 70% stable — educational English; also the reserved science and top-decile pools |
+| [DCLM-Baseline 1.0](https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0) | CC BY 4.0 | `a3b142c183aebe5af344955ae20836eb34dcf69b` | 20% stable — general-language diversity |
+| [OpenWebMath](https://huggingface.co/datasets/open-web-math/open-web-math) | ODC-By 1.0 | `fde8ef8de2300f5e778f56261843dab89f230815` | 7% stable — mathematical and scientific prose; also the reserved math pool |
+| [US-PD-Books](https://huggingface.co/datasets/storytracer/US-PD-Books) | CC0 1.0 | `01f85b67ba15cc3275e36d84ff51b23c90ce190a` | 3% stable — long-form narrative and co-reference |
+| [Wikipedia](https://huggingface.co/datasets/wikimedia/wikipedia) | CC BY-SA 3.0 / GFDL | `b04c8d1ceb2f5cd4588862100d08de323dccfbaa` | reserved pool — general article text |
+| [open-text-books](https://huggingface.co/datasets/izumi-lab/open-text-books) | CC BY-SA 4.0 | `1245fefd628d37483366b8e707fdc5650fd3c48e` | reserved pool — textbook and instructional prose |
+
+OpenWebMath and FineWeb-Edu derive from Common Crawl; users of those datasets should also
+observe the [Common Crawl terms of use](https://commoncrawl.org/terms-of-use/). Wikipedia text
+is share-alike, and any redistribution of that portion carries CC BY-SA obligations.
+
+**Not used:** no synthetic or model-generated corpus (TinyStories and similar), no teacher
+logits or rankings, no benchmark examples, no large code corpora, no unfiltered Common Crawl,
+and no hosted model labelling, rewriting, or scoring training documents. The prohibitions are
+enforced in `configs/data/sources_v2.yaml` and scanned by `src/tinybench_lm/eligibility.py`.
+
+### Frameworks and tools
+
+| Component | Role |
+|---|---|
+| [PyTorch](https://pytorch.org) | model, training, SDPA attention, mixed precision |
+| [Hugging Face Datasets](https://github.com/huggingface/datasets) | streaming pinned public datasets |
+| [Hugging Face Tokenizers](https://github.com/huggingface/tokenizers) | the original 12,288-token BPE |
+| [safetensors](https://github.com/huggingface/safetensors) | release weights and hash verification |
+| [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) | required benchmark evaluation |
+| [NumPy](https://numpy.org) | uint16 token storage, deterministic bootstrap |
+| [pytest](https://pytest.org) + [Hypothesis](https://hypothesis.works) | property and contract tests |
+
+Exact pinned versions are in `constraints/verified-py311-windows.txt`, verified by
+`scripts\check_environment.py`.
+
+AI assistance is disclosed in `docs/templates/AI_ASSISTANCE_DISCLOSURE.md`. No hosted model
+performs inference for the submitted model, labels or rewrites training text, or is a required
+evaluation dependency.
+
 ## Evidence and status
 
 `configs/release/evidence_matrix_v1.yaml` maps every competition contract item and every

@@ -46,6 +46,7 @@ from tinybench_lm.source_manifest import (
     REQUIRED_PROHIBITED_POLICY_IDS,
     SOURCES_PROTOCOL_PATH,
     SUPERSEDED_SOURCES_PROTOCOL_PATH,
+    SUPERSEDED_SOURCES_PROTOCOL_PATHS,
     URL_RECORDED,
     URL_WITHHELD,
     CandidateDocument,
@@ -190,35 +191,35 @@ def filters() -> dict:
 
 
 def test_frozen_corpus_protocol_digests_are_pinned() -> None:
-    # v2 is active; v1 stays pinned because a superseded protocol is still evidence of what
-    # was frozen at the time, and its digest must keep verifying.
-    assert SOURCES_PROTOCOL_PATH.name == "sources_v2.yaml"
-    assert protocol_digest(SOURCES_PROTOCOL_PATH) == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v2.yaml"]
-    assert (
-        protocol_digest(SUPERSEDED_SOURCES_PROTOCOL_PATH)
-        == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v1.yaml"]
-    )
+    # The active registry and every superseded version must all keep verifying: a superseded
+    # protocol is still evidence of what was frozen at the time.
+    assert protocol_digest(SOURCES_PROTOCOL_PATH) == FROZEN_CORPUS_PROTOCOL_SHA256[SOURCES_PROTOCOL_PATH.name]
+    for path in SUPERSEDED_SOURCES_PROTOCOL_PATHS:
+        assert path.is_file(), path
+        assert protocol_digest(path) == FROZEN_CORPUS_PROTOCOL_SHA256[path.name], path.name
     assert protocol_digest(FILTERS_PROTOCOL_PATH) == FROZEN_CORPUS_PROTOCOL_SHA256["filters_v1.yaml"]
-    assert set(FROZEN_CORPUS_PROTOCOL_SHA256) == {
-        "sources_v1.yaml",
-        "sources_v2.yaml",
-        "filters_v1.yaml",
-    }
+
+    # Every pinned name is a file that exists; no orphan digests.
+    for name in FROZEN_CORPUS_PROTOCOL_SHA256:
+        assert (SOURCES_PROTOCOL_PATH.parent / name).is_file(), name
 
 
-def test_v2_supersedes_v1_and_records_why() -> None:
+def test_the_supersede_chain_is_recorded_and_each_version_still_loads() -> None:
     """A superseded protocol must say what replaced it and why, or the history is lost."""
     registry = load_source_registry()
-    assert registry["version"] == "v2"
-    assert registry["supersedes"] == "configs/data/sources_v1.yaml"
-    assert "per-title" in registry["supersede_reason"]
+    assert registry["supersedes"].endswith(SUPERSEDED_SOURCES_PROTOCOL_PATH.name)
+    assert registry["supersede_reason"].strip()
 
-    superseded = load_source_registry(SUPERSEDED_SOURCES_PROTOCOL_PATH)
-    assert superseded["version"] == "v1"
-    # v1 still loads and still fails closed on acquisition, unchanged.
-    assert superseded["revision_pinning"]["status"] == "BLOCKED"
+    # Each superseded version still parses and still carries its own frozen state.
+    for path in SUPERSEDED_SOURCES_PROTOCOL_PATHS:
+        older = load_source_registry(path)
+        assert older["version"] == path.stem.rsplit("_", 1)[-1]
+
+    # v1 in particular still fails closed on acquisition, exactly as it did when frozen.
+    v1 = load_source_registry(SOURCES_PROTOCOL_PATH.parent / "sources_v1.yaml")
+    assert v1["revision_pinning"]["status"] == "BLOCKED"
     with pytest.raises(SourceNotReadyError):
-        assert_ready_for_real_corpus_acquisition(superseded)
+        assert_ready_for_real_corpus_acquisition(v1)
 
 
 def test_mutated_corpus_protocol_fails_closed(tmp_path: Path) -> None:
@@ -279,16 +280,43 @@ def test_manifest_schema_preserves_required_provenance(registry: dict) -> None:
     assert schema["accepted_token_count"]["blocker"]
 
 
-def test_real_corpus_acquisition_is_cleared_under_v2(registry: dict) -> None:
-    """v2 pins every revision and records every licence, so acquisition is no longer blocked."""
+def test_real_corpus_acquisition_is_cleared(registry: dict) -> None:
+    """Every revision is pinned and every licence recorded, so acquisition is not blocked."""
     assert registry["revision_pinning"]["status"] == "PASS"
     assert registry["license_review"]["status"] == "PASS"
     assert registry["license_review"]["per_title_review_required"] is False
     assert_ready_for_real_corpus_acquisition(registry)  # must not raise
 
-    # Attribution is the obligation the rules actually impose, and it is not done yet.
-    assert registry["attribution"]["status"] == "NOT_RUN"
-    assert "README.md" in registry["attribution"]["targets"]
+    # No source may be left with an unresolved licence.
+    assert registry["license_review"]["outstanding"] == []
+    for entry in list(registry["stable_sources"]) + list(registry["reserved_sources"]):
+        licence = str(entry["declared_license"])
+        assert licence and licence not in {"READ_FROM_CARD_PROSE", "PENDING_CARD_READ"}, entry["source_id"]
+        assert "license_status" not in entry, entry["source_id"]
+
+
+def test_attribution_separates_what_is_done_from_what_is_not(registry: dict) -> None:
+    """The README credit is a repository fact; the Devpost submission is not."""
+    attribution = registry["attribution"]
+    assert attribution["readme_credits"]["status"] == "PASS"
+    assert attribution["built_with_template"]["status"] == "PASS"
+    # Submitting to Devpost is an external action nobody has taken.
+    assert attribution["built_with_submitted"]["status"] == "NOT_RUN"
+    assert attribution["built_with_submitted"]["owner"]
+    assert attribution["built_with_submitted"]["next_action"]
+
+    # The claimed evidence must actually exist, and name every source.
+    readme = (SOURCES_PROTOCOL_PATH.parents[2] / attribution["readme_credits"]["path"]).read_text(
+        encoding="utf-8"
+    )
+    built_with = (
+        SOURCES_PROTOCOL_PATH.parents[2] / attribution["built_with_template"]["path"]
+    ).read_text(encoding="utf-8")
+    for entry in list(registry["stable_sources"]) + list(registry["reserved_sources"]):
+        repo = str(entry["huggingface_repo"])
+        assert repo in readme, f"{repo} is not credited in the README"
+        assert repo in built_with, f"{repo} is missing from Built With"
+        assert str(entry["intended_revision"]) in built_with, entry["source_id"]
 
 
 def test_unpinned_or_unreviewed_sources_still_fail_closed(registry: dict) -> None:
@@ -577,7 +605,7 @@ def test_manifest_counters_and_jsonl_round_trip(tmp_path: Path, registry: dict, 
         "narrative",  # accepted under v2 via the inherited CC0 licence
     }
     assert manifest.accepted_token_total == sum(manifest.accepted_tokens_per_source.values())
-    assert manifest.sources_digest == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v2.yaml"]
+    assert manifest.sources_digest == FROZEN_CORPUS_PROTOCOL_SHA256[SOURCES_PROTOCOL_PATH.name]
     assert manifest.filters_digest == FROZEN_CORPUS_PROTOCOL_SHA256["filters_v1.yaml"]
     assert_manifest_is_auditable(manifest)
 

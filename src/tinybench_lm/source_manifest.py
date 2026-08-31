@@ -49,13 +49,19 @@ from .data_protocols import (
 )
 from .environment import CheckResult
 
-SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v1.yaml"
+#: The active source registry. v2 supersedes v1: the published Track 01 rules require
+#: crediting datasets in Built With and the README, not the per-title licence review v1
+#: demanded, and v2 pins every source revision v1 left as PENDING_PIN. v1 stays in the tree
+#: and stays pinned, because a superseded protocol is still evidence of what was frozen when.
+SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v2.yaml"
+SUPERSEDED_SOURCES_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "sources_v1.yaml"
 FILTERS_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "filters_v1.yaml"
 
 #: SHA-256 of each frozen corpus protocol, over file bytes with CRLF normalized to LF.
 #: Kept separate from the dedup/decontamination table so each family freezes on its own.
 FROZEN_CORPUS_PROTOCOL_SHA256: Mapping[str, str] = {
     "sources_v1.yaml": "308f3e7db0a2c291649d2a869a892d599670b5775f203d5b7f808219e36c5dad",
+    "sources_v2.yaml": "c2d67b6da5602a4efc8665c1ba62e33a70af9548c5aa7e9f6d011074c83c93a0",
     "filters_v1.yaml": "a22f631f2df713fb542763cf485b7f3f8db2ac483d69466edaaed8d11ef2453a",
 }
 

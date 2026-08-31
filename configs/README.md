@@ -24,11 +24,22 @@ real-corpus removal or quarantine rate has been measured.
 
 # Frozen source registry and integrity filters
 
-`configs/data/sources_v1.yaml` and `configs/data/filters_v1.yaml` are pinned by SHA-256 in
+`configs/data/sources_v2.yaml`, `configs/data/sources_v1.yaml`, and `configs/data/filters_v1.yaml`
+are pinned by SHA-256 in
 `src/tinybench_lm/source_manifest.py` (`FROZEN_CORPUS_PROTOCOL_SHA256`) under the same
 fail-closed, publish-a-new-version rule.
 
-- `data/sources_v1.yaml`: the streaming manifest schema (source ID, revision, stable document ID,
+**`data/sources_v2.yaml` is the active source registry.** It supersedes `sources_v1.yaml`, which
+stays in the tree and stays digest-pinned as evidence of what was frozen before the Track 01
+rules text was available. v1 required a per-title licence review that the published rules do not
+ask for — the rule is *"Credit everything you use in Built With and your README"* — and that
+requirement blocked all corpus acquisition. v2 records each source's declared licence from its
+dataset card, requires attribution instead of per-title review, and pins all nine source
+revisions to immutable Hugging Face commits. The synthetic-text and full-Pile prohibitions are
+retained deliberately even though the rules permit both; each carries a recorded
+`retention_reason`.
+
+- `data/sources_v1.yaml` *(superseded)*: the streaming manifest schema (source ID, revision, stable document ID,
   URL or a recorded reason it is withheld, raw hash, license, filter decisions, accepted token
   count), the allowed stable and reserved sources with their shares and token targets, validation
   splits, corpus profiles, and every prohibition from the plan's do-not-use and hosted-assistant
@@ -37,7 +48,16 @@ fail-closed, publish-a-new-version rule.
   probability, empty/binary/malformed/length records, credential and personal-contact dumps, and
   OpenWebMath prose retention.
 
-Calibrated on planted local fixtures only (`tests/test_source_manifest.py`). No source revision is
-pinned, no license review has been recorded, and no accepted token count has been measured with the
-final tokenizer: `scripts/audit_source_policy.py` reports those as `BLOCKED`/`DEFERRED`, and
-`assert_ready_for_real_corpus_acquisition` refuses a real acquisition pass until they are cleared.
+Calibrated on planted local fixtures only (`tests/test_source_manifest.py`). Under v2 every source
+revision is pinned and every declared licence is recorded, so
+`assert_ready_for_real_corpus_acquisition` no longer refuses an acquisition pass. Two things remain
+outstanding and are reported honestly by `scripts/audit_source_policy.py`:
+
+- `accepted_token_measurement` is `DEFERRED` — the final 12,288-ID tokenizer does not exist, so no
+  accepted token count has been measured.
+- `attribution` is `NOT_RUN` — Built With and the README source table have not been filled in, and
+  that, not a licence audit, is what the rules require.
+
+OpenWebMath is the one source whose licence is not machine-readable; its card carries no `license:`
+metadata field, so `license_status: PENDING_CARD_READ` records that someone must read the card prose
+before that source is accepted.

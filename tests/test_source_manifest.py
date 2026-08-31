@@ -45,6 +45,7 @@ from tinybench_lm.source_manifest import (
     REQUIRED_MANIFEST_FIELDS,
     REQUIRED_PROHIBITED_POLICY_IDS,
     SOURCES_PROTOCOL_PATH,
+    SUPERSEDED_SOURCES_PROTOCOL_PATH,
     URL_RECORDED,
     URL_WITHHELD,
     CandidateDocument,
@@ -189,9 +190,35 @@ def filters() -> dict:
 
 
 def test_frozen_corpus_protocol_digests_are_pinned() -> None:
-    assert protocol_digest(SOURCES_PROTOCOL_PATH) == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v1.yaml"]
+    # v2 is active; v1 stays pinned because a superseded protocol is still evidence of what
+    # was frozen at the time, and its digest must keep verifying.
+    assert SOURCES_PROTOCOL_PATH.name == "sources_v2.yaml"
+    assert protocol_digest(SOURCES_PROTOCOL_PATH) == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v2.yaml"]
+    assert (
+        protocol_digest(SUPERSEDED_SOURCES_PROTOCOL_PATH)
+        == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v1.yaml"]
+    )
     assert protocol_digest(FILTERS_PROTOCOL_PATH) == FROZEN_CORPUS_PROTOCOL_SHA256["filters_v1.yaml"]
-    assert set(FROZEN_CORPUS_PROTOCOL_SHA256) == {"sources_v1.yaml", "filters_v1.yaml"}
+    assert set(FROZEN_CORPUS_PROTOCOL_SHA256) == {
+        "sources_v1.yaml",
+        "sources_v2.yaml",
+        "filters_v1.yaml",
+    }
+
+
+def test_v2_supersedes_v1_and_records_why() -> None:
+    """A superseded protocol must say what replaced it and why, or the history is lost."""
+    registry = load_source_registry()
+    assert registry["version"] == "v2"
+    assert registry["supersedes"] == "configs/data/sources_v1.yaml"
+    assert "per-title" in registry["supersede_reason"]
+
+    superseded = load_source_registry(SUPERSEDED_SOURCES_PROTOCOL_PATH)
+    assert superseded["version"] == "v1"
+    # v1 still loads and still fails closed on acquisition, unchanged.
+    assert superseded["revision_pinning"]["status"] == "BLOCKED"
+    with pytest.raises(SourceNotReadyError):
+        assert_ready_for_real_corpus_acquisition(superseded)
 
 
 def test_mutated_corpus_protocol_fails_closed(tmp_path: Path) -> None:
@@ -223,8 +250,9 @@ def test_source_policy_audit_has_no_failures(registry: dict) -> None:
     failures = [result for result in results if result.failed]
     assert failures == [], [(result.check_id, result.observed, result.reason) for result in failures]
     statuses = {result.check_id: result.status for result in results}
-    assert statuses["sources.revision_pinning"] == "BLOCKED"
-    assert statuses["sources.license_review"] == "BLOCKED"
+    assert statuses["sources.revision_pinning"] == "PASS"
+    assert statuses["sources.license_review"] == "PASS"
+    # Still deferred: the final tokenizer does not exist, so no token count is measured.
     assert statuses["sources.accepted_token_measurement"] == "DEFERRED"
 
 
@@ -251,13 +279,27 @@ def test_manifest_schema_preserves_required_provenance(registry: dict) -> None:
     assert schema["accepted_token_count"]["blocker"]
 
 
-def test_real_corpus_acquisition_is_blocked(registry: dict) -> None:
-    """Fixture calibration is allowed while revisions and license review are BLOCKED."""
-    assert registry["readiness"]["fixture_calibration_allowed_while_blocked"] is True
-    assert registry["revision_pinning"]["status"] == "BLOCKED"
-    assert registry["license_review"]["status"] == "BLOCKED"
-    with pytest.raises(SourceNotReadyError, match="SOURCE_REVISIONS_NOT_PINNED"):
-        assert_ready_for_real_corpus_acquisition(registry)
+def test_real_corpus_acquisition_is_cleared_under_v2(registry: dict) -> None:
+    """v2 pins every revision and records every licence, so acquisition is no longer blocked."""
+    assert registry["revision_pinning"]["status"] == "PASS"
+    assert registry["license_review"]["status"] == "PASS"
+    assert registry["license_review"]["per_title_review_required"] is False
+    assert_ready_for_real_corpus_acquisition(registry)  # must not raise
+
+    # Attribution is the obligation the rules actually impose, and it is not done yet.
+    assert registry["attribution"]["status"] == "NOT_RUN"
+    assert "README.md" in registry["attribution"]["targets"]
+
+
+def test_unpinned_or_unreviewed_sources_still_fail_closed(registry: dict) -> None:
+    """The guard is unblocked by evidence, not disabled. Remove the evidence and it returns."""
+    for section in ("revision_pinning", "license_review"):
+        regressed = json.loads(
+            json.dumps({k: v for k, v in registry.items() if not k.startswith("_")})
+        )
+        regressed[section]["status"] = "BLOCKED"
+        with pytest.raises(SourceNotReadyError, match="SOURCE_REVISIONS_NOT_PINNED"):
+            assert_ready_for_real_corpus_acquisition(regressed)
 
 
 # --------------------------------------------------------------------------------------
@@ -317,6 +359,38 @@ def test_url_is_withheld_rather_than_silently_dropped(registry: dict, filters: d
     assert validate_manifest_record(record) == ()
 
 
+def test_a_per_title_source_still_requires_a_licence(registry: dict, filters: dict) -> None:
+    """v2 drops per-title review; it does not delete the machinery that enforces it.
+
+    If a future source genuinely does vary by title, marking it so must still reject a
+    document that arrives without its own licence.
+    """
+    mutated = json.loads(json.dumps({k: v for k, v in registry.items() if not k.startswith("_")}))
+    for entry in mutated["stable_sources"]:
+        if entry["source_id"] == "narrative":
+            entry["per_document_license_required"] = True
+
+    rejected = build_record(
+        _candidate("narrative", "doc:narrative", license=None), registry=mutated, filters=filters
+    )
+    assert rejected.reason_code == REJECT_LICENSE_NOT_RECORDED
+
+    # With its own licence recorded, the same document is accepted.
+    accepted = build_record(
+        _candidate("narrative", "doc:narrative", license="CC0 1.0"), registry=mutated, filters=filters
+    )
+    assert accepted.reason_code == ACCEPTED
+
+
+def test_a_document_inherits_its_pinned_source_licence(registry: dict, filters: dict) -> None:
+    """The v2 change itself: no per-document licence needed when the source declares one."""
+    record = build_record(
+        _candidate("narrative", "doc:narrative", license=None), registry=registry, filters=filters
+    )
+    assert record.reason_code == ACCEPTED
+    assert record.license == "CC0 1.0"
+
+
 def test_attribution_metadata_is_preserved(registry: dict, filters: dict) -> None:
     candidate = _candidate(attribution={"title": "Public domain title", "author": "Anonymous"})
     record = build_record(candidate, registry=registry, filters=filters)
@@ -349,11 +423,9 @@ REJECTION_FIXTURES: tuple[tuple[str, CandidateDocument, str], ...] = (
         _candidate(document_id="   "),
         REJECT_MISSING_PROVENANCE,
     ),
-    (
-        "license not recorded for a per-title source",
-        _candidate("narrative", "doc:narrative", license=None),
-        REJECT_LICENSE_NOT_RECORDED,
-    ),
+    # v2 has no per-title source, so a missing per-document licence now inherits the pinned
+    # source licence. The rejection mechanism is proved separately, against a registry that
+    # does mark a source per-title: see test_a_per_title_source_still_requires_a_licence.
     (
         "unpinned revision",
         _candidate(document_id="doc:unpinned", revision="PENDING_PIN"),
@@ -448,7 +520,13 @@ def test_implausibly_long_record_is_rejected(registry: dict, filters: dict) -> N
 
 def test_every_reject_reason_code_has_a_planted_fixture() -> None:
     """The rejection vocabulary is fully exercised, so no code is declared but unreachable."""
-    covered = {expected for _, _, expected in REJECTION_FIXTURES} | {REJECT_TOO_LONG}
+    covered = (
+        {expected for _, _, expected in REJECTION_FIXTURES}
+        | {REJECT_TOO_LONG}
+        # Proved by test_a_per_title_source_still_requires_a_licence rather than by a planted
+        # fixture, because no v2 source is per-title any more.
+        | {REJECT_LICENSE_NOT_RECORDED}
+    )
     assert covered == set(REJECT_REASON_CODES)
 
 
@@ -484,16 +562,22 @@ def test_manifest_counters_and_jsonl_round_trip(tmp_path: Path, registry: dict, 
         "doc:d",
         "doc:e",
     ]
+    # doc:f carries no per-document licence and is now accepted, inheriting CC0 from the
+    # pinned narrative source. Under v1 it was REJECT_LICENSE_NOT_RECORDED.
     assert manifest.reason_counts == {
-        ACCEPTED: 3,
+        ACCEPTED: 4,
         REJECT_FORMULA_ONLY: 1,
         REJECT_PROHIBITED_SOURCE: 1,
-        REJECT_LICENSE_NOT_RECORDED: 1,
     }
     assert manifest.per_source_reason_counts["openwebmath"] == {ACCEPTED: 1, REJECT_FORMULA_ONLY: 1}
-    assert set(manifest.accepted_tokens_per_source) == {"fineweb_edu", "dclm", "openwebmath"}
+    assert set(manifest.accepted_tokens_per_source) == {
+        "fineweb_edu",
+        "dclm",
+        "openwebmath",
+        "narrative",  # accepted under v2 via the inherited CC0 licence
+    }
     assert manifest.accepted_token_total == sum(manifest.accepted_tokens_per_source.values())
-    assert manifest.sources_digest == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v1.yaml"]
+    assert manifest.sources_digest == FROZEN_CORPUS_PROTOCOL_SHA256["sources_v2.yaml"]
     assert manifest.filters_digest == FROZEN_CORPUS_PROTOCOL_SHA256["filters_v1.yaml"]
     assert_manifest_is_auditable(manifest)
 

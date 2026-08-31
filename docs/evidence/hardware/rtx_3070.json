@@ -1,0 +1,123 @@
+{
+  "backend": {
+    "current": "eager_sdpa",
+    "promotion": {
+      "reason": "Plan 9.1 promotes a backend only on correctness plus sustained improvement",
+      "status": "NOT_RUN"
+    }
+  },
+  "bf16": {
+    "first_loss": 9.509571075439453,
+    "last_loss": 6.773866176605225,
+    "note": "bounded 20-update probe on synthetic tokens; not a campaign-length verdict",
+    "probe": "STABLE_OVER_PROBE",
+    "steps": 20,
+    "supported": true
+  },
+  "burst_probe_note": "burst_tokens_per_second is a short synthetic capacity probe, not a throughput claim. Section 9.1 sustained throughput is recorded separately and is NOT_RUN until measured on real shards.",
+  "checkpoint_seconds": {
+    "reason": "measured during a real run; needs G1 shards",
+    "status": "NOT_RUN"
+  },
+  "dataloader_wait_seconds": {
+    "reason": "a property of the real data path; needs G1 shards",
+    "status": "NOT_RUN"
+  },
+  "gpu": {
+    "compute_capability": "8.6",
+    "cuda_build": "12.4",
+    "multi_processor_count": 48,
+    "name": "NVIDIA GeForce RTX 3070 Ti",
+    "torch_version": "2.5.1+cu124",
+    "vram_total_bytes": 8589410304
+  },
+  "gradient_accumulation_for_frozen_batch": 32,
+  "host": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.4"
+  },
+  "machine_id": "rtx_3070",
+  "microbatch_sweep": [
+    {
+      "burst_tokens_per_second": 25042.895741505406,
+      "headroom_fraction": 0.8437305676997497,
+      "meets_headroom": true,
+      "microbatch": 1,
+      "peak_vram_bytes": 1342262272,
+      "seconds_per_update": 0.04088983999972697
+    },
+    {
+      "burst_tokens_per_second": 36260.81583300377,
+      "headroom_fraction": 0.7723870828373924,
+      "meets_headroom": true,
+      "microbatch": 2,
+      "peak_vram_bytes": 1955060736,
+      "seconds_per_update": 0.056479699999908914
+    },
+    {
+      "burst_tokens_per_second": 43882.92771929408,
+      "headroom_fraction": 0.6307110695919551,
+      "meets_headroom": true,
+      "microbatch": 4,
+      "peak_vram_bytes": 3171974144,
+      "seconds_per_update": 0.09333926000108476
+    },
+    {
+      "burst_tokens_per_second": 48077.675493479815,
+      "headroom_fraction": 0.48994682464292255,
+      "meets_headroom": true,
+      "microbatch": 6,
+      "peak_vram_bytes": 4381056000,
+      "seconds_per_update": 0.12779320000263397
+    },
+    {
+      "burst_tokens_per_second": 48964.19684387135,
+      "headroom_fraction": 0.34969378032869436,
+      "meets_headroom": true,
+      "microbatch": 8,
+      "peak_vram_bytes": 5585746944,
+      "seconds_per_update": 0.16730591999948957
+    },
+    {
+      "burst_tokens_per_second": 38131.12551802454,
+      "headroom_fraction": 0.06630741946682536,
+      "meets_headroom": false,
+      "microbatch": 12,
+      "peak_vram_bytes": 8019868672,
+      "seconds_per_update": 0.3222564199997578
+    },
+    {
+      "burst_tokens_per_second": 16624.66260577488,
+      "headroom_fraction": -0.2156903068348288,
+      "meets_headroom": false,
+      "microbatch": 16,
+      "peak_vram_bytes": 10442062848,
+      "seconds_per_update": 0.9855237600015243
+    }
+  ],
+  "minimum_headroom_fraction": 0.1,
+  "model": {
+    "config": "configs\\final_49m.json",
+    "unique_trainable_parameters": 49658368
+  },
+  "recorded_at": "2026-08-31T03:48:55.551207+00:00",
+  "safe_microbatch": 8,
+  "schema_version": 1,
+  "sustained_throughput": {
+    "next_action": "complete G1 shard production, then re-run this script with --shard-root",
+    "owner": "operator",
+    "reason": "Plan Section 9.1 measures 30-60 minutes of sustained throughput on real shards; no shard root was supplied. Re-run with --shard-root and --sustained-seconds once G1 shards exist.",
+    "status": "NOT_RUN"
+  },
+  "system_memory": {
+    "available_bytes": 46470864896,
+    "available_pagefile_bytes": 46556708864,
+    "total_bytes": 68550242304,
+    "total_pagefile_bytes": 72845209600
+  },
+  "throttle": {
+    "active": [],
+    "raw": "0x0000000000000000",
+    "status": "MEASURED"
+  }
+}

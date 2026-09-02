@@ -1,0 +1,354 @@
+{
+  "forecast": {
+    "deadline_seconds": 86400.0,
+    "extrapolated_seconds": 27419.069999999996,
+    "headroom_seconds": 58980.93000000001,
+    "measured_seconds": 274.1907,
+    "reason": "BENCH_OK: forecast 27419.070s fits deadline 86400.000s",
+    "status": "FIT"
+  },
+  "mandatory_stage_ids": [
+    "stream_and_filter",
+    "exact_and_mirror_dedup",
+    "within_source_near_dedup",
+    "cross_source_near_dedup",
+    "split_reserved_isolation",
+    "benchmark_decontamination",
+    "tokenize_and_pack"
+  ],
+  "mode_id": "slice_1pct",
+  "never_omit_stage_ids": [
+    "cross_source_near_dedup",
+    "split_reserved_isolation",
+    "benchmark_decontamination"
+  ],
+  "ok": true,
+  "omittable_stage_ids": [
+    "expanded_within_source_full_corpus_near_dedup"
+  ],
+  "omitted_stage_ids": [],
+  "peak_rss_bytes": 4861530112,
+  "peak_temporary_disk_amplification": 1.0,
+  "protocol_digest": "e789960c7730c216e6c0a3a228fad24e0d328bb4197d85609e64b6cec01a07da",
+  "results": [
+    {
+      "check_id": "MODE_SLICE_FRACTION",
+      "observed": "0.01",
+      "reason": "BENCH_OK: slice fraction accepted",
+      "requirement": "mode 'slice_1pct' slice fraction is inside its frozen window",
+      "status": "PASS"
+    },
+    {
+      "check_id": "SLICE_STRATIFIED",
+      "observed": "True",
+      "reason": "BENCH_OK: slice is stratified",
+      "requirement": "the benchmark slice is stratified across every declared source",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_ORDER",
+      "observed": "(1, 2, 3, 5, 6, 7, 8)",
+      "reason": "BENCH_OK: stage order matches the frozen contract",
+      "requirement": "measured stages appear in the frozen execution order",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_COVERAGE",
+      "observed": "['benchmark_decontamination', 'cross_source_near_dedup', 'exact_and_mirror_dedup', 'split_reserved_isolation', 'stream_and_filter', 'tokenize_and_pack', 'within_source_near_dedup']",
+      "reason": "BENCH_OK: all mandatory stages measured",
+      "requirement": "every mandatory stage ('stream_and_filter', 'exact_and_mirror_dedup', 'within_source_near_dedup', 'cross_source_near_dedup', 'split_reserved_isolation', 'benchmark_decontamination', 'tokenize_and_pack') is measured on the slice",
+      "status": "PASS"
+    },
+    {
+      "check_id": "FULL_INTEGRITY_STAGES_ENABLED",
+      "observed": "['benchmark_decontamination', 'cross_source_near_dedup', 'split_reserved_isolation']",
+      "reason": "BENCH_OK: never-omit stages ran on this slice",
+      "requirement": "cross-source near-dedup, split/reserved isolation, and decontamination always run ('cross_source_near_dedup', 'split_reserved_isolation', 'benchmark_decontamination')",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::stream_and_filter",
+      "observed": "{'documents_per_second': 1340.6304917361165, 'input_gigabytes_per_second': 0.0061563880278805005, 'peak_rss_bytes': 4385525760, 'temporary_disk_amplification': 0.0, 'output_bytes': 456471566, 'extrapolated_wall_time_seconds': 7420.24}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'stream_and_filter'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::exact_and_mirror_dedup",
+      "observed": "{'documents_per_second': 14375.081360197868, 'input_gigabytes_per_second': 0.06602420787711355, 'peak_rss_bytes': 4385525760, 'temporary_disk_amplification': 0.0, 'output_bytes': 455549578, 'extrapolated_wall_time_seconds': 691.37}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'exact_and_mirror_dedup'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::within_source_near_dedup",
+      "observed": "{'documents_per_second': 663.8705083450564, 'input_gigabytes_per_second': 0.0030429735867911244, 'peak_rss_bytes': 4527394816, 'temporary_disk_amplification': 0.22340101915317767, 'output_bytes': 101770240, 'extrapolated_wall_time_seconds': 14970.539999999999}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'within_source_near_dedup'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::cross_source_near_dedup",
+      "observed": "{'documents_per_second': 49110.54009981717, 'input_gigabytes_per_second': 0.05028919306221278, 'peak_rss_bytes': 4527394816, 'temporary_disk_amplification': 1.0, 'output_bytes': 56, 'extrapolated_wall_time_seconds': 202.36999999999998}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'cross_source_near_dedup'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::split_reserved_isolation",
+      "observed": "{'documents_per_second': 1110446.9273743017, 'input_gigabytes_per_second': 1.137097653631285, 'peak_rss_bytes': 4527394816, 'temporary_disk_amplification': 0.0, 'output_bytes': 795080, 'extrapolated_wall_time_seconds': 8.95}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'split_reserved_isolation'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::benchmark_decontamination",
+      "observed": "{'documents_per_second': 6951.652840535512, 'input_gigabytes_per_second': 0.03186418994726019, 'peak_rss_bytes': 4527394816, 'temporary_disk_amplification': 0.0, 'output_bytes': 795080, 'extrapolated_wall_time_seconds': 1429.6599999999999}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'benchmark_decontamination'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::tokenize_and_pack",
+      "observed": "{'documents_per_second': 3686.469283441026, 'input_gigabytes_per_second': 0.016897615599753706, 'peak_rss_bytes': 4861530112, 'temporary_disk_amplification': 0.0, 'output_bytes': 228332702, 'extrapolated_wall_time_seconds': 2695.9399999999996}",
+      "reason": "BENCH_OK: every required counter measured",
+      "requirement": "all six Plan 5.5 counters are measured for 'tokenize_and_pack'",
+      "status": "PASS"
+    },
+    {
+      "check_id": "STAGE_METRICS::expanded_within_source_full_corpus_near_dedup",
+      "observed": "no measurement supplied",
+      "reason": "this optional stage was neither measured nor formally omitted",
+      "requirement": "all six Plan 5.5 counters are measured for 'expanded_within_source_full_corpus_near_dedup'",
+      "status": "NOT_RUN"
+    },
+    {
+      "check_id": "DEGRADATION_POLICY",
+      "observed": "no omission requested",
+      "reason": "BENCH_OK: mandatory stages remain enabled",
+      "requirement": "only the optional expanded within-source near-dedup pass may be omitted, in the frozen order",
+      "status": "PASS"
+    },
+    {
+      "check_id": "SCOPE_DECISION_RECORD",
+      "observed": "no omission requested",
+      "reason": "no scope reduction was claimed, so no decision record is required yet",
+      "requirement": "a scope reduction requires a dated decision record",
+      "status": "NOT_RUN"
+    },
+    {
+      "check_id": "FORECAST",
+      "observed": "{'status': 'FIT', 'measured_seconds': 274.1907, 'extrapolated_seconds': 27419.069999999996, 'deadline_seconds': 86400.0, 'headroom_seconds': 58980.93000000001, 'reason': 'BENCH_OK: forecast 27419.070s fits deadline 86400.000s'}",
+      "reason": "BENCH_OK: forecast 27419.070s fits deadline 86400.000s",
+      "requirement": "the extrapolated full-corpus wall time fits the Section 12 schedule",
+      "status": "PASS"
+    }
+  ],
+  "schema_version": "pipeline_bench_v1",
+  "scope_reduction": null,
+  "slice_fraction": 0.01,
+  "slice_id": "slice_1pct-2026-08-31",
+  "stages": [
+    {
+      "documents_per_second": 1340.6304917361165,
+      "extrapolated_wall_time_seconds": 7420.24,
+      "input_gigabytes_per_second": 0.0061563880278805005,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99478,
+        "elapsed_seconds": 74.2024,
+        "input_bytes": 456818767,
+        "output_bytes": 456471566,
+        "peak_rss_bytes": 4385525760,
+        "peak_temporary_disk_bytes": 0,
+        "stage_id": "stream_and_filter"
+      },
+      "missing_metrics": [],
+      "never_bypass": false,
+      "order": 1,
+      "output_bytes": 456471566,
+      "peak_rss_bytes": 4385525760,
+      "protocol_refs": [
+        "configs/data/sources_v1.yaml",
+        "configs/data/filters_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "stream_and_filter",
+      "temporary_disk_amplification": 0.0
+    },
+    {
+      "documents_per_second": 14375.081360197868,
+      "extrapolated_wall_time_seconds": 691.37,
+      "input_gigabytes_per_second": 0.06602420787711355,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99385,
+        "elapsed_seconds": 6.9137,
+        "input_bytes": 456471566,
+        "output_bytes": 455549578,
+        "peak_rss_bytes": 4385525760,
+        "peak_temporary_disk_bytes": 0,
+        "stage_id": "exact_and_mirror_dedup"
+      },
+      "missing_metrics": [],
+      "never_bypass": false,
+      "order": 2,
+      "output_bytes": 455549578,
+      "peak_rss_bytes": 4385525760,
+      "protocol_refs": [
+        "configs/data/dedup_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "exact_and_mirror_dedup",
+      "temporary_disk_amplification": 0.0
+    },
+    {
+      "documents_per_second": 663.8705083450564,
+      "extrapolated_wall_time_seconds": 14970.539999999999,
+      "input_gigabytes_per_second": 0.0030429735867911244,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99385,
+        "elapsed_seconds": 149.7054,
+        "input_bytes": 455549578,
+        "output_bytes": 101770240,
+        "peak_rss_bytes": 4527394816,
+        "peak_temporary_disk_bytes": 101770240,
+        "stage_id": "within_source_near_dedup"
+      },
+      "missing_metrics": [],
+      "never_bypass": false,
+      "order": 3,
+      "output_bytes": 101770240,
+      "peak_rss_bytes": 4527394816,
+      "protocol_refs": [
+        "configs/data/dedup_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "within_source_near_dedup",
+      "temporary_disk_amplification": 0.22340101915317767
+    },
+    {
+      "documents_per_second": 49110.54009981717,
+      "extrapolated_wall_time_seconds": 202.36999999999998,
+      "input_gigabytes_per_second": 0.05028919306221278,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99385,
+        "elapsed_seconds": 2.0237,
+        "input_bytes": 101770240,
+        "output_bytes": 56,
+        "peak_rss_bytes": 4527394816,
+        "peak_temporary_disk_bytes": 101770240,
+        "stage_id": "cross_source_near_dedup"
+      },
+      "missing_metrics": [],
+      "never_bypass": true,
+      "order": 5,
+      "output_bytes": 56,
+      "peak_rss_bytes": 4527394816,
+      "protocol_refs": [
+        "configs/data/dedup_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "cross_source_near_dedup",
+      "temporary_disk_amplification": 1.0
+    },
+    {
+      "documents_per_second": 1110446.9273743017,
+      "extrapolated_wall_time_seconds": 8.95,
+      "input_gigabytes_per_second": 1.137097653631285,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99385,
+        "elapsed_seconds": 0.0895,
+        "input_bytes": 101770240,
+        "output_bytes": 795080,
+        "peak_rss_bytes": 4527394816,
+        "peak_temporary_disk_bytes": 0,
+        "stage_id": "split_reserved_isolation"
+      },
+      "missing_metrics": [],
+      "never_bypass": true,
+      "order": 6,
+      "output_bytes": 795080,
+      "peak_rss_bytes": 4527394816,
+      "protocol_refs": [
+        "configs/data/dedup_v1.yaml",
+        "configs/data/shards_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "split_reserved_isolation",
+      "temporary_disk_amplification": 0.0
+    },
+    {
+      "documents_per_second": 6951.652840535512,
+      "extrapolated_wall_time_seconds": 1429.6599999999999,
+      "input_gigabytes_per_second": 0.03186418994726019,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99385,
+        "elapsed_seconds": 14.2966,
+        "input_bytes": 455549578,
+        "output_bytes": 795080,
+        "peak_rss_bytes": 4527394816,
+        "peak_temporary_disk_bytes": 0,
+        "stage_id": "benchmark_decontamination"
+      },
+      "missing_metrics": [],
+      "never_bypass": true,
+      "order": 7,
+      "output_bytes": 795080,
+      "peak_rss_bytes": 4527394816,
+      "protocol_refs": [
+        "configs/data/decontam_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "benchmark_decontamination",
+      "temporary_disk_amplification": 0.0
+    },
+    {
+      "documents_per_second": 3686.469283441026,
+      "extrapolated_wall_time_seconds": 2695.9399999999996,
+      "input_gigabytes_per_second": 0.016897615599753706,
+      "mandatory": true,
+      "measurement": {
+        "documents": 99385,
+        "elapsed_seconds": 26.9594,
+        "input_bytes": 455549578,
+        "output_bytes": 228332702,
+        "peak_rss_bytes": 4861530112,
+        "peak_temporary_disk_bytes": 0,
+        "stage_id": "tokenize_and_pack"
+      },
+      "missing_metrics": [],
+      "never_bypass": false,
+      "order": 8,
+      "output_bytes": 228332702,
+      "peak_rss_bytes": 4861530112,
+      "protocol_refs": [
+        "configs/data/tokenizer_v1.yaml",
+        "configs/data/shards_v1.yaml"
+      ],
+      "reason_codes": [
+        "BENCH_OK"
+      ],
+      "stage_id": "tokenize_and_pack",
+      "temporary_disk_amplification": 0.0
+    }
+  ],
+  "stratified": true,
+  "total_output_bytes": 1243714302
+}

@@ -1,7 +1,9 @@
 .venv/
 .cache/
-data/raw/
-data/processed/
+# Corpus, samples, and built tokenizer artifacts. `data/raw/` and `data/processed/` alone
+# missed data/tokenizer_sample/ and data/tokenizer_final/, leaving 4.3 GB untracked but
+# committable by a stray `git add -A`. Small evidence lives in docs/evidence/ instead.
+data/
 checkpoints/
 runs/
 __pycache__/

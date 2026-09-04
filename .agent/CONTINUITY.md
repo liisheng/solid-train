@@ -24,6 +24,8 @@
 - 2026-09-05T06:38:00+08:00 [CODE] Implemented the G1 production acquisition/filter/dedup/decontamination/assignment pipeline, restartable benchmark index, atomic accepted-data/ledger bundle publication, SQLite state hashing, measured stage/source counters, and bounded-memory final shard verifier.
 - 2026-09-05T06:38:00+08:00 [TOOL] Independent Luna review identified six pipeline gaps; all were fixed with regression coverage, including persisted slice-budget accounting, fail-closed empty replay, idempotent reruns, bundle publication failure cleanup, acquisition-event export, state hashing, and malformed benchmark rows.
 - 2026-09-05T06:38:00+08:00 [TOOL] Full host verification passed: 587 tests in 89.06 seconds, Python byte-compilation passed, command help smoke tests passed, and diff checks passed.
+- 2026-09-05T07:16:27+08:00 [TOOL] Committed and pushed the verified G1-04/G1-05 checkpoint as `44a5fab` on `g1-evidence`; local and `origin/g1-evidence` matched with a clean worktree.
+- 2026-09-05T07:16:27+08:00 [TOOL] Started the real 1% G1-06 pipeline with the documented command. All six sources finished acquisition into local ignored state `data/pipeline/slice_1pct.state.sqlite`; the live process is in global deduplication. Its cache is `data/hf_cache`, benchmark index target is `data/pipeline/benchmark_index.sqlite`, atomic output bundle is `data/pipeline/slice_1pct`, and evidence target is `runs/bench/slice_1pct.pipeline.json`. A replacement agent must check for an existing `prepare_corpus.py` process before attempting resume.
 
 [DISCOVERIES]
 
@@ -36,6 +38,7 @@
 - 2026-09-05T05:20:14+08:00 [CODE] The frozen v1 JSON manifest embeds every document boundary. Packing is bounded-memory and manifests are written from disk-backed records, but loading one complete manifest still materializes that split's boundary arrays; a future streaming aggregate verifier is needed for full production reconciliation.
 - 2026-09-05T06:38:00+08:00 [CODE] A bounded slice must persist raw consumed-token accounting independently of accepted document tokens; otherwise resuming can silently acquire a second full pool budget.
 - 2026-09-05T06:38:00+08:00 [CODE] Two independently replaced JSONL files cannot satisfy pairwise atomic publication. Production now requires both files in one previously absent bundle directory and publishes them with a single sibling-directory rename.
+- 2026-09-05T07:16:27+08:00 [TOOL] Git alone cannot carry an in-progress corpus run: `data/*` and `runs/` are ignored. Same-machine handoff uses the tracked command/run-state notes plus the local SQLite/cache artifacts; cross-machine handoff requires copying those artifacts or restarting the slice.
 
 [OUTCOMES]
 

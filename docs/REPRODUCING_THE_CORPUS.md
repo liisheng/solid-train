@@ -149,6 +149,14 @@ global deduplication, benchmark decontamination, and disjoint reserved/validatio
 assignment complete. Keep the SQLite state outside that new output directory, which must
 not exist before publication.
 
+To observe a local run without modifying its state, use the read-only progress viewer:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\show_corpus_progress.py --watch 15
+```
+
+`Ctrl+C` stops only the viewer; it does not stop the corpus pipeline.
+
 Do not run `--target-fraction 1` from an estimate. The CLI requires the explicit
 `--confirm-full-scan` switch, and that switch should be used only after the 1% and 2–5%
 measured forecasts have been reviewed.

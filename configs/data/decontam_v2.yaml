@@ -1,0 +1,179 @@
+# Frozen benchmark decontamination protocol for the real G1 corpus scan.
+#
+# v2 supersedes v1 only by pinning the public benchmark inputs available on
+# 2026-09-05. The three matching rules, thresholds, normalization, and task set are
+# unchanged. The GIBC V2 rules name the benchmark families but publish no repository
+# revisions and promise no later version lock, so waiting on an unspecified organizer
+# update would make G1 impossible to schedule reproducibly.
+
+protocol: decontamination
+version: v2
+frozen: true
+calibration: planted-fixtures-only
+calibrated_before_real_corpus_scan: true
+supersedes: configs/data/decontam_v1.yaml
+supersede_reason: >-
+  Pin the exact public benchmark datasets and lm-evaluation-harness commit used for
+  G1 decontamination while preserving every v1 matching rule and threshold.
+
+change_control:
+  immutable: true
+  on_change: create configs/data/decontam_v3.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/data_protocols.py::FROZEN_PROTOCOL_SHA256
+
+matching_normalization:
+  unicode_form: NFKC
+  case: lowercase
+  case_scope: matching_only
+  whitespace: collapse_runs_to_single_space
+  strip_ends: true
+  preserve_stored_text: true
+  must_equal: configs/data/dedup_v1.yaml::matching_normalization
+
+quarantine_rules:
+  - rule_id: RULE_1_COMPLETE_ITEM_SUBSTRING
+    reason_code: BENCHMARK_ITEM_SUBSTRING
+    definition: a complete normalized benchmark prompt or answer occurs as a substring of the normalized document
+    word_boundary_aligned: true
+    minimum_item_words: 1
+  - rule_id: RULE_2_LONGEST_CONTIGUOUS_OVERLAP
+    reason_code: BENCHMARK_CONTIGUOUS_OVERLAP
+    definition: longest contiguous run of normalized words shared by the document and one benchmark item
+    unit: word
+    minimum_words: 50
+    threshold_comparison: greater_or_equal
+  - rule_id: RULE_3_SHINGLE_COVERAGE
+    reason_code: BENCHMARK_SHINGLE_COVERAGE
+    definition: distinct benchmark shingles matched in the document covering a fraction of the document words
+    shingle_unit: word
+    shingle_size: 13
+    minimum_distinct_shingles: 3
+    minimum_document_word_coverage: 0.10
+    coverage_denominator: normalized_document_word_count
+    coverage_numerator: distinct document word positions covered by matched shingles
+    threshold_comparison: greater_or_equal
+
+decision:
+  rule_evaluation_order: [RULE_1_COMPLETE_ITEM_SUBSTRING, RULE_2_LONGEST_CONTIGUOUS_OVERLAP, RULE_3_SHINGLE_COVERAGE]
+  primary_reason_code: first_rule_that_fires_in_declared_order
+  all_matched_rules_recorded: true
+  action_on_match: QUARANTINE
+  clean_reason_code: CLEAN
+  fail_closed: true
+
+boundary_review:
+  contiguous_overlap_band_words: 5
+  shingle_coverage_band: 0.02
+  sample_per_band: 20
+  sample_selection: lowest_document_id_first
+  reason_code: BOUNDARY_REVIEW_SAMPLE
+
+benchmark_scope:
+  required_tasks:
+    - task_id: hellaswag
+      harness_task: hellaswag
+      tier: required_official
+      dataset_repo: Rowan/hellaswag
+      dataset_revision: 218ec52e09a7e7462a5400043bb9a69a41d06b76
+      dataset_config: null
+      decontamination_splits: all_available
+      text_fields: [ctx, endings]
+    - task_id: arc_easy
+      harness_task: arc_easy
+      tier: required_official
+      dataset_repo: allenai/ai2_arc
+      dataset_revision: 210d026faf9955653af8916fad021475a3f00453
+      dataset_config: ARC-Easy
+      decontamination_splits: all_available
+      text_fields: [question, choices.text]
+    - task_id: piqa
+      harness_task: piqa
+      tier: required_official
+      dataset_repo: ybisk/piqa
+      dataset_revision: 2e8ac2dffd59bac8c3c6714948f4c551a0848bb0
+      dataset_config: null
+      decontamination_splits: all_available
+      text_fields: [goal, sol1, sol2]
+      trust_remote_code: true
+      loader_script_sha256: 99107ad59e6f5ffc26923f98bb4cb6e2029b0e368005e9639ea7eadc86d2d46b
+    - task_id: winogrande
+      harness_task: winogrande
+      tier: required_official
+      dataset_repo: allenai/winogrande
+      dataset_revision: 01e74176c63542e6b0bcb004dcdea22d94fb67b5
+      dataset_config: winogrande_xl
+      decontamination_splits: all_available
+      text_fields: [sentence, option1, option2]
+    - task_id: wikitext_103_perplexity
+      harness_task: wikitext
+      tier: required_official
+      dataset_repo: Salesforce/wikitext
+      dataset_revision: b08601e04326c79dfdd32d625aee71d232d685c3
+      dataset_config: wikitext-103-raw-v1
+      decontamination_splits: all_available
+      text_fields: [text]
+      note: all public splits are quarantined because no organizer-specific held-out slice is published
+  secondary_tasks:
+    - task_id: arc_challenge
+      harness_task: arc_challenge
+      tier: secondary_non_official
+      dataset_repo: allenai/ai2_arc
+      dataset_revision: 210d026faf9955653af8916fad021475a3f00453
+      dataset_config: ARC-Challenge
+      decontamination_splits: all_available
+      text_fields: [question, choices.text]
+    - task_id: sciq
+      harness_task: sciq
+      tier: secondary_non_official
+      dataset_repo: allenai/sciq
+      dataset_revision: 2c94ad3e1aafab77146f384e23536f97a4849815
+      dataset_config: null
+      decontamination_splits: all_available
+      text_fields: [question, correct_answer, distractor1, distractor2, distractor3, support]
+    - task_id: logiqa
+      harness_task: logiqa
+      tier: secondary_non_official
+      dataset_repo: EleutherAI/logiqa
+      dataset_revision: c1eee1b2fd0ddc87777e36490f7ad54d0b97d141
+      dataset_config: null
+      decontamination_splits: all_available
+      text_fields: [context, question, options]
+      trust_remote_code: true
+      loader_script_sha256: 1bab92398053426b1b5699bbd5ea7068d6fcab411ddc12861a25eecfac54ed0e
+    - task_id: mathqa
+      harness_task: mathqa
+      tier: secondary_non_official
+      dataset_repo: allenai/math_qa
+      dataset_revision: c4f1cc784c04c4957b50c97858f23893b633eea6
+      dataset_config: null
+      decontamination_splits: all_available
+      text_fields: [Problem, options, Rationale]
+      trust_remote_code: true
+      loader_script_sha256: e3a695cbda202d0f114434c650c08435e19c8e8b7fbb2bf9aca50ac237a7d238
+  revision_pinning:
+    dataset_revision: per_task_immutable_revisions_above
+    harness_commit: b954108c9baaaa934b4ad842033b31a97ee30816
+    pinned_on: "2026-09-05"
+    status: PASS
+    evidence: Hugging Face dataset API commit SHAs and GitHub refs/heads/main resolved on the pinned date
+    splits_required_in_decontamination: all_available
+  secondary_results_may_influence_training: false
+
+readiness:
+  real_corpus_scan_requires_all_revisions_pinned: true
+  fixture_calibration_allowed_while_blocked: true
+  real_corpus_scan_status: READY
+
+reason_codes:
+  keep: [CLEAN]
+  quarantine:
+    - BENCHMARK_ITEM_SUBSTRING
+    - BENCHMARK_CONTIGUOUS_OVERLAP
+    - BENCHMARK_SHINGLE_COVERAGE
+  fail_closed: [BENCHMARK_REVISIONS_NOT_PINNED]
+
+counters:
+  preserve_reason_coded_counts: true
+  emit_per_task: true

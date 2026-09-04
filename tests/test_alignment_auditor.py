@@ -161,7 +161,17 @@ def _entry(report, entry_id: str):
 
 
 #: Skipped everywhere: large or generated, and never part of the audited surface.
-_SKIP_ANYWHERE = frozenset({".git", ".venv", "__pycache__", ".pytest_cache", "node_modules"})
+_SKIP_ANYWHERE = frozenset(
+    {
+        ".cache",
+        ".git",
+        ".hypothesis",
+        ".venv",
+        "__pycache__",
+        ".pytest_cache",
+        "node_modules",
+    }
+)
 
 #: Skipped only at the repository root. `data` must NOT be matched by name, or the copy
 #: would silently lose `configs/data/` and the mirror would fail the audit for the wrong reason.

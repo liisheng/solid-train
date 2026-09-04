@@ -17,6 +17,7 @@ independent runs were verified to select identical document ids.
 | Sample manifest (what was drawn) | `docs/evidence/tokenizer/sample_manifest.json` | 3 KB |
 | Build record summary | `docs/evidence/tokenizer/build_record_summary.json` | 5 KB |
 | G1 pipeline benchmark | `docs/evidence/pipeline/slice_1pct.*.json` | 17 KB |
+| Benchmark quarantine-input manifest | `docs/evidence/decontamination/benchmark_inputs.json` | 5 KB |
 | Hardware inventory | `docs/evidence/hardware/rtx_3070.json` | — |
 
 The tokenizer is tracked `-text` in `.gitattributes`, so its bytes survive checkout on
@@ -72,6 +73,23 @@ Verify an existing artifact without rebuilding:
 ```
 
 All nine required checks must PASS.
+
+## Rebuilding the benchmark quarantine inputs
+
+The production decontamination protocol is `configs/data/decontam_v2.yaml`. It pins all
+required and secondary public benchmark datasets plus the lm-evaluation-harness commit used
+for G1. Recreate the local, gitignored benchmark-item body with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\fetch_decontamination_inputs.py
+```
+
+The command writes `data/decontamination/benchmark_items.jsonl` and refreshes the compact
+committed evidence manifest. A matching run contains 1,362,239 usable rows and has SHA-256
+`976f81cfef5ef3d6ff9d3d608c482b348e1e9606acec1dfd261d2f235536fa4d`.
+Blank WikiText rows are excluded and counted in the manifest; no other benchmark fields or
+metadata are added implicitly. PIQA, LogiQA, and MathQA require their reviewed dataset loader
+code, whose expected SHA-256 values are frozen in the protocol.
 
 ## Running a pipeline slice
 

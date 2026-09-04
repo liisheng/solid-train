@@ -36,6 +36,7 @@ from tinybench_lm.data_protocols import (
     DocumentRecord,
     ProtocolMutatedError,
     ProtocolNotReadyError,
+    PRODUCTION_DECONTAM_PROTOCOL_PATH,
     assert_normalization_agrees,
     assert_ready_for_real_corpus_scan,
     decontaminate,
@@ -111,10 +112,11 @@ def decontam_protocol() -> dict:
 
 
 def test_frozen_protocol_digests_are_pinned() -> None:
-    """The v1 configs cannot change without this pin changing: that is the freeze."""
+    """Every retained protocol version is pinned; production v2 is explicit."""
     assert protocol_digest(DEDUP_PROTOCOL_PATH) == FROZEN_PROTOCOL_SHA256["dedup_v1.yaml"]
     assert protocol_digest(DECONTAM_PROTOCOL_PATH) == FROZEN_PROTOCOL_SHA256["decontam_v1.yaml"]
-    assert set(FROZEN_PROTOCOL_SHA256) == {"dedup_v1.yaml", "decontam_v1.yaml"}
+    assert protocol_digest(PRODUCTION_DECONTAM_PROTOCOL_PATH) == FROZEN_PROTOCOL_SHA256["decontam_v2.yaml"]
+    assert set(FROZEN_PROTOCOL_SHA256) == {"dedup_v1.yaml", "decontam_v1.yaml", "decontam_v2.yaml"}
 
 
 def test_mutated_protocol_fails_closed(tmp_path: Path) -> None:
@@ -439,15 +441,18 @@ def test_secondary_task_identities_are_frozen(decontam_protocol: dict) -> None:
     assert decontam_protocol["benchmark_scope"]["secondary_results_may_influence_training"] is False
 
 
-def test_real_corpus_scan_is_blocked_until_revisions_are_pinned(decontam_protocol: dict) -> None:
-    """Fixture calibration is allowed while revisions are BLOCKED; a real scan is not."""
+def test_default_v1_remains_blocked_and_auditable(decontam_protocol: dict) -> None:
+    """Publishing production v2 must not rewrite the provisional v1 default."""
     assert unpinned_benchmark_revisions(decontam_protocol) == ("dataset_revision", "harness_commit")
-    pinning = decontam_protocol["benchmark_scope"]["revision_pinning"]
-    assert pinning["status"] == "BLOCKED"
-    assert pinning["blocker"] and pinning["owner"] and pinning["next_action"]
-    assert decontam_protocol["readiness"]["fixture_calibration_allowed_while_blocked"] is True
     with pytest.raises(ProtocolNotReadyError, match=BENCHMARK_REVISIONS_NOT_PINNED):
         assert_ready_for_real_corpus_scan(decontam_protocol)
+
+
+def test_production_v2_is_ready_after_revisions_are_pinned() -> None:
+    production = load_decontamination_protocol(PRODUCTION_DECONTAM_PROTOCOL_PATH)
+    assert unpinned_benchmark_revisions(production) == ()
+    assert production["benchmark_scope"]["revision_pinning"]["status"] == "PASS"
+    assert_ready_for_real_corpus_scan(production)
 
 
 # --------------------------------------------------------------------------------------

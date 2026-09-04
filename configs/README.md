@@ -18,9 +18,15 @@ closed if a threshold is edited. A protocol change means publishing the next ver
 - `data/decontam_v1.yaml`: the three benchmark quarantine rules plus the frozen required and
   secondary task identities. Dataset revisions and the harness commit are `PENDING_PIN`/`BLOCKED`;
   fixture calibration is allowed while blocked, a real-corpus scan is not.
+- `data/decontam_v2.yaml`: production G1 successor with the same matching rules and task set,
+  pinned to the public dataset revisions and lm-evaluation-harness commit resolved on
+  2026-09-05. This protocol is `READY` for a real-corpus scan. The downloaded benchmark-item
+  body remains local; its compact count and SHA-256 evidence is committed at
+  `docs/evidence/decontamination/benchmark_inputs.json`.
 
-Both protocols were calibrated on planted fixtures only (`tests/test_data_protocols.py`). No
-real-corpus removal or quarantine rate has been measured.
+The matching rules were calibrated on planted fixtures only (`tests/test_data_protocols.py`).
+The production benchmark inputs have been acquired, but no real training-corpus removal or
+quarantine rate has been measured yet.
 
 # Frozen source registry and integrity filters
 

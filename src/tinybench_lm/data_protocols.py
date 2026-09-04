@@ -5,22 +5,22 @@ created, hashed, and calibrated on planted fixtures *before* any real corpus is 
 This module is the implementation of the two frozen configs:
 
     configs/data/dedup_v1.yaml
-    configs/data/decontam_v1.yaml
+    configs/data/decontam_v2.yaml
 
 Three properties matter more than convenience here:
 
 1. **Immutable.** Every load verifies the config bytes against a pinned SHA-256 digest
    (:data:`FROZEN_PROTOCOL_SHA256`). A silent threshold edit fails closed instead of
-   quietly reclassifying documents. Changing a protocol means publishing `*_v2.yaml`.
+   quietly reclassifying documents. Changing a protocol means publishing a new version.
 2. **Deterministic.** Normalization, hashing, MinHash permutations, clustering order,
    and rule evaluation order are all fixed, so the same inputs always produce the same
    reason-coded decisions.
 3. **Non-destructive.** Normalization exists for matching only. Stored document text is
    never rewritten by anything in this module.
 
-Nothing here downloads benchmark data or scans a real corpus. Benchmark task identities
-are frozen so their examples can be covered once revisions are pinned; the revisions
-themselves are reported as BLOCKED rather than invented.
+Nothing here downloads benchmark data or scans a real corpus. The default v1 remains the
+provisional evaluation contract; ``decontam_v2`` is an explicit production input that pins
+the public benchmark revisions used by the G1 corpus scanner.
 """
 
 from __future__ import annotations
@@ -38,6 +38,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DATA_PROTOCOL_DIR = REPOSITORY_ROOT / "configs" / "data"
 DEDUP_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "dedup_v1.yaml"
 DECONTAM_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "decontam_v1.yaml"
+PRODUCTION_DECONTAM_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "decontam_v2.yaml"
 
 #: SHA-256 of each frozen protocol, computed over file bytes with CRLF normalized to LF.
 #: These digests are the freeze. Editing a `v1` config without publishing a `v2` makes
@@ -45,6 +46,7 @@ DECONTAM_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "decontam_v1.yaml"
 FROZEN_PROTOCOL_SHA256: Mapping[str, str] = {
     "dedup_v1.yaml": "81ede480e48c094814e1be1e036559ba9fd72e9c9df1c4a3e3437b8ab9fb80f7",
     "decontam_v1.yaml": "b17130c573f1feb25c07d58f64e1b03ee0e55ff994c330ce43df9b853c61391c",
+    "decontam_v2.yaml": "a50dbb7145e9d95dd6c9a927afe0d06cb89a5a320821eba2cd7e176ba715e3ea",
 }
 
 #: Reason codes. Every decision carries exactly one primary code from this vocabulary.
@@ -173,7 +175,7 @@ def assert_normalization_agrees(
     decontam = dict((decontamination_protocol or load_decontamination_protocol())["matching_normalization"])
     decontam.pop("must_equal", None)
     if dedup != decontam:
-        raise ProtocolError("dedup_v1 and decontam_v1 declare different matching normalization")
+        raise ProtocolError("dedup_v1 and the active decontamination protocol declare different matching normalization")
 
 
 # --------------------------------------------------------------------------------------
@@ -647,12 +649,20 @@ def frozen_benchmark_task_ids(protocol: Mapping[str, Any] | None = None) -> tupl
 
 def unpinned_benchmark_revisions(protocol: Mapping[str, Any] | None = None) -> tuple[str, ...]:
     """Revision fields that are still placeholders. Non-empty means a real scan is blocked."""
-    pinning = (protocol or load_decontamination_protocol())["benchmark_scope"]["revision_pinning"]
+    scope = (protocol or load_decontamination_protocol())["benchmark_scope"]
+    pinning = scope["revision_pinning"]
     unpinned = [
         field_name
         for field_name in ("dataset_revision", "harness_commit")
         if str(pinning.get(field_name, "")).strip().upper() in _PENDING_PIN_MARKERS
     ]
+    for task in list(scope.get("required_tasks", [])) + list(scope.get("secondary_tasks", [])):
+        if "dataset_revision" not in task:
+            continue  # v1 records its shared placeholder in revision_pinning.
+        task_id = str(task.get("task_id", "<unknown>"))
+        revision = str(task.get("dataset_revision", "")).strip()
+        if revision.upper() in _PENDING_PIN_MARKERS or re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+            unpinned.append(f"{task_id}.dataset_revision")
     return tuple(unpinned)
 
 

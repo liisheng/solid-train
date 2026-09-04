@@ -1,0 +1,216 @@
+{
+  "benchmark_items_path": "data/decontamination/benchmark_items.jsonl",
+  "benchmark_items_sha256": "976f81cfef5ef3d6ff9d3d608c482b348e1e9606acec1dfd261d2f235536fa4d",
+  "decontamination_protocol_digest": "a50dbb7145e9d95dd6c9a927afe0d06cb89a5a320821eba2cd7e176ba715e3ea",
+  "harness_commit": "b954108c9baaaa934b4ad842033b31a97ee30816",
+  "item_count": 1362239,
+  "protocol": "production_decontamination_inputs",
+  "protocol_version": "v1",
+  "tasks": [
+    {
+      "dataset_config": null,
+      "dataset_repo": "Rowan/hellaswag",
+      "dataset_revision": "218ec52e09a7e7462a5400043bb9a69a41d06b76",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 59950,
+      "split_counts": {
+        "test": 10003,
+        "train": 39905,
+        "validation": 10042
+      },
+      "task_id": "hellaswag",
+      "text_fields": [
+        "ctx",
+        "endings"
+      ],
+      "trust_remote_code": false
+    },
+    {
+      "dataset_config": "ARC-Easy",
+      "dataset_repo": "allenai/ai2_arc",
+      "dataset_revision": "210d026faf9955653af8916fad021475a3f00453",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 5197,
+      "split_counts": {
+        "test": 2376,
+        "train": 2251,
+        "validation": 570
+      },
+      "task_id": "arc_easy",
+      "text_fields": [
+        "question",
+        "choices.text"
+      ],
+      "trust_remote_code": false
+    },
+    {
+      "dataset_config": null,
+      "dataset_repo": "ybisk/piqa",
+      "dataset_revision": "2e8ac2dffd59bac8c3c6714948f4c551a0848bb0",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 21035,
+      "split_counts": {
+        "test": 3084,
+        "train": 16113,
+        "validation": 1838
+      },
+      "task_id": "piqa",
+      "text_fields": [
+        "goal",
+        "sol1",
+        "sol2"
+      ],
+      "trust_remote_code": true
+    },
+    {
+      "dataset_config": "winogrande_xl",
+      "dataset_repo": "allenai/winogrande",
+      "dataset_revision": "01e74176c63542e6b0bcb004dcdea22d94fb67b5",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 43432,
+      "split_counts": {
+        "test": 1767,
+        "train": 40398,
+        "validation": 1267
+      },
+      "task_id": "winogrande",
+      "text_fields": [
+        "sentence",
+        "option1",
+        "option2"
+      ],
+      "trust_remote_code": false
+    },
+    {
+      "dataset_config": "wikitext-103-raw-v1",
+      "dataset_repo": "Salesforce/wikitext",
+      "dataset_revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+      "empty_rows_skipped": {
+        "test": 1467,
+        "train": 636321,
+        "validation": 1299
+      },
+      "item_count": 1170381,
+      "split_counts": {
+        "test": 2891,
+        "train": 1165029,
+        "validation": 2461
+      },
+      "task_id": "wikitext_103_perplexity",
+      "text_fields": [
+        "text"
+      ],
+      "trust_remote_code": false
+    },
+    {
+      "dataset_config": "ARC-Challenge",
+      "dataset_repo": "allenai/ai2_arc",
+      "dataset_revision": "210d026faf9955653af8916fad021475a3f00453",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 2590,
+      "split_counts": {
+        "test": 1172,
+        "train": 1119,
+        "validation": 299
+      },
+      "task_id": "arc_challenge",
+      "text_fields": [
+        "question",
+        "choices.text"
+      ],
+      "trust_remote_code": false
+    },
+    {
+      "dataset_config": null,
+      "dataset_repo": "allenai/sciq",
+      "dataset_revision": "2c94ad3e1aafab77146f384e23536f97a4849815",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 13679,
+      "split_counts": {
+        "test": 1000,
+        "train": 11679,
+        "validation": 1000
+      },
+      "task_id": "sciq",
+      "text_fields": [
+        "question",
+        "correct_answer",
+        "distractor1",
+        "distractor2",
+        "distractor3",
+        "support"
+      ],
+      "trust_remote_code": false
+    },
+    {
+      "dataset_config": null,
+      "dataset_repo": "EleutherAI/logiqa",
+      "dataset_revision": "c1eee1b2fd0ddc87777e36490f7ad54d0b97d141",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 8678,
+      "split_counts": {
+        "test": 651,
+        "train": 7376,
+        "validation": 651
+      },
+      "task_id": "logiqa",
+      "text_fields": [
+        "context",
+        "question",
+        "options"
+      ],
+      "trust_remote_code": true
+    },
+    {
+      "dataset_config": null,
+      "dataset_repo": "allenai/math_qa",
+      "dataset_revision": "c4f1cc784c04c4957b50c97858f23893b633eea6",
+      "empty_rows_skipped": {
+        "test": 0,
+        "train": 0,
+        "validation": 0
+      },
+      "item_count": 37297,
+      "split_counts": {
+        "test": 2985,
+        "train": 29837,
+        "validation": 4475
+      },
+      "task_id": "mathqa",
+      "text_fields": [
+        "Problem",
+        "options",
+        "Rationale"
+      ],
+      "trust_remote_code": true
+    }
+  ]
+}

@@ -33,18 +33,23 @@ The guarantees mirror :mod:`tinybench_lm.data_protocols` and
    evaluated at :data:`SCALE_FINAL`. A tiny fixture is audited at :data:`SCALE_FIXTURE`,
    where those checks report ``DEFERRED`` with their blocker, owner, and next action.
 
-Nothing here acquires a corpus or produces billion-token shards. Real-scale shard
-production is deferred to operators (see the ``readiness`` section of the frozen config).
+The legacy fixture builder does not acquire a corpus. ``build_split_manifests_streaming``
+provides the real-scale bounded-memory packing path; global near-deduplication remains an
+upstream operation and is never implied by merely setting a CLI attestation flag.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
+import sqlite3
+import tempfile
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Iterator, Mapping, Sequence
 
 import numpy as np
 
@@ -174,6 +179,10 @@ class ProfileSelectionError(ShardContractError):
 
 class ShardsNotReadyError(ProtocolNotReadyError):
     """Real-scale shard production is gated behind corpus acquisition and the final tokenizer."""
+
+
+class StreamingShardError(ShardContractError):
+    """A streaming input or its restart/output preconditions are unsafe."""
 
 
 # --------------------------------------------------------------------------------------
@@ -323,6 +332,9 @@ class ShardDocument:
     text: str
     boundary: str
     protected_slice: str | None = None
+    # Optional upstream dedup cluster identity. It is not part of the frozen manifest,
+    # but the streaming path checks it when supplied.
+    cluster_id: str | None = None
 
     def as_dedup_record(self) -> DocumentRecord:
         return DocumentRecord(self.document_id, self.text, self.source_id, self.boundary)
@@ -691,6 +703,425 @@ def build_split_manifest(
         tokenizer_digest=str(resolved_tokenizer.get("_digest", "")),
         protected_slice_tokens=slice_tokens,
     )
+
+
+@dataclass(frozen=True)
+class StreamingBuildResult:
+    """Result of a bounded-memory build and optional isolation report.
+
+    The streaming producer deliberately does not run the frozen near-dedup algorithm:
+    that algorithm requires a global candidate set and is quadratic by design.  Operators
+    must therefore supply an isolation-clean accepted stream (and set
+    ``isolation_verified``).  Explicit ``cluster_id`` fields, when present, are still
+    checked while streaming so a bad upstream partition fails closed.
+    """
+
+    manifests: Mapping[str, SplitManifest]
+    # None is intentional: global near-deduplication is not run by this stage.
+    isolation: IsolationReport | None
+
+
+class _LazyManifestMapping(Mapping[str, SplitManifest]):
+    """Manifest handles backed by staged JSON, loading one only when requested."""
+
+    def __init__(self, root: Path, paths: Mapping[str, Path]) -> None:
+        self._root = Path(root)
+        self._paths = dict(paths)
+
+    def __getitem__(self, key: str) -> SplitManifest:
+        try:
+            return load_split_manifest(self._root / self._paths[key])
+        except KeyError as exc:
+            raise KeyError(key) from exc
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._paths)
+
+    def __len__(self) -> int:
+        return len(self._paths)
+
+
+class _StreamingShardWriter:
+    """Write one shard incrementally while retaining only its document index."""
+
+    def __init__(
+        self,
+        root: Path,
+        tokenizer,
+        *,
+        source_id: str,
+        boundary: str,
+        namespace: str,
+        shard_index: int,
+        protocol: Mapping[str, Any],
+        tokenizer_protocol: Mapping[str, Any],
+        token_counter_id: str,
+    ) -> None:
+        self.root = Path(root)
+        self.tokenizer = tokenizer
+        self.source_id = source_id
+        self.boundary = boundary
+        self.namespace = namespace
+        self.shard_index = shard_index
+        self.protocol = protocol
+        self.tokenizer_protocol = tokenizer_protocol
+        self.token_counter_id = token_counter_id
+        self.document_ids: list[str] = []
+        self.offsets: list[int] = []
+        self.lengths: list[int] = []
+        self.protected_slices: set[str] = set()
+        self.cursor = 0
+        self._hasher = hashlib.sha256()
+        relative_path = f"{namespace}/shard_{shard_index:05d}{protocol['storage']['file_suffix']}"
+        self.relative_path = relative_path
+        target = self.root / relative_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        self.target = target
+        self.temporary = target.with_name(target.name + ".part")
+        self._handle = self.temporary.open("wb")
+
+    def append(self, document: ShardDocument) -> int:
+        ids = encode_document(self.tokenizer, document.text, protocol=self.tokenizer_protocol)
+        ceiling = int(self.tokenizer_protocol["vocabulary"]["maximum_representable_id"])
+        highest = max(ids, default=0)
+        if highest > ceiling or min(ids, default=0) < 0:
+            self.abort()
+            raise ShardContractError(
+                f"{SHARD_TOKEN_ID_OUT_OF_RANGE}: token ID {highest} does not fit the packed uint16 format"
+            )
+        payload = np.asarray(ids, dtype=STORAGE_DTYPE).tobytes()
+        self._handle.write(payload)
+        self._hasher.update(payload)
+        self.document_ids.append(document.document_id)
+        self.offsets.append(self.cursor)
+        self.lengths.append(len(ids))
+        if document.protected_slice:
+            self.protected_slices.add(document.protected_slice)
+        self.cursor += len(ids)
+        return len(ids)
+
+    def finish(self) -> ShardRecord:
+        if not self.document_ids:
+            self.abort()
+            raise StreamingShardError("cannot publish an empty streaming shard")
+        self._handle.flush()
+        self._handle.close()
+        os.replace(self.temporary, self.target)
+        return ShardRecord(
+            shard_id=str(self.protocol["storage"]["shard_id_format"]).format(
+                namespace=self.namespace, index=self.shard_index
+            ),
+            namespace=self.namespace,
+            source_id=self.source_id,
+            boundary=self.boundary,
+            relative_path=self.relative_path,
+            dtype=str(self.protocol["storage"]["dtype"]),
+            token_count=self.cursor,
+            document_count=len(self.document_ids),
+            document_ids=tuple(self.document_ids),
+            document_token_offsets=tuple(self.offsets),
+            document_token_lengths=tuple(self.lengths),
+            eos_id=int(self.tokenizer_protocol["document_boundaries"]["eos_token_id"]),
+            sha256=self._hasher.hexdigest(),
+            token_counter_id=self.token_counter_id,
+            protected_slices=tuple(sorted(self.protected_slices)),
+        )
+
+    def abort(self) -> None:
+        try:
+            self._handle.close()
+        finally:
+            self.temporary.unlink(missing_ok=True)
+
+
+def build_split_manifests_streaming(
+    root: Path,
+    tokenizer,
+    documents: Iterable[ShardDocument],
+    *,
+    shard_document_budget: int = 4096,
+    shard_token_budget: int | None = None,
+    protocol: Mapping[str, Any] | None = None,
+    registry: Mapping[str, Any] | None = None,
+    tokenizer_protocol: Mapping[str, Any] | None = None,
+    token_counter_id: str = PROVISIONAL_TOKEN_COUNTER_ID,
+    isolation_verified: bool = False,
+) -> StreamingBuildResult:
+    """Build all split manifests from a sorted JSONL stream with bounded memory.
+
+    Input must be globally ordered by ``(boundary, source_id, document_id)`` using the
+    frozen boundary order.  This is a deliberate precondition: sorting an arbitrary
+    corpus would require materializing it or an external-sort job, neither of which is
+    hidden here.  A disk-backed SQLite key set detects duplicate IDs without retaining all
+    IDs in RAM.  The output directory must be absent or empty; all files are staged in a
+    sibling temporary directory and published with one atomic rename, so an interrupted
+    or malformed run cannot leave a plausible final manifest behind.
+
+    ``isolation_verified`` is required because full near-dedup clustering is not a
+    streaming operation.  Upstream isolation evidence must cover all four boundaries and
+    protected slices.  If rows include ``cluster_id`` (an optional accepted-stream field),
+    this function independently rejects a cluster crossing either boundary or slice.
+    """
+    if shard_document_budget <= 0:
+        raise StreamingShardError("shard_document_budget must be positive")
+    if shard_token_budget is not None and shard_token_budget <= 0:
+        raise StreamingShardError("shard_token_budget must be positive")
+    if not isolation_verified:
+        raise StreamingShardError(
+            "streaming production requires upstream isolation evidence; pass isolation_verified=True"
+        )
+    resolved = protocol or load_shard_protocol()
+    resolved_registry = registry if registry is not None else load_source_registry()
+    resolved_tokenizer = tokenizer_protocol or load_tokenizer_protocol()
+    splits = split_index(resolved)
+    resolved_token_budget = int(
+        shard_token_budget
+        if shard_token_budget is not None
+        else resolved["storage"]["default_shard_token_budget"]
+    )
+    boundary_order = {name: index for index, name in enumerate(ISOLATED_BOUNDARIES)}
+    root = Path(root)
+    if root.exists() and any(root.iterdir()):
+        raise StreamingShardError(
+            f"streaming output {root} already exists and is non-empty; use a new output directory"
+        )
+    root.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{root.name}.staging-", dir=root.parent))
+    ids_db = stage / ".document_ids.sqlite3"
+    current_key: tuple[int, str, str] | None = None
+    current_source: str | None = None
+    current_boundary: str | None = None
+    current_index = 0
+    writer: _StreamingShardWriter | None = None
+    slices: dict[str, dict[str, int]] = {}
+    total_documents = 0
+    connection: sqlite3.Connection | None = None
+
+    def flush_writer() -> None:
+        nonlocal writer, current_index
+        if writer is None:
+            return
+        record = writer.finish()
+        if connection is None:
+            raise StreamingShardError("internal streaming state lost its index database")
+        connection.execute(
+            "INSERT INTO shard_records(boundary, source_id, shard_index, record_json) VALUES (?, ?, ?, ?)",
+            (writer.boundary, writer.source_id, current_index, json.dumps(record.to_dict(), sort_keys=True)),
+        )
+        current_index += 1
+        writer = None
+
+    try:
+        with sqlite3.connect(ids_db) as connection:
+            connection.execute("CREATE TABLE document_ids (document_id TEXT PRIMARY KEY)")
+            connection.execute(
+                "CREATE TABLE cluster_scope (cluster_id TEXT PRIMARY KEY, boundary TEXT NOT NULL, protected_slice TEXT)"
+            )
+            connection.execute(
+                "CREATE TABLE shard_records (boundary TEXT NOT NULL, source_id TEXT NOT NULL, "
+                "shard_index INTEGER NOT NULL, record_json TEXT NOT NULL, "
+                "PRIMARY KEY (boundary, source_id, shard_index))"
+            )
+            for document in documents:
+                total_documents += 1
+                if not isinstance(document, ShardDocument):
+                    raise StreamingShardError("streaming documents must be ShardDocument instances")
+                if not document.document_id.strip() or not document.source_id.strip() or not document.text:
+                    raise StreamingShardError(f"malformed document row {document.document_id!r}")
+                if document.boundary not in boundary_order or document.boundary not in splits:
+                    raise StreamingShardError(f"{SHARD_BOUNDARY_MIXED}: unknown boundary {document.boundary!r}")
+                if document.boundary in VALIDATION_BOUNDARIES and not document.protected_slice:
+                    raise StreamingShardError(
+                        f"{VALIDATION_SLICE_NOT_DECLARED}: {document.document_id!r} has no protected slice"
+                    )
+                if document.protected_slice and document.protected_slice not in EXPECTED_PROTECTED_SLICES:
+                    raise StreamingShardError(f"unknown protected slice {document.protected_slice!r}")
+                try:
+                    connection.execute("INSERT INTO document_ids(document_id) VALUES (?)", (document.document_id,))
+                except sqlite3.IntegrityError as exc:
+                    raise StreamingShardError(
+                        f"duplicate document ID {document.document_id!r}"
+                    ) from exc
+                key = (boundary_order[document.boundary], document.source_id, document.document_id)
+                if current_key is not None and key < current_key:
+                    raise StreamingShardError(
+                        "streaming input is not sorted by (boundary, source_id, document_id); "
+                        f"saw {document.document_id!r} after {current_key[2]!r}"
+                    )
+                current_key = key
+                namespace = namespace_for(
+                    document.source_id,
+                    document.boundary,
+                    protocol=resolved,
+                    registry=resolved_registry,
+                )
+                cluster_id = getattr(document, "cluster_id", None)
+                if cluster_id:
+                    scope = (document.boundary, document.protected_slice)
+                    prior_row = connection.execute(
+                        "SELECT boundary, protected_slice FROM cluster_scope WHERE cluster_id = ?",
+                        (cluster_id,),
+                    ).fetchone()
+                    if prior_row is not None:
+                        prior = (str(prior_row[0]), str(prior_row[1]) if prior_row[1] is not None else None)
+                        if prior[0] != scope[0] or (prior[1] and scope[1] and prior[1] != scope[1]):
+                            reason = (
+                                CLUSTER_CROSSES_BOUNDARY
+                                if prior[0] != scope[0]
+                                else CLUSTER_CROSSES_PROTECTED_SLICE
+                            )
+                            raise ShardIsolationError(
+                                f"{reason}: cluster {cluster_id!r} crosses {prior!r} and {scope!r}"
+                            )
+                    else:
+                        connection.execute(
+                            "INSERT INTO cluster_scope(cluster_id, boundary, protected_slice) VALUES (?, ?, ?)",
+                            (cluster_id, scope[0], scope[1]),
+                        )
+
+                source_changed = (document.source_id, document.boundary) != (current_source, current_boundary)
+                if source_changed:
+                    flush_writer()
+                    current_index = 0
+                    current_source, current_boundary = document.source_id, document.boundary
+                if writer is None or len(writer.document_ids) >= shard_document_budget or (
+                    writer.cursor >= resolved_token_budget and writer.document_ids
+                ):
+                    flush_writer()
+                    writer = _StreamingShardWriter(
+                        stage,
+                        tokenizer,
+                        source_id=document.source_id,
+                        boundary=document.boundary,
+                        namespace=namespace,
+                        shard_index=current_index,
+                        protocol=resolved,
+                        tokenizer_protocol=resolved_tokenizer,
+                        token_counter_id=token_counter_id,
+                    )
+                token_length = writer.append(document)
+                if document.protected_slice:
+                    bucket = slices.setdefault(document.boundary, {})
+                    bucket[document.protected_slice] = bucket.get(document.protected_slice, 0) + token_length
+            flush_writer()
+            connection.commit()
+        if total_documents == 0:
+            raise StreamingShardError("streaming input contains no documents")
+
+        manifest_paths: dict[str, Path] = {}
+
+        def atom(value: Any) -> bytes:
+            # Match SplitManifest.content_hash(), which uses json.dumps(..., sort_keys=True)
+            # with its default comma/colon spacing.
+            return json.dumps(value, sort_keys=True).encode("utf-8")
+
+        def write_streamed_manifest(split_id: str) -> None:
+            if connection is None:
+                raise StreamingShardError("internal streaming state lost its index database")
+            source_rows = connection.execute(
+                "SELECT source_id, MIN(shard_index), SUM(json_extract(record_json, '$.token_count')), "
+                "SUM(json_extract(record_json, '$.document_count')) FROM shard_records "
+                "WHERE boundary = ? GROUP BY source_id ORDER BY source_id",
+                (split_id,),
+            ).fetchall()
+            if not source_rows:
+                return
+            total_tokens = sum(int(row[2]) for row in source_rows)
+            total_documents = sum(int(row[3]) for row in source_rows)
+            split_slices = slices.get(split_id, {})
+            payload_path = stage / f".{split_id}.manifest.payload"
+            with payload_path.open("wb") as payload:
+                def field(name: str, value: bytes, *, first: bool) -> bool:
+                    if not first:
+                        payload.write(b", ")
+                    payload.write(atom(name) + b": " + value)
+                    return False
+
+                payload.write(b"{")
+                first = True
+                first = field("boundary", atom(str(splits[split_id]["boundary"])), first=first)
+                first = field("document_count", atom(total_documents), first=first)
+                first = field("dtype", atom(str(resolved["storage"]["dtype"])), first=first)
+                first = field("namespaces", b"[", first=first)
+                for namespace_index, (source_id, _, source_tokens, source_documents) in enumerate(source_rows):
+                    if namespace_index:
+                        payload.write(b", ")
+                    first_json = connection.execute(
+                        "SELECT record_json FROM shard_records WHERE boundary = ? AND source_id = ? "
+                        "ORDER BY shard_index LIMIT 1",
+                        (split_id, str(source_id)),
+                    ).fetchone()[0]
+                    namespace = str(json.loads(first_json)["namespace"])
+                    payload.write(b"{")
+                    namespace_first = True
+                    namespace_first = field("boundary", atom(split_id), first=namespace_first)
+                    namespace_first = field("document_count", atom(int(source_documents)), first=namespace_first)
+                    namespace_first = field("namespace", atom(namespace), first=namespace_first)
+                    namespace_first = field("shards", b"[", first=namespace_first)
+                    rows = connection.execute(
+                        "SELECT record_json FROM shard_records WHERE boundary = ? AND source_id = ? "
+                        "ORDER BY shard_index",
+                        (split_id, str(source_id)),
+                    )
+                    shard_first = True
+                    for (record_json,) in rows:
+                        if not shard_first:
+                            payload.write(b", ")
+                        payload.write(atom(json.loads(record_json)))
+                        shard_first = False
+                    payload.write(b"]")
+                    namespace_first = False
+                    namespace_first = field("source_id", atom(str(source_id)), first=namespace_first)
+                    field("token_count", atom(int(source_tokens)), first=namespace_first)
+                    payload.write(b"}")
+                payload.write(b"]")
+                first = False
+                first = field("protected_slice_tokens", atom(dict(sorted(split_slices.items()))), first=first)
+                first = field("schema_version", atom(_MANIFEST_SCHEMA_VERSION), first=first)
+                first = field("shards_digest", atom(str(resolved.get("_digest", ""))), first=first)
+                first = field("sources_digest", atom(str(resolved_registry.get("_digest", ""))), first=first)
+                first = field("split_id", atom(split_id), first=first)
+                first = field("token_count", atom(total_tokens), first=first)
+                first = field("token_counter_id", atom(token_counter_id), first=first)
+                field("tokenizer_digest", atom(str(resolved_tokenizer.get("_digest", ""))), first=first)
+                payload.write(b"}")
+            hasher = hashlib.sha256()
+            with payload_path.open("rb") as payload:
+                for chunk in iter(lambda: payload.read(1024 * 1024), b""):
+                    hasher.update(chunk)
+            digest = hasher.hexdigest()
+            final_path = split_manifest_path(stage, split_id, resolved)
+            temporary = final_path.with_name(final_path.name + ".part")
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+            with payload_path.open("rb") as source, temporary.open("wb+") as target:
+                shutil.copyfileobj(source, target, length=1024 * 1024)
+                target.seek(-1, os.SEEK_END)
+                target.write(b', "content_hash": ' + atom(digest) + b"}\n")
+            os.replace(temporary, final_path)
+            payload_path.unlink(missing_ok=True)
+            manifest_paths[split_id] = Path(final_path.relative_to(stage))
+
+        for split_id in ISOLATED_BOUNDARIES:
+            write_streamed_manifest(split_id)
+        # Global near-deduplication was not run here. Keep this None so verification remains
+        # NOT_RUN rather than converting a caller attestation into fabricated evidence.
+        isolation = None
+        if connection is not None:
+            connection.close()
+        ids_db.unlink(missing_ok=True)
+        if root.exists():
+            # The precondition above proved this is an empty caller-created directory;
+            # remove only that exact directory so the staged tree can be renamed on Windows.
+            root.rmdir()
+        os.replace(stage, root)
+        return StreamingBuildResult(_LazyManifestMapping(root, manifest_paths), isolation)
+    except Exception:
+        if connection is not None:
+            connection.close()
+        if writer is not None:
+            writer.abort()
+        shutil.rmtree(stage, ignore_errors=True)
+        raise
 
 
 def split_manifest_path(root: Path, split_id: str, protocol: Mapping[str, Any] | None = None) -> Path:
@@ -1457,7 +1888,8 @@ def format_shard_report(results: Sequence[CheckResult]) -> str:
     failures = [result for result in results if result.failed]
     lines.append("")
     lines.append("Summary: " + ", ".join(f"{status}={count}" for status, count in sorted(counts.items())))
-    lines.append("RESULT: " + ("PASS" if not failures else "FAIL"))
+    overall = "FAIL" if failures else ("DEFERRED" if DEFERRED in counts else "PASS")
+    lines.append("RESULT: " + overall)
     if failures:
         lines.append("Failures:")
         lines.extend(f"  {result.check_id}: {result.reason}" for result in failures)
@@ -1506,6 +1938,8 @@ __all__ = [
     "ShardContractError",
     "ShardDocument",
     "ShardIsolationError",
+    "StreamingBuildResult",
+    "StreamingShardError",
     "ShardRecord",
     "ShardsNotReadyError",
     "SplitManifest",
@@ -1513,6 +1947,7 @@ __all__ = [
     "assert_profile_selected",
     "assert_ready_for_real_shard_production",
     "build_split_manifest",
+    "build_split_manifests_streaming",
     "enforce_shard_isolation",
     "format_shard_report",
     "isolate_documents",

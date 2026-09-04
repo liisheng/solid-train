@@ -9,9 +9,11 @@ never pre-mixed on disk, and every split owns an independent manifest:
     stable_train.manifest.json  reserved.manifest.json
     validation_dev.manifest.json  validation_final.manifest.json
 
-The script reads documents from a **local** JSONL file. It never downloads a corpus and it
-never produces billion-token shards; real-scale production stays operator-gated (see the
-``readiness`` section of ``configs/data/shards_v1.yaml``).
+The script reads documents from a **local** JSONL file. ``--streaming`` consumes a globally
+sorted accepted stream with bounded memory and stages the complete output before one atomic
+publish. The stream must already have passed the frozen near-dedup/isolation stage; pass
+``--isolation-verified`` to attest that evidence. The legacy fixture mode remains available
+without that flag and runs the full fixture clustering checks.
 
 Input JSONL, one object per line::
 
@@ -23,7 +25,8 @@ Input JSONL, one object per line::
 Usage::
 
     .venv\\Scripts\\python.exe scripts\\build_shards.py --documents local.jsonl \\
-        --tokenizer-dir artifacts\\tokenizer --output-dir data\\shards --scale FIXTURE
+        --tokenizer-dir artifacts\\tokenizer --output-dir data\\shards --scale FINAL \\
+        --streaming --isolation-verified
 """
 
 from __future__ import annotations
@@ -42,6 +45,7 @@ from tinybench_lm.shards import (
     VALIDATION_FINAL,
     ProfileDecisionRecord,
     ShardDocument,
+    build_split_manifests_streaming,
     build_split_manifest,
     enforce_shard_isolation,
     format_shard_report,
@@ -56,6 +60,7 @@ from tinybench_lm.source_manifest import (
     PROVISIONAL_TOKEN_COUNTER_ID,
     load_source_registry,
 )
+from tinybench_lm.environment import CheckResult
 from tinybench_lm.tokenizer import load_tokenizer_artifact, load_tokenizer_protocol
 
 SPLIT_ORDER = (RESERVED, STABLE_TRAIN, VALIDATION_DEV, VALIDATION_FINAL)
@@ -86,6 +91,42 @@ def read_documents(path: Path) -> list[ShardDocument]:
     return documents
 
 
+def iter_documents(path: Path):
+    """Yield JSONL rows lazily for the bounded-memory production path."""
+    with path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path}:{line_number} is not valid JSON") from exc
+            if not isinstance(payload, dict):
+                raise ValueError(f"{path}:{line_number} must contain a JSON object")
+            required = ("document_id", "source_id", "text", "boundary")
+            missing = [name for name in required if name not in payload]
+            if missing:
+                raise ValueError(f"{path}:{line_number} is missing {missing}")
+            invalid = [
+                name for name in required if not isinstance(payload[name], str) or not payload[name].strip()
+            ]
+            if invalid:
+                raise ValueError(f"{path}:{line_number} requires non-blank string fields {invalid}")
+            protected_slice = payload.get("protected_slice")
+            cluster_id = payload.get("cluster_id")
+            for name, value in (("protected_slice", protected_slice), ("cluster_id", cluster_id)):
+                if value is not None and (not isinstance(value, str) or not value.strip()):
+                    raise ValueError(f"{path}:{line_number} field {name!r} must be a non-blank string or null")
+            yield ShardDocument(
+                document_id=payload["document_id"],
+                source_id=payload["source_id"],
+                text=payload["text"],
+                boundary=payload["boundary"],
+                protected_slice=protected_slice,
+                cluster_id=cluster_id,
+            )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Pack local documents into source-tagged uint16 shards with independent split manifests",
@@ -100,6 +141,22 @@ def parse_args() -> argparse.Namespace:
         help="FIXTURE defers measured token totals and shares; FINAL evaluates them",
     )
     parser.add_argument("--shard-document-budget", type=int, default=4096)
+    parser.add_argument(
+        "--shard-token-budget",
+        type=int,
+        default=None,
+        help="soft token ceiling per shard (defaults to the frozen 268435456-token contract budget)",
+    )
+    parser.add_argument(
+        "--streaming",
+        action="store_true",
+        help="consume sorted accepted JSONL incrementally; requires --isolation-verified",
+    )
+    parser.add_argument(
+        "--isolation-verified",
+        action="store_true",
+        help="attest that upstream global near-dedup/isolation checks passed",
+    )
     parser.add_argument(
         "--token-counter-id",
         default=PROVISIONAL_TOKEN_COUNTER_ID,
@@ -119,38 +176,69 @@ def main() -> int:
     tokenizer_protocol = load_tokenizer_protocol()
     tokenizer, _ = load_tokenizer_artifact(args.tokenizer_dir)
 
-    documents = read_documents(args.documents)
-
-    # Isolation runs across the complete candidate set, before anything is packed: a cluster
-    # that crosses a boundary or a protected slice must fail closed, not land in a shard.
-    isolation = isolate_documents(documents, protocol=protocol)
-    enforce_shard_isolation(isolation)
-
-    by_boundary: dict[str, list[ShardDocument]] = {}
-    for document in documents:
-        by_boundary.setdefault(document.boundary, []).append(document)
-
-    manifests = {}
-    results = []
-    for split_id in SPLIT_ORDER:
-        group = by_boundary.get(split_id)
-        if not group:
-            continue
-        manifest = build_split_manifest(
+    use_streaming = args.streaming or args.scale == SCALE_FINAL
+    if use_streaming:
+        if not args.isolation_verified:
+            raise ValueError("--streaming/FINAL requires --isolation-verified")
+        if args.scale == SCALE_FINAL and args.token_counter_id != FINAL_TOKEN_COUNTER_ID:
+            raise ValueError(
+                f"FINAL requires --token-counter-id {FINAL_TOKEN_COUNTER_ID}; "
+                f"received {args.token_counter_id!r}"
+            )
+        result = build_split_manifests_streaming(
             args.output_dir,
             tokenizer,
-            group,
-            split_id=split_id,
+            iter_documents(args.documents),
             shard_document_budget=args.shard_document_budget,
+            shard_token_budget=args.shard_token_budget,
             protocol=protocol,
             registry=registry,
             tokenizer_protocol=tokenizer_protocol,
             token_counter_id=args.token_counter_id,
+            isolation_verified=True,
         )
-        path = write_split_manifest(args.output_dir, manifest, protocol)
-        manifests[split_id] = manifest
+        manifests = result.manifests
+        isolation = result.isolation
+    else:
+        documents = read_documents(args.documents)
+
+        # Isolation runs across the complete candidate set, before anything is packed: a cluster
+        # that crosses a boundary or a protected slice must fail closed, not land in a shard.
+        isolation = isolate_documents(documents, protocol=protocol)
+        enforce_shard_isolation(isolation)
+
+        by_boundary: dict[str, list[ShardDocument]] = {}
+        for document in documents:
+            by_boundary.setdefault(document.boundary, []).append(document)
+
+        manifests = {}
+        for split_id in SPLIT_ORDER:
+            group = by_boundary.get(split_id)
+            if not group:
+                continue
+            manifest = build_split_manifest(
+                args.output_dir,
+                tokenizer,
+                group,
+                split_id=split_id,
+                shard_document_budget=args.shard_document_budget,
+                protocol=protocol,
+                registry=registry,
+                tokenizer_protocol=tokenizer_protocol,
+                token_counter_id=args.token_counter_id,
+            )
+            path = write_split_manifest(args.output_dir, manifest, protocol)
+            manifests[split_id] = manifest
+            print(f"{split_id}: {manifest.token_count} tokens, {len(manifest.shards)} shards -> {path}")
+
+    results = []
+    for split_id in SPLIT_ORDER:
+        manifest = manifests.get(split_id)
+        if manifest is None:
+            continue
         results.extend(verify_shard_files(args.output_dir, manifest, protocol=protocol, registry=registry))
-        print(f"{split_id}: {manifest.token_count} tokens, {len(manifest.shards)} shards -> {path}")
+        if use_streaming:
+            print(f"{split_id}: {manifest.token_count} tokens, {len(manifest.shards)} shards")
 
     decision_record = None
     if args.degraded_profile_id:
@@ -161,16 +249,31 @@ def main() -> int:
             reason=args.degraded_reason or "",
         )
 
-    results.extend(
-        verify_mixture(
-            manifests,
-            scale=args.scale,
-            decision_record=decision_record,
-            isolation=isolation,
-            protocol=protocol,
-            registry=registry,
+    if use_streaming:
+        # The frozen mixture verifier consumes complete SplitManifest objects, whose
+        # document-boundary arrays are intentionally on disk/lazy in this path. Keep the
+        # production CLI bounded and report this as an explicit deferral until a verifier
+        # that consumes SQLite aggregates is used; never silently claim a mixture PASS.
+        results.append(
+            CheckResult(
+                "shards.streaming_mixture_verification",
+                "streaming aggregate verifier must reconcile shares, totals, and profile",
+                "DEFERRED",
+                "DEFERRED",
+                "full SplitManifest materialization is intentionally skipped in bounded streaming mode",
+            )
         )
-    )
+    else:
+        results.extend(
+            verify_mixture(
+                manifests,
+                scale=args.scale,
+                decision_record=decision_record,
+                isolation=isolation,
+                protocol=protocol,
+                registry=registry,
+            )
+        )
     print()
     print(format_shard_report(results))
     return 1 if any(result.failed for result in results) else 0

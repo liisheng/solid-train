@@ -51,11 +51,13 @@ from tinybench_lm.shards import (
     ShardIsolationError,
     ShardRecord,
     ShardsNotReadyError,
+    StreamingShardError,
     SplitManifest,
     assert_manifests_independent,
     assert_profile_selected,
     assert_ready_for_real_shard_production,
     build_split_manifest,
+    build_split_manifests_streaming,
     enforce_shard_isolation,
     isolate_documents,
     iter_shard_documents,
@@ -887,3 +889,208 @@ def test_build_shards_cli_replaces_the_flat_train_validation_output(
         assert manifest.token_counter_id == PROVISIONAL_TOKEN_COUNTER_ID
         for shard in manifest.shards:
             assert (output / shard.relative_path).stat().st_size == shard.token_count * 2
+
+
+def test_streaming_builder_consumes_lazily_and_matches_fixture_contract(
+    tmp_path: Path, tokenizer, protocol: dict, registry: dict, tokenizer_protocol: dict
+) -> None:
+    documents = (
+        _documents(STABLE_SOURCES, STABLE_TRAIN)
+        + _documents(RESERVED_SOURCES, RESERVED, prefix="res-")
+        + _documents(STABLE_SOURCES, VALIDATION_DEV, per_source=2, with_slice=True, prefix="dev-")
+        + _documents(STABLE_SOURCES, VALIDATION_FINAL, per_source=2, with_slice=True, prefix="fin-")
+    )
+    consumed: list[str] = []
+
+    def source():
+        for document in documents:
+            consumed.append(document.document_id)
+            yield document
+
+    result = build_split_manifests_streaming(
+        tmp_path / "streamed",
+        tokenizer,
+        source(),
+        shard_document_budget=2,
+        shard_token_budget=10,
+        protocol=protocol,
+        registry=registry,
+        tokenizer_protocol=tokenizer_protocol,
+        isolation_verified=True,
+    )
+    assert consumed == [document.document_id for document in documents]
+    assert result.isolation is None
+    assert set(result.manifests) == {STABLE_TRAIN, RESERVED, VALIDATION_DEV, VALIDATION_FINAL}
+    for manifest in result.manifests.values():
+        assert all(shard.dtype == "uint16" for shard in manifest.shards)
+        assert all(shard.document_count == 1 for shard in manifest.shards)
+        if manifest.boundary in (VALIDATION_DEV, VALIDATION_FINAL):
+            assert all(shard.protected_slices for shard in manifest.shards)
+    repeat = build_split_manifests_streaming(
+        tmp_path / "streamed-repeat",
+        tokenizer,
+        iter(documents),
+        shard_document_budget=2,
+        shard_token_budget=10,
+        protocol=protocol,
+        registry=registry,
+        tokenizer_protocol=tokenizer_protocol,
+        isolation_verified=True,
+    )
+    assert {key: value.to_dict() for key, value in result.manifests.items()} == {
+        key: value.to_dict() for key, value in repeat.manifests.items()
+    }
+
+
+def test_streaming_builder_rejects_duplicates_and_unsorted_input_without_final_artifacts(
+    tmp_path: Path, tokenizer, protocol: dict, registry: dict, tokenizer_protocol: dict
+) -> None:
+    documents = _documents(("dclm",), STABLE_TRAIN, per_source=2)
+    output = tmp_path / "bad"
+    with pytest.raises(StreamingShardError, match="duplicate document ID"):
+        build_split_manifests_streaming(
+            output,
+            tokenizer,
+            iter((documents[0], documents[1], documents[1])),
+            protocol=protocol,
+            registry=registry,
+            tokenizer_protocol=tokenizer_protocol,
+            isolation_verified=True,
+        )
+    assert not output.exists()
+    assert not list(tmp_path.glob(".bad.staging-*"))
+
+    with pytest.raises(StreamingShardError, match="not sorted"):
+        build_split_manifests_streaming(
+            tmp_path / "unsorted",
+            tokenizer,
+            iter((documents[1], documents[0])),
+            protocol=protocol,
+            registry=registry,
+            tokenizer_protocol=tokenizer_protocol,
+            isolation_verified=True,
+        )
+
+
+def test_streaming_builder_rejects_cluster_boundary_crossing_and_safe_restart(
+    tmp_path: Path, tokenizer, protocol: dict, registry: dict, tokenizer_protocol: dict
+) -> None:
+    stable = _documents(("dclm",), STABLE_TRAIN, per_source=1)[0]
+    reserved = _documents(("reserved_science",), RESERVED, per_source=1, prefix="res-")[0]
+    bad = (
+        ShardDocument(stable.document_id, stable.source_id, stable.text, stable.boundary, cluster_id="x"),
+        ShardDocument(reserved.document_id, reserved.source_id, reserved.text, reserved.boundary, cluster_id="x"),
+    )
+    with pytest.raises(ShardIsolationError, match=CLUSTER_CROSSES_BOUNDARY):
+        build_split_manifests_streaming(
+            tmp_path / "crossing",
+            tokenizer,
+            iter(bad),
+            protocol=protocol,
+            registry=registry,
+            tokenizer_protocol=tokenizer_protocol,
+            isolation_verified=True,
+        )
+
+    output = tmp_path / "restart"
+    good = _documents(("dclm",), STABLE_TRAIN, per_source=1)
+    build_split_manifests_streaming(
+        output,
+        tokenizer,
+        iter(good),
+        protocol=protocol,
+        registry=registry,
+        tokenizer_protocol=tokenizer_protocol,
+        isolation_verified=True,
+    )
+    with pytest.raises(StreamingShardError, match="non-empty"):
+        build_split_manifests_streaming(
+            output,
+            tokenizer,
+            iter(good),
+            protocol=protocol,
+            registry=registry,
+            tokenizer_protocol=tokenizer_protocol,
+            isolation_verified=True,
+        )
+
+
+def test_streaming_cli_validates_json_and_final_counter_before_publishing(
+    tmp_path: Path, tokenizer, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    build_shards = _load_build_shards_module()
+    tokenizer_dir = tmp_path / "tokenizer"
+    tokenizer_dir.mkdir()
+    tokenizer.save(str(tokenizer_dir / "tokenizer.json"))
+    documents = tmp_path / "documents.jsonl"
+    documents.write_text(
+        json.dumps(
+            {
+                "document_id": "doc-000",
+                "source_id": "dclm",
+                "text": "A small but valid streaming document.",
+                "boundary": STABLE_TRAIN,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "shards"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "build_shards.py",
+            "--documents",
+            str(documents),
+            "--tokenizer-dir",
+            str(tokenizer_dir),
+            "--output-dir",
+            str(output),
+            "--scale",
+            SCALE_FINAL,
+            "--streaming",
+            "--isolation-verified",
+        ],
+    )
+    with pytest.raises(ValueError, match="FINAL requires --token-counter-id"):
+        build_shards.main()
+    assert not output.exists()
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "build_shards.py",
+            "--documents",
+            str(documents),
+            "--tokenizer-dir",
+            str(tokenizer_dir),
+            "--output-dir",
+            str(output),
+            "--scale",
+            SCALE_FINAL,
+            "--streaming",
+            "--isolation-verified",
+            "--token-counter-id",
+            FINAL_TOKEN_COUNTER_ID,
+        ],
+    )
+    assert build_shards.main() == 0
+    streamed = load_split_manifest(output / "stable_train.manifest.json")
+    assert streamed.token_counter_id == FINAL_TOKEN_COUNTER_ID
+    assert streamed.document_count == 1
+
+    malformed = tmp_path / "malformed.jsonl"
+    malformed.write_text(
+        json.dumps(
+            {
+                "document_id": "doc-000",
+                "source_id": "dclm",
+                "text": ["not", "a", "string"],
+                "boundary": STABLE_TRAIN,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="non-blank string fields"):
+        tuple(build_shards.iter_documents(malformed))

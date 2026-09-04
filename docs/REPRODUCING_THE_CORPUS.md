@@ -74,6 +74,33 @@ Verify an existing artifact without rebuilding:
 
 All nine required checks must PASS.
 
+## Streaming shard production
+
+For a real accepted corpus, shard production reads JSONL one row at a time and retains only
+the current source shard plus on-disk duplicate-ID/cluster/shard-record indexes. The input
+must be sorted by `(boundary, source_id, document_id)` in the frozen boundary order. Sorting and global
+near-deduplication belong to the upstream filtering stage; this step does not silently
+materialize or remix an arbitrary corpus. Upstream isolation evidence is mandatory:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\build_shards.py --documents data\accepted.jsonl `
+  --tokenizer-dir data\tokenizer_final --output-dir data\shards `
+  --scale FINAL --token-counter-id final_tokenizer_v1 `
+  --streaming --isolation-verified
+```
+
+The builder rejects malformed rows, duplicate IDs, unsorted input, invalid source/boundary
+tags, undeclared validation slices, and explicit cluster crossings. It writes into a sibling
+staging directory and publishes the complete shard tree atomically. A non-empty output
+directory is refused on retry; choose a new output directory for a fresh, auditable restart.
+The frozen 268,435,456-token shard ceiling is enforced as a soft boundary (an individual
+document is never split, so one unusually long document may exceed it). Manifest records are
+indexed on disk and exposed lazily; requesting a complete manifest necessarily materializes
+its contract-mandated document-boundary arrays. The CLI verifies one manifest at a time and
+defers full mixture/profile reconciliation until a streaming aggregate verifier is supplied.
+The resulting manifests and shards preserve the existing source-tagged uint16/EOS contract.
+This stage does not claim global near-dedup/isolation evidence.
+
 ## Rebuilding the benchmark quarantine inputs
 
 The production decontamination protocol is `configs/data/decontam_v2.yaml`. It pins all

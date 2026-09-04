@@ -26,6 +26,10 @@ path and verifier, is `configs/release/evidence_matrix_v1.yaml`; render it with
 `src\tinybench_lm\release.py`. Nothing in that matrix is `PASS` unless a named verifier has
 actually run.
 
+For the current milestone, branch, owners, blockers, and next work, see
+[`docs/STATUS.md`](docs/STATUS.md). It is a coordination snapshot; the frozen gate config and
+machine-readable evidence remain authoritative.
+
 This repository currently provides:
 
 - a RoPE + RMSNorm + SwiGLU causal Transformer using PyTorch SDPA;

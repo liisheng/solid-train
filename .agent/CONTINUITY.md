@@ -8,6 +8,7 @@
 - 2026-09-05T00:26:00+08:00 [USER] Proceed with current public benchmark versions because the official GIBC V2 pages do not promise a later version specification.
 - 2026-09-05T00:26:00+08:00 [USER] Install and follow the supplied root `AGENTS.md`.
 - 2026-09-05T00:26:00+08:00 [CODE] Use the container only for CPU installation/tests; retain the measured Windows CUDA environment for RTX training until a GPU container is verified.
+- 2026-09-05T05:51:10+08:00 [CODE] Keep the frozen G0–G6 definitions in `configs/operations/measurement_v1.yaml`, add `docs/STATUS.md` as the human coordination snapshot, and retain `.agent/CONTINUITY.md` as the detailed agent handoff; status labels never substitute for evidence.
 
 [PROGRESS]
 
@@ -19,6 +20,7 @@
 - 2026-09-05T05:20:14+08:00 [CODE] Replaced fixture-only production behavior with a sorted-input streaming shard path: incremental tokenization and uint16 writes, SQLite-backed global ID/cluster/shard-record indexes, token/document shard ceilings, atomic staged publication, and safe fresh-output restart refusal.
 - 2026-09-05T05:20:14+08:00 [TOOL] Streaming implementation verification passed: 33 shard tests, 564 full-suite tests in 70.43 seconds, Python byte-compilation, and diff checks.
 - 2026-09-05T05:45:56+08:00 [TOOL] Created and published `g1-evidence` from verified streaming-shard commit `6aadedc`; local branch now tracks `origin/g1-evidence`.
+- 2026-09-05T05:51:10+08:00 [CODE] Added a compact G0–G6 milestone map, active G1 queue, machine-role guidance, blockers, and update rules in `docs/STATUS.md`; linked it from README and made branch/status checks part of root agent guidance.
 
 [DISCOVERIES]
 

@@ -129,3 +129,15 @@ A task is done when:
 - Use `docker build -t tinybench-lm:verify .` and `docker run --rm tinybench-lm:verify` for
   the clean container test path. Do not mount or bake local corpus, run, or checkpoint data
   into the image.
+
+## Repository progress tracking
+
+- `configs/operations/measurement_v1.yaml` is the canonical G0–G6 gate definition.
+- `docs/STATUS.md` is the concise human coordination snapshot: current gate and branch,
+  active task ownership, blockers, and the last verified implementation commit.
+- `.agent/CONTINUITY.md` is the detailed agent handoff and technical decision log.
+- Update `docs/STATUS.md` after meaningful checkpoints, ownership changes, or new blockers.
+  Keep it short and evidence-based; never treat a status label or checkbox as proof that a
+  canonical gate passed.
+- Use a dedicated branch per milestone. Before committing, confirm the branch matches the
+  active milestone recorded in `docs/STATUS.md`.

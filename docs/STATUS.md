@@ -1,0 +1,58 @@
+# Project status
+
+Human-readable coordination snapshot. The canonical gate definitions remain
+[`configs/operations/measurement_v1.yaml`](../configs/operations/measurement_v1.yaml), and
+evidence—not this page—determines whether a gate passes.
+
+| Snapshot | Value |
+|---|---|
+| Last updated | 2026-09-05 05:50 UTC+8 |
+| Current milestone | **G1 — Data** |
+| Current branch | **`g1-evidence`** |
+| Last verified implementation | **`6aadedc`** (564 tests passed) |
+
+## Milestones
+
+| Gate | Purpose | Working state | Exit condition |
+|---|---|---|---|
+| G0 | Foundation | REVIEW | Every G0 evidence key is audited PASS, including external teammate checks. |
+| G1 | Data | RUNNING | Token/profile thresholds, provenance, reserved margin, isolation, decontamination, shards, and schedules all verify. |
+| G2 | Tiny end-to-end | BLOCKED_BY_G1 | Real-shard train/resume/corruption/export checks pass on both machines as required. |
+| G3 | Minimum campaign | BLOCKED_BY_G2 | P1–P4/P8 and F1/F2 evidence exists and frozen decision rules are applied. |
+| G4 | Final freeze | BLOCKED_BY_G3 | Two-person freeze, real-shard throughput, and takeover rehearsal pass. |
+| G5 | Campaign | NOT_RUN | Stable/fallback lineage, confirmations, counters, and frozen artifacts reconcile. |
+| G6 | Release | NOT_RUN | Fresh evaluation, exports, documentation, public access, and both approvals pass. |
+
+## Active G1 queue
+
+| ID | State | Owner | Preferred machine | Work / completion evidence |
+|---|---|---|---|---|
+| G1-01 | COMPLETE | repository | Either | Final 12,288-token tokenizer and verification evidence. |
+| G1-02 | COMPLETE | repository | Either | Pinned benchmark quarantine inputs and digest/count evidence (`a7475b3`). |
+| G1-03 | COMPLETE | repository | Either | Disk-backed streaming shard builder, atomic publish, and tests (`6aadedc`). |
+| G1-04 | READY | Unclaimed | Either to implement; 3070 preferred to run | Scalable pinned-source acquisition, filtering, deduplication, decontamination, deterministic sorting, restart state, and reason-coded evidence. |
+| G1-05 | READY | Unclaimed | Either | Streaming aggregate verifier for source shares, token totals, reserved margin, profile selection, and isolation evidence. |
+| G1-06 | BLOCKED_BY_04_05 | Unclaimed | 3070 preprocessing / 4070 mirror | Run 1% then 2–5% real pipeline slices; record storage/runtime percentiles and choose `full_v1` or `degraded_v1` before the full run. |
+| G1-07 | BLOCKED_BY_06 | Unclaimed | 3070 preprocessing / 4070 mirror | Build the full accepted corpus and pass token, provenance, contamination, and split-isolation gates. |
+| G1-08 | BLOCKED_BY_07 | Unclaimed | 4070 canonical mirror | Produce and verify final source-tagged shards and deterministic schedules. |
+| G1-09 | BLOCKED_BY_08 | Both | Either | Review the machine-readable evidence bundle and record the required corpus freeze approval. |
+
+The 3070/64GB machine is the planned bounded-preprocessing host. The 4070 machine is the
+planned canonical accepted-data/checkpoint mirror and primary trainer. Either teammate may
+implement or review repository work; do not duplicate the same long-running job.
+
+## Human decisions and blockers
+
+- Confirm whether the teammate pulled `g0-evidence` before restoring that branch; G1 is now
+  safely preserved on `g1-evidence`.
+- Review the measured disk/runtime forecast before G1-07 starts. No forecast may be replaced
+  by an invented estimate.
+- Both teammates must approve the corpus freeze at G1-09. A checked task is not a substitute
+  for its hashes, tests, and approval event.
+
+## Update rule
+
+After a meaningful checkpoint, update only the current milestone, active queue, blockers,
+and last verified commit. Keep detailed technical history in `.agent/CONTINUITY.md`. Never
+mark a gate complete because code exists; mark it complete only when its canonical evidence
+keys pass.

@@ -1,7 +1,15 @@
 .venv/
 .cache/
-data/raw/
-data/processed/
+# Corpus and samples stay local: four of the sample files exceed GitHub's 100 MB hard
+# per-file limit, the set is 4.3 GB against a 1.4 MB repo, and republishing FineWeb and
+# Wikipedia text carries share-alike and Common Crawl obligations that reading it does not.
+# The sample is reproducible from the pinned revisions, the frozen selection salt, and the
+# committed manifest, so the recipe is the artifact.
+data/*
+# The trained tokenizer is small and IS a deliverable, so it is tracked.
+!data/tokenizer_final/
+data/tokenizer_final/*
+!data/tokenizer_final/tokenizer.json
 checkpoints/
 runs/
 __pycache__/

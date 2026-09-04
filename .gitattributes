@@ -1,0 +1,8 @@
+# The trained tokenizer is a byte-exact artifact. Git's EOL conversion would rewrite it on
+# checkout, so a teammate cloning on Windows would get different bytes than were committed
+# and any digest over the file would stop matching. Never touch it.
+data/tokenizer_final/tokenizer.json -text
+
+# Frozen protocols are digest-pinned over bytes with CRLF normalized to LF. Keeping them
+# LF in the working tree removes the normalization step as a source of surprise.
+configs/**/*.yaml text eol=lf

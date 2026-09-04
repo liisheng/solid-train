@@ -1,0 +1,82 @@
+{
+  "deadline_seconds": 86400,
+  "measured_facts": {
+    "accepted_documents": 99385,
+    "accepted_tokens": 114166351,
+    "bytes_per_token": 3.9902,
+    "exact_duplicates_removed": 93,
+    "filter_rejected": 79,
+    "near_duplicate_pairs": 7,
+    "quarantined": 0,
+    "token_counter_id": "final_tokenizer_v1"
+  },
+  "mode_id": "slice_1pct",
+  "slice_fraction": 0.01,
+  "slice_id": "slice_1pct-2026-08-31",
+  "stages": [
+    {
+      "documents": 99478,
+      "elapsed_seconds": 74.2024,
+      "input_bytes": 456818767,
+      "output_bytes": 456471566,
+      "peak_rss_bytes": 4385525760,
+      "peak_temporary_disk_bytes": 0,
+      "stage_id": "stream_and_filter"
+    },
+    {
+      "documents": 99385,
+      "elapsed_seconds": 6.9137,
+      "input_bytes": 456471566,
+      "output_bytes": 455549578,
+      "peak_rss_bytes": 4385525760,
+      "peak_temporary_disk_bytes": 0,
+      "stage_id": "exact_and_mirror_dedup"
+    },
+    {
+      "documents": 99385,
+      "elapsed_seconds": 149.7054,
+      "input_bytes": 455549578,
+      "output_bytes": 101770240,
+      "peak_rss_bytes": 4527394816,
+      "peak_temporary_disk_bytes": 101770240,
+      "stage_id": "within_source_near_dedup"
+    },
+    {
+      "documents": 99385,
+      "elapsed_seconds": 2.0237,
+      "input_bytes": 101770240,
+      "output_bytes": 56,
+      "peak_rss_bytes": 4527394816,
+      "peak_temporary_disk_bytes": 101770240,
+      "stage_id": "cross_source_near_dedup"
+    },
+    {
+      "documents": 99385,
+      "elapsed_seconds": 0.0895,
+      "input_bytes": 101770240,
+      "output_bytes": 795080,
+      "peak_rss_bytes": 4527394816,
+      "peak_temporary_disk_bytes": 0,
+      "stage_id": "split_reserved_isolation"
+    },
+    {
+      "documents": 99385,
+      "elapsed_seconds": 14.2966,
+      "input_bytes": 455549578,
+      "output_bytes": 795080,
+      "peak_rss_bytes": 4527394816,
+      "peak_temporary_disk_bytes": 0,
+      "stage_id": "benchmark_decontamination"
+    },
+    {
+      "documents": 99385,
+      "elapsed_seconds": 26.9594,
+      "input_bytes": 455549578,
+      "output_bytes": 228332702,
+      "peak_rss_bytes": 4861530112,
+      "peak_temporary_disk_bytes": 0,
+      "stage_id": "tokenize_and_pack"
+    }
+  ],
+  "stratified": true
+}

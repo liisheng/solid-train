@@ -120,14 +120,38 @@ code, whose expected SHA-256 values are frozen in the protocol.
 
 ## Running a pipeline slice
 
+The production path is governed by the frozen
+`configs/data/acquisition_v1.yaml` contract. It uses explicit pinned-source streams, a
+SQLite restart state, a complete 32-by-4 MinHash candidate index, an indexed implementation
+of all three frozen benchmark quarantine rules, cluster-atomic boundary selection, and
+atomic JSONL publication. The earlier `run_pipeline_slice.py` remains historical benchmark
+evidence only; it materializes its slice and must not be used to create the final corpus.
+
+The following is the first real 1% run. All paths are on the project data drive; do not put
+the Hugging Face cache on the smaller system drive.
+
 ```powershell
-.\.venv\Scripts\python.exe scripts\run_pipeline_slice.py 0.01 slice_1pct runs\bench\slice_1pct.measurements.json
-.\.venv\Scripts\python.exe scripts\pipeline_benchmark.py --measurements runs\bench\slice_1pct.measurements.json --artifact runs\bench\slice_1pct.artifact.json
+.\.venv\Scripts\python.exe scripts\prepare_corpus.py --stage all `
+  --state data\pipeline\slice_1pct.state.sqlite `
+  --cache-dir data\hf_cache `
+  --benchmark-index data\pipeline\benchmark_index.sqlite `
+  --accepted-output data\pipeline\slice_1pct\accepted.jsonl `
+  --decisions-output data\pipeline\slice_1pct\decisions.jsonl `
+  --evidence-output runs\bench\slice_1pct.pipeline.json `
+  --target-fraction 0.01
 ```
 
-The 1% slice takes about 5 minutes and forecasts the full 11B run. Measured on an RTX 3070 Ti
-host: 27,419 s (~7.6 h) single-threaded, of which `within_source_near_dedup` is 55%. That
-stage is embarrassingly parallel and is the obvious thing to speed up first.
+An interrupted ingestion resumes from the committed source-row cursor. Protocol or
+tokenizer drift rejects the state instead of resuming it. The pipeline warns by policy below
+15% free space and refuses new writes at or below 10%. The accepted corpus and reason-coded
+decision ledger are published together with one directory rename only after filtering,
+global deduplication, benchmark decontamination, and disjoint reserved/validation/stable
+assignment complete. Keep the SQLite state outside that new output directory, which must
+not exist before publication.
+
+Do not run `--target-fraction 1` from an estimate. The CLI requires the explicit
+`--confirm-full-scan` switch, and that switch should be used only after the 1% and 2–5%
+measured forecasts have been reviewed.
 
 ## What is deliberately not shared
 

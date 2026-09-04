@@ -6,10 +6,10 @@ evidence—not this page—determines whether a gate passes.
 
 | Snapshot | Value |
 |---|---|
-| Last updated | 2026-09-05 05:50 UTC+8 |
+| Last updated | 2026-09-05 06:38 UTC+8 |
 | Current milestone | **G1 — Data** |
 | Current branch | **`g1-evidence`** |
-| Last verified implementation | **`6aadedc`** (564 tests passed) |
+| Last verified implementation | **G1 pipeline checkpoint at branch tip** (587 tests passed) |
 
 ## Milestones
 
@@ -30,9 +30,9 @@ evidence—not this page—determines whether a gate passes.
 | G1-01 | COMPLETE | repository | Either | Final 12,288-token tokenizer and verification evidence. |
 | G1-02 | COMPLETE | repository | Either | Pinned benchmark quarantine inputs and digest/count evidence (`a7475b3`). |
 | G1-03 | COMPLETE | repository | Either | Disk-backed streaming shard builder, atomic publish, and tests (`6aadedc`). |
-| G1-04 | READY | Unclaimed | Either to implement; 3070 preferred to run | Scalable pinned-source acquisition, filtering, deduplication, decontamination, deterministic sorting, restart state, and reason-coded evidence. |
-| G1-05 | READY | Unclaimed | Either | Streaming aggregate verifier for source shares, token totals, reserved margin, profile selection, and isolation evidence. |
-| G1-06 | BLOCKED_BY_04_05 | Unclaimed | 3070 preprocessing / 4070 mirror | Run 1% then 2–5% real pipeline slices; record storage/runtime percentiles and choose `full_v1` or `degraded_v1` before the full run. |
+| G1-04 | IMPLEMENTED / SLICE_NOT_RUN | repository | 3070 preferred to run | Restartable pinned-source acquisition, filtering, global deduplication, indexed decontamination, assignment, atomic publication, and reason-coded evidence are implemented and tested. A real slice must prove them. |
+| G1-05 | IMPLEMENTED / FINAL_NOT_RUN | repository | Either | Bounded-memory aggregate verification of source shares, totals, reserved margin, profile selection, shard integrity, and isolation evidence is implemented and tested. Final artifacts do not exist yet. |
+| G1-06 | READY | Unclaimed | 3070 preprocessing / 4070 mirror | Run 1% then 2–5% real pipeline slices; use recorded per-stage/per-source runtime and storage measurements to choose `full_v1` or `degraded_v1` before the full run. |
 | G1-07 | BLOCKED_BY_06 | Unclaimed | 3070 preprocessing / 4070 mirror | Build the full accepted corpus and pass token, provenance, contamination, and split-isolation gates. |
 | G1-08 | BLOCKED_BY_07 | Unclaimed | 4070 canonical mirror | Produce and verify final source-tagged shards and deterministic schedules. |
 | G1-09 | BLOCKED_BY_08 | Both | Either | Review the machine-readable evidence bundle and record the required corpus freeze approval. |
@@ -43,8 +43,6 @@ implement or review repository work; do not duplicate the same long-running job.
 
 ## Human decisions and blockers
 
-- Confirm whether the teammate pulled `g0-evidence` before restoring that branch; G1 is now
-  safely preserved on `g1-evidence`.
 - Review the measured disk/runtime forecast before G1-07 starts. No forecast may be replaced
   by an invented estimate.
 - Both teammates must approve the corpus freeze at G1-09. A checked task is not a substitute

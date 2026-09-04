@@ -440,12 +440,12 @@ def test_the_fingerprint_notices_any_edit(mirror: Path) -> None:
     """The idempotence proof is only as good as the fingerprint behind it."""
     before = tree_fingerprint(mirror)
     target = mirror / "README.md"
-    original = target.read_text(encoding="utf-8")
+    original = target.read_bytes()
 
-    target.write_text(original + "\n", encoding="utf-8")
+    target.write_bytes(original + b"\n")
     assert tree_fingerprint(mirror) != before
 
-    target.write_text(original, encoding="utf-8")
+    target.write_bytes(original)
     assert tree_fingerprint(mirror) == before
 
     # A new file changes it too, so a stray artifact cannot slip past.

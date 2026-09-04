@@ -21,6 +21,9 @@
 - 2026-09-05T05:20:14+08:00 [TOOL] Streaming implementation verification passed: 33 shard tests, 564 full-suite tests in 70.43 seconds, Python byte-compilation, and diff checks.
 - 2026-09-05T05:45:56+08:00 [TOOL] Created and published `g1-evidence` from verified streaming-shard commit `6aadedc`; local branch now tracks `origin/g1-evidence`.
 - 2026-09-05T05:51:10+08:00 [CODE] Added a compact G0–G6 milestone map, active G1 queue, machine-role guidance, blockers, and update rules in `docs/STATUS.md`; linked it from README and made branch/status checks part of root agent guidance.
+- 2026-09-05T06:38:00+08:00 [CODE] Implemented the G1 production acquisition/filter/dedup/decontamination/assignment pipeline, restartable benchmark index, atomic accepted-data/ledger bundle publication, SQLite state hashing, measured stage/source counters, and bounded-memory final shard verifier.
+- 2026-09-05T06:38:00+08:00 [TOOL] Independent Luna review identified six pipeline gaps; all were fixed with regression coverage, including persisted slice-budget accounting, fail-closed empty replay, idempotent reruns, bundle publication failure cleanup, acquisition-event export, state hashing, and malformed benchmark rows.
+- 2026-09-05T06:38:00+08:00 [TOOL] Full host verification passed: 587 tests in 89.06 seconds, Python byte-compilation passed, command help smoke tests passed, and diff checks passed.
 
 [DISCOVERIES]
 
@@ -31,9 +34,12 @@
 - 2026-09-05T00:51:56+08:00 [TOOL] Docker 29.5.3 is installed, but the Docker Desktop Linux engine is not running; container verification remains unrun until Docker Desktop is opened manually.
 - 2026-09-05T05:20:14+08:00 [CODE] Arbitrary input cannot be deterministically sorted or globally near-deduplicated with bounded memory; production shard input must be sorted by frozen boundary/source/document order and carry upstream isolation evidence. The builder validates explicit cluster IDs but leaves global isolation and mixture/profile reconciliation DEFERRED rather than inventing a pass.
 - 2026-09-05T05:20:14+08:00 [CODE] The frozen v1 JSON manifest embeds every document boundary. Packing is bounded-memory and manifests are written from disk-backed records, but loading one complete manifest still materializes that split's boundary arrays; a future streaming aggregate verifier is needed for full production reconciliation.
+- 2026-09-05T06:38:00+08:00 [CODE] A bounded slice must persist raw consumed-token accounting independently of accepted document tokens; otherwise resuming can silently acquire a second full pool budget.
+- 2026-09-05T06:38:00+08:00 [CODE] Two independently replaced JSONL files cannot satisfy pairwise atomic publication. Production now requires both files in one previously absent bundle directory and publishes them with a single sibling-directory rename.
 
 [OUTCOMES]
 
 - 2026-09-05T00:26:00+08:00 [TOOL] G0 evidence and the teammate's tokenizer/pipeline artifacts are integrated on `g0-evidence`; G1 remains in progress.
 - 2026-09-05T00:51:56+08:00 [TOOL] The production benchmark inputs required for G1 decontamination are pinned, acquired, and verified; G1 remains incomplete because the scalable 11B-token corpus build, real decontamination scan, final sharding, and schedules have not run.
 - 2026-09-05T05:20:14+08:00 [TOOL] The scalable shard-packing stage is implemented and verified. G1 still requires the upstream real-corpus acquisition/filter/dedup/decontamination stream, its isolation evidence, the full shard run, and streaming mixture/profile reconciliation.
+- 2026-09-05T06:38:00+08:00 [TOOL] G1-04 and G1-05 are implemented and locally verified but deliberately not marked complete. G1-06 is now ready: the next evidence-producing action is a real 1% pipeline slice, followed by a measured 2–5% slice before any full run.

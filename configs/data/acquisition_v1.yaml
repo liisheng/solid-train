@@ -1,0 +1,148 @@
+# Deterministic production-corpus acquisition and boundary-selection contract.
+#
+# This protocol supplies the operational details intentionally absent from sources_v4:
+# how one pass over each physical source becomes disjoint reserved, validation, and stable
+# selections. It is calibrated on fixtures only. Real-corpus rates remain NOT_RUN.
+
+protocol: acquisition
+version: v1
+frozen: true
+calibration: planted-fixtures-only
+
+change_control:
+  immutable: true
+  on_change: create configs/data/acquisition_v2.yaml and record the reason
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+  hash_registry: src/tinybench_lm/corpus_pipeline.py::FROZEN_ACQUISITION_SHA256
+
+physical_sources:
+  - origin_source_id: fineweb_edu
+    produces: [reserved_science, reserved_edu_decile, validation_dev, validation_final, fineweb_edu]
+  - origin_source_id: dclm
+    produces: [validation_dev, validation_final, dclm]
+  - origin_source_id: openwebmath
+    produces: [reserved_math_prose, validation_dev, validation_final, openwebmath]
+  - origin_source_id: narrative
+    produces: [validation_dev, validation_final, narrative]
+  - origin_source_id: reserved_textbook
+    produces: [reserved_textbook]
+  - origin_source_id: reserved_wikipedia
+    produces: [reserved_wikipedia]
+
+document_identity:
+  preference: [id, url, METADATA.text_id, source_row_index]
+  collision_rule: append_first_16_hex_of_raw_sha256
+  repeated_id_and_raw_hash: reject_as_exact_duplicate
+  global_key: origin_source_id/document_id
+
+selection:
+  salt: corpus_acquisition_v1
+  ranking_key: sha256(salt|selection_id|origin_source_id|document_id)
+  ordering: [ranking_key_ascending, origin_source_id_ascending, document_id_ascending]
+  cluster_atomic: true
+  stage_order:
+    - reserved_science
+    - reserved_textbook
+    - reserved_wikipedia
+    - reserved_edu_decile
+    - reserved_math_prose
+    - validation_dev
+    - validation_final
+    - stable_train
+  target_rule: take_complete_clusters_until_accepted_token_target_is_met_or_source_is_exhausted
+
+reserved_selectors:
+  reserved_science:
+    origin_source_id: fineweb_edu
+    quality_order: [score_descending, ranking_key_ascending]
+    topic_method: frozen_casefolded_word_vocabulary_any_match
+    topic_vocabulary:
+      - astronomy
+      - biology
+      - chemistry
+      - climate
+      - ecology
+      - engineering
+      - geology
+      - mathematics
+      - medicine
+      - neuroscience
+      - physics
+      - scientific
+      - technology
+  reserved_edu_decile:
+    origin_source_id: fineweb_edu
+    exclude_selector: reserved_science
+    quality_order: [score_descending, ranking_key_ascending]
+    interpretation: highest-scored available educational documents; decile is a target-pool label, not an unmeasured percentile claim
+  reserved_textbook:
+    origin_source_id: reserved_textbook
+    quality_order: [ranking_key_ascending]
+  reserved_wikipedia:
+    origin_source_id: reserved_wikipedia
+    quality_order: [ranking_key_ascending]
+  reserved_math_prose:
+    origin_source_id: openwebmath
+    quality_order: [ranking_key_ascending]
+    prerequisite: filters_v1 OpenWebMath prose filters passed
+
+validation:
+  targets:
+    validation_dev: 15000000
+    validation_final: 15000000
+  stable_source_shares:
+    fineweb_edu: 0.70
+    dclm: 0.20
+    openwebmath: 0.07
+    narrative: 0.03
+  source_quota_rule: round_half_up(split_target * source_share)
+  protected_slice_assignment:
+    method: source_based
+    mapping:
+      fineweb_edu: educational_science
+      dclm: broad_general
+      openwebmath: math_technical
+      narrative: narrative_coreference
+
+stable:
+  source_targets_from: configs/data/sources_v4.yaml::stable_sources.target_tokens_at_11b
+  selection_order: ranking_key
+  profile_fallback_from: configs/data/sources_v4.yaml::profiles
+
+deduplication:
+  protocol: configs/data/dedup_v1.yaml
+  before_boundary_selection: true
+  minhash_candidate_index:
+    bands: 32
+    rows_per_band: 4
+    completeness_argument: at_0.85_threshold_at_least_109_of_128_rows_match_so_at_most_19_bands_can_contain_a_mismatch
+  mirror_hash_action: follow_frozen_dedup_v1
+  boundary_rule: assign_a_complete_duplicate_cluster_to_exactly_one_boundary
+
+decontamination:
+  protocol: configs/data/decontam_v2.yaml
+  benchmark_items: data/decontamination/benchmark_items.jsonl
+  benchmark_items_sha256: 976f81cfef5ef3d6ff9d3d608c482b348e1e9606acec1dfd261d2f235536fa4d
+  before_boundary_selection: true
+  quarantine_complete_cluster: true
+
+restart:
+  state_store: sqlite
+  commit_every_documents: 1000
+  source_cursor: zero_based_row_index_of_next_source_row
+  replay_rule: pinned_stream_skip_to_source_cursor
+  stage_completion_is_append_only: true
+  protocol_digests_must_match: true
+  final_publish: atomic_sibling_directory_rename
+
+storage:
+  warn_below_free_fraction: 0.15
+  stop_writes_at_or_below_free_fraction: 0.10
+  cache_directory_must_be_explicit: true
+  temporary_and_output_directories_must_share_a_volume_for_atomic_publish: true
+
+evidence:
+  counters: [per_stage, per_source, per_reason_code, per_boundary]
+  hashes: [protocols, benchmark_items, accepted_jsonl, manifest_jsonl, sqlite_state]
+  unsupported_claim_status: NOT_RUN

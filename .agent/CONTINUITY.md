@@ -18,7 +18,7 @@
 - 2026-09-05T00:51:56+08:00 [TOOL] Full host verification passed: 560 tests in 74.50 seconds, Python byte-compilation passed, and the source-policy audit returned PASS with only accepted-token measurement correctly DEFERRED.
 - 2026-09-05T05:20:14+08:00 [CODE] Replaced fixture-only production behavior with a sorted-input streaming shard path: incremental tokenization and uint16 writes, SQLite-backed global ID/cluster/shard-record indexes, token/document shard ceilings, atomic staged publication, and safe fresh-output restart refusal.
 - 2026-09-05T05:20:14+08:00 [TOOL] Streaming implementation verification passed: 33 shard tests, 564 full-suite tests in 70.43 seconds, Python byte-compilation, and diff checks.
-- 2026-09-05T05:45:56+08:00 [TOOL] Created local `g1-evidence` at verified streaming-shard commit `6aadedc`; remote publication is pending this continuity checkpoint.
+- 2026-09-05T05:45:56+08:00 [TOOL] Created and published `g1-evidence` from verified streaming-shard commit `6aadedc`; local branch now tracks `origin/g1-evidence`.
 
 [DISCOVERIES]
 

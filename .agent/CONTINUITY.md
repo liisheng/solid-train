@@ -1,6 +1,7 @@
 [PLANS]
 
 - 2026-09-05T00:26:00+08:00 [USER] Complete G1 on `g0-evidence`: pin a reproducible provisional benchmark/decontamination scope, then acquire, filter, deduplicate, decontaminate, shard, schedule, and verify the real corpus without claiming unsupported passes.
+- 2026-09-05T05:45:56+08:00 [USER] Supersedes the earlier branch target: continue G1 on dedicated branch `g1-evidence`; do not rewrite shared `g0-evidence` until teammate pull status is known.
 
 [DECISIONS]
 
@@ -17,6 +18,7 @@
 - 2026-09-05T00:51:56+08:00 [TOOL] Full host verification passed: 560 tests in 74.50 seconds, Python byte-compilation passed, and the source-policy audit returned PASS with only accepted-token measurement correctly DEFERRED.
 - 2026-09-05T05:20:14+08:00 [CODE] Replaced fixture-only production behavior with a sorted-input streaming shard path: incremental tokenization and uint16 writes, SQLite-backed global ID/cluster/shard-record indexes, token/document shard ceilings, atomic staged publication, and safe fresh-output restart refusal.
 - 2026-09-05T05:20:14+08:00 [TOOL] Streaming implementation verification passed: 33 shard tests, 564 full-suite tests in 70.43 seconds, Python byte-compilation, and diff checks.
+- 2026-09-05T05:45:56+08:00 [TOOL] Created local `g1-evidence` at verified streaming-shard commit `6aadedc`; remote publication is pending this continuity checkpoint.
 
 [DISCOVERIES]
 

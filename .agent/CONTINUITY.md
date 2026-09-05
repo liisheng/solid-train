@@ -28,6 +28,8 @@
 - 2026-09-05T07:16:27+08:00 [TOOL] Started the real 1% G1-06 pipeline with the documented command. All six sources finished acquisition into local ignored state `data/pipeline/slice_1pct.state.sqlite`; the live process is in global deduplication. Its cache is `data/hf_cache`, benchmark index target is `data/pipeline/benchmark_index.sqlite`, atomic output bundle is `data/pipeline/slice_1pct`, and evidence target is `runs/bench/slice_1pct.pipeline.json`. A replacement agent must check for an existing `prepare_corpus.py` process before attempting resume.
 - 2026-09-05T09:58:56+08:00 [TOOL] The original 1% process was found stopped for an UNCONFIRMED reason without a host reboot. Its valid benchmark-index checkpoint contained 903,000/1,362,239 items at byte offset 502,382,654. Resuming the documented command recovered normally and advanced to 907,000 items; the replacement process is active.
 - 2026-09-05T17:22:00+08:00 [TOOL] The resumed process later stopped for an UNCONFIRMED reason. No `prepare_corpus.py` process or project GPU workload is active. Benchmark indexing is complete at 1,362,239/1,362,239; decontamination is safely checkpointed at 752 documents, assignments and final outputs are absent. The documented command can resume after startup.
+- 2026-09-05T19:50:31+08:00 [USER] Requested that Codex resume the paused 1% pipeline after a manual resume attempt did not remain active.
+- 2026-09-05T19:50:31+08:00 [TOOL] Resumed the documented pipeline with no competing process present. The replacement process is active and decontamination advanced from 752 to 753, proving checkpoint recovery.
 
 [DISCOVERIES]
 

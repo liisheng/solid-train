@@ -6,7 +6,7 @@ evidence—not this page—determines whether a gate passes.
 
 | Snapshot | Value |
 |---|---|
-| Last updated | 2026-09-05 07:16 UTC+8 |
+| Last updated | 2026-09-05 17:22 UTC+8 |
 | Current milestone | **G1 — Data** |
 | Current branch | **`g1-evidence`** |
 | Last verified implementation | **G1 pipeline checkpoint at branch tip** (587 tests passed) |
@@ -32,7 +32,7 @@ evidence—not this page—determines whether a gate passes.
 | G1-03 | COMPLETE | repository | Either | Disk-backed streaming shard builder, atomic publish, and tests (`6aadedc`). |
 | G1-04 | IMPLEMENTED / SLICE_NOT_RUN | repository | 3070 preferred to run | Restartable pinned-source acquisition, filtering, global deduplication, indexed decontamination, assignment, atomic publication, and reason-coded evidence are implemented and tested. A real slice must prove them. |
 | G1-05 | IMPLEMENTED / FINAL_NOT_RUN | repository | Either | Bounded-memory aggregate verification of source shares, totals, reserved margin, profile selection, shard integrity, and isolation evidence is implemented and tested. Final artifacts do not exist yet. |
-| G1-06 | RUNNING — 1% SLICE | 4070 machine | Current local workspace | The restartable 1% run is active from `data/pipeline/slice_1pct.state.sqlite`. Do not start a second process against it. When it finishes, review its measurements before starting the 2–5% slice. |
+| G1-06 | PAUSED — 1% SLICE | 4070 machine | Current local workspace | The run is safely checkpointed in decontamination: benchmark indexing is complete and 752 documents are decontaminated. No pipeline process is active; resume the documented command after startup. |
 | G1-07 | BLOCKED_BY_06 | Unclaimed | 3070 preprocessing / 4070 mirror | Build the full accepted corpus and pass token, provenance, contamination, and split-isolation gates. |
 | G1-08 | BLOCKED_BY_07 | Unclaimed | 4070 canonical mirror | Produce and verify final source-tagged shards and deterministic schedules. |
 | G1-09 | BLOCKED_BY_08 | Both | Either | Review the machine-readable evidence bundle and record the required corpus freeze approval. |
@@ -43,10 +43,10 @@ implement or review repository work; do not duplicate the same long-running job.
 
 ## Human decisions and blockers
 
-- The active 1% state and Hugging Face cache are local, ignored artifacts. A replacement
-  agent on this machine must first check whether `scripts/prepare_corpus.py` is still
-  running; if it is, monitor rather than launch a duplicate. A different machine needs an
-  explicit state/cache transfer or a fresh run.
+- The paused 1% state and Hugging Face cache are local, ignored artifacts. A replacement
+  agent on this machine must check for an existing `scripts/prepare_corpus.py` process and,
+  if none exists, resume the documented command. A different machine needs an explicit
+  state/cache transfer or a fresh run.
 - Review the measured disk/runtime forecast before G1-07 starts. No forecast may be replaced
   by an invented estimate.
 - Both teammates must approve the corpus freeze at G1-09. A checked task is not a substitute

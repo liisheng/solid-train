@@ -26,6 +26,7 @@
 - 2026-09-05T06:38:00+08:00 [TOOL] Full host verification passed: 587 tests in 89.06 seconds, Python byte-compilation passed, command help smoke tests passed, and diff checks passed.
 - 2026-09-05T07:16:27+08:00 [TOOL] Committed and pushed the verified G1-04/G1-05 checkpoint as `44a5fab` on `g1-evidence`; local and `origin/g1-evidence` matched with a clean worktree.
 - 2026-09-05T07:16:27+08:00 [TOOL] Started the real 1% G1-06 pipeline with the documented command. All six sources finished acquisition into local ignored state `data/pipeline/slice_1pct.state.sqlite`; the live process is in global deduplication. Its cache is `data/hf_cache`, benchmark index target is `data/pipeline/benchmark_index.sqlite`, atomic output bundle is `data/pipeline/slice_1pct`, and evidence target is `runs/bench/slice_1pct.pipeline.json`. A replacement agent must check for an existing `prepare_corpus.py` process before attempting resume.
+- 2026-09-05T09:58:56+08:00 [TOOL] The original 1% process was found stopped for an UNCONFIRMED reason without a host reboot. Its valid benchmark-index checkpoint contained 903,000/1,362,239 items at byte offset 502,382,654. Resuming the documented command recovered normally and advanced to 907,000 items; the replacement process is active.
 
 [DISCOVERIES]
 
@@ -39,6 +40,7 @@
 - 2026-09-05T06:38:00+08:00 [CODE] A bounded slice must persist raw consumed-token accounting independently of accepted document tokens; otherwise resuming can silently acquire a second full pool budget.
 - 2026-09-05T06:38:00+08:00 [CODE] Two independently replaced JSONL files cannot satisfy pairwise atomic publication. Production now requires both files in one previously absent bundle directory and publishes them with a single sibling-directory rename.
 - 2026-09-05T07:16:27+08:00 [TOOL] Git alone cannot carry an in-progress corpus run: `data/*` and `runs/` are ignored. Same-machine handoff uses the tracked command/run-state notes plus the local SQLite/cache artifacts; cross-machine handoff requires copying those artifacts or restarting the slice.
+- 2026-09-05T09:58:56+08:00 [TOOL] Verified interruption behavior on the real benchmark index: SQLite metadata remained `complete=0` with the pinned source hash and a committed byte offset, and the resumed build continued rather than rebuilding or duplicating indexed items.
 
 [OUTCOMES]
 

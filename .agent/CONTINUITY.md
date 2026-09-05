@@ -48,6 +48,7 @@
 - 2026-09-05T20:04:21+08:00 [USER] Authorized pausing the slow scan, optimizing it, testing equivalence, and resuming from the saved checkpoint.
 - 2026-09-05T20:04:21+08:00 [CODE] Forced document n-grams to be the outer loop for indexed short-benchmark probes, eliminating the confirmed per-document full `short_texts` scan; batched decontamination commits with rollback on partial failure. Added full-decision equivalence, query-plan, invalid-interval, and restart-rollback coverage.
 - 2026-09-05T20:04:21+08:00 [TOOL] Optimized real-document warm-cache classification measured 0.24 seconds versus tens of seconds before the query-plan fix. Full repository verification passed 590 tests in 76.04 seconds; byte-compilation and diff checks passed. End-to-end live throughput remains to be measured after resume.
+- 2026-09-05T20:14:50+08:00 [TOOL] A 50-document read-only production sample measured the verified optimized matcher at 300.8 documents/minute, roughly two orders of magnitude above the prior 1–2/minute observation. Committed and pushed the optimization as `e566221`, then resumed the 1% pipeline from 767 completed decontamination rows. The process is active; the visible counter advances only after each restart-safe 1,000-document batch commits.
 
 [OUTCOMES]
 

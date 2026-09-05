@@ -44,6 +44,7 @@
 - 2026-09-05T06:38:00+08:00 [CODE] Two independently replaced JSONL files cannot satisfy pairwise atomic publication. Production now requires both files in one previously absent bundle directory and publishes them with a single sibling-directory rename.
 - 2026-09-05T07:16:27+08:00 [TOOL] Git alone cannot carry an in-progress corpus run: `data/*` and `runs/` are ignored. Same-machine handoff uses the tracked command/run-state notes plus the local SQLite/cache artifacts; cross-machine handoff requires copying those artifacts or restarting the slice.
 - 2026-09-05T09:58:56+08:00 [TOOL] Verified interruption behavior on the real benchmark index: SQLite metadata remained `complete=0` with the pinned source hash and a committed byte offset, and the resumed build continued rather than rebuilding or duplicating indexed items.
+- 2026-09-05T20:02:22+08:00 [TOOL] The real 1% decontamination scan exposed an unacceptable CPU/SQLite bottleneck: progress moved only from 752 to 767 in about 12 minutes, one CPU core was effectively saturated, memory remained about 0.41 GB, and the GPU was not involved. At that observed rate the remaining scan is measured in many weeks. The likely optimization boundary is `BenchmarkIndex.classify`: replace per-document temporary n-gram table construction/joins with targeted indexed digest probes, batch state commits, then measure before considering multiprocessing. No speedup is claimed until equivalence tests and a real throughput sample pass.
 
 [OUTCOMES]
 

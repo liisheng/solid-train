@@ -6,7 +6,7 @@ evidence—not this page—determines whether a gate passes.
 
 | Snapshot | Value |
 |---|---|
-| Last updated | 2026-09-05 19:50 UTC+8 |
+| Last updated | 2026-09-05 20:02 UTC+8 |
 | Current milestone | **G1 — Data** |
 | Current branch | **`g1-evidence`** |
 | Last verified implementation | **G1 pipeline checkpoint at branch tip** (587 tests passed) |
@@ -32,7 +32,7 @@ evidence—not this page—determines whether a gate passes.
 | G1-03 | COMPLETE | repository | Either | Disk-backed streaming shard builder, atomic publish, and tests (`6aadedc`). |
 | G1-04 | IMPLEMENTED / SLICE_NOT_RUN | repository | 3070 preferred to run | Restartable pinned-source acquisition, filtering, global deduplication, indexed decontamination, assignment, atomic publication, and reason-coded evidence are implemented and tested. A real slice must prove them. |
 | G1-05 | IMPLEMENTED / FINAL_NOT_RUN | repository | Either | Bounded-memory aggregate verification of source shares, totals, reserved margin, profile selection, shard integrity, and isolation evidence is implemented and tested. Final artifacts do not exist yet. |
-| G1-06 | RUNNING — 1% SLICE | 4070 machine | Current local workspace | The resumed run is active in decontamination; benchmark indexing is complete. Monitor the local state and do not launch a duplicate process. |
+| G1-06 | RUNNING — BOTTLENECK FOUND | 4070 machine | Current local workspace | Decontamination is active but measured at only about 1–2 documents/minute. Preserve the checkpoint; optimize and equivalence-test indexed matching before relying on a completion forecast. |
 | G1-07 | BLOCKED_BY_06 | Unclaimed | 3070 preprocessing / 4070 mirror | Build the full accepted corpus and pass token, provenance, contamination, and split-isolation gates. |
 | G1-08 | BLOCKED_BY_07 | Unclaimed | 4070 canonical mirror | Produce and verify final source-tagged shards and deterministic schedules. |
 | G1-09 | BLOCKED_BY_08 | Both | Either | Review the machine-readable evidence bundle and record the required corpus freeze approval. |
@@ -49,6 +49,9 @@ implement or review repository work; do not duplicate the same long-running job.
   state/cache transfer or a fresh run.
 - Review the measured disk/runtime forecast before G1-07 starts. No forecast may be replaced
   by an invented estimate.
+- The current single-process decontamination path is not viable for the full run. Prefer
+  targeted indexed digest probes and batched commits; measure that change before adding
+  multiprocessing or proceeding to the 2–5% slice.
 - Both teammates must approve the corpus freeze at G1-09. A checked task is not a substitute
   for its hashes, tests, and approval event.
 

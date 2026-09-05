@@ -5,7 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from tinybench_lm.benchmark_index import BenchmarkIndex, BenchmarkIndexError, file_sha256
+from tinybench_lm.benchmark_index import (
+    _SHORT_CANDIDATE_SQL,
+    BenchmarkIndex,
+    BenchmarkIndexError,
+    file_sha256,
+)
 from tinybench_lm.data_protocols import BenchmarkItem, DocumentRecord, decontaminate, load_decontamination_protocol
 
 
@@ -55,6 +60,7 @@ def test_index_matches_frozen_reference_for_all_three_rules_and_clean(tmp_path: 
             assert observed.task_id == expected.task_id
             assert observed.item_id == expected.item_id
             assert observed.measurement == pytest.approx(expected.measurement)
+            assert observed == expected
 
 
 def test_index_rejects_wrong_source_hash_and_incomplete_use(tmp_path: Path) -> None:
@@ -65,6 +71,32 @@ def test_index_rejects_wrong_source_hash_and_incomplete_use(tmp_path: Path) -> N
             index.build(source, expected_sha256="0" * 64)
         with pytest.raises(BenchmarkIndexError, match="incomplete"):
             index.classify("doc", "some text")
+
+
+def test_short_candidate_lookup_probes_index_from_document_ngrams(tmp_path: Path) -> None:
+    source = tmp_path / "items.jsonl"
+    write_items(source)
+    with BenchmarkIndex(tmp_path / "index.sqlite") as index:
+        index.build(source, expected_sha256=file_sha256(source))
+        index.connection.execute(
+            """
+            CREATE TEMP TABLE doc_ngrams(
+                size INTEGER,
+                position INTEGER,
+                digest BLOB,
+                PRIMARY KEY(size, position)
+            ) WITHOUT ROWID
+            """
+        )
+        plan = [
+            str(row[3])
+            for row in index.connection.execute("EXPLAIN QUERY PLAN " + _SHORT_CANDIDATE_SQL)
+        ]
+        assert any(detail.startswith("SCAN g") for detail in plan)
+        assert any(
+            detail.startswith("SEARCH s USING PRIMARY KEY (word_count=? AND digest=?)")
+            for detail in plan
+        )
 
 
 @pytest.mark.parametrize("payload", [[], None, 7, "text"])

@@ -20,8 +20,12 @@ decontamination, boundary assignment, and atomic publication.
 - The benchmark index stores normalized short texts and distinct 13-word shingles. A
   50-word contiguous match necessarily contains a 13-word match, so no separate 50-word
   index is needed. Hash hits are candidate detectors; exact normalized text/word checks make
-  the final decision.
+  the final decision. Document n-grams are the forced outer side of short-text lookups so
+  SQLite performs targeted primary-key probes instead of rescanning the benchmark index for
+  every document.
 - A resumed state must match acquisition, source, filter, dedup, and tokenizer identities.
+- Decontamination decisions commit in restart-safe batches; a failed partial batch rolls
+  back while earlier complete batches remain resumable.
 - Accepted text and the text-free decision ledger publish together through one sibling
   staging-directory rename. Their shared target directory must not already exist.
 

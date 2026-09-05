@@ -10,6 +10,7 @@ import pytest
 from scripts.prepare_corpus import bounded_rows, remaining_slice_budget
 
 from tinybench_lm.benchmark_index import BenchmarkIndex, file_sha256
+from tinybench_lm.data_protocols import CLEAN, KEEP, DecontaminationDecision
 from tinybench_lm.corpus_pipeline import (
     CorpusPipelineError,
     CorpusState,
@@ -188,6 +189,37 @@ def test_completed_slice_stages_are_idempotent_without_new_ingestion(tmp_path: P
         state.mark_all_clean_for_fixture()
         state.assign_fixture()
         assert state.run_deduplication() == 0
+
+
+def test_decontamination_batches_are_restart_safe(tmp_path: Path) -> None:
+    class FailingIndex:
+        calls = 0
+
+        def classify(self, doc_id: str, _text: str) -> DecontaminationDecision:
+            self.calls += 1
+            if self.calls == 4:
+                raise RuntimeError("injected classifier failure")
+            return DecontaminationDecision(doc_id, KEEP, CLEAN)
+
+    state_path = tmp_path / "state.sqlite"
+    with CorpusState(state_path, token_counter=counter, token_counter_id="test") as state:
+        state.ingest(
+            "fineweb_edu",
+            [source_candidate("fineweb_edu", f"doc:{index}", f"batch{index}") for index in range(4)],
+        )
+        state.run_deduplication()
+        with pytest.raises(RuntimeError, match="injected"):
+            state.run_decontamination(FailingIndex(), commit_every=2)
+        assert not state.connection.in_transaction
+        assert state.connection.execute("SELECT COUNT(1) FROM decontamination").fetchone()[0] == 2
+    with CorpusState(state_path, token_counter=counter, token_counter_id="test") as resumed:
+        assert resumed.connection.execute("SELECT COUNT(1) FROM decontamination").fetchone()[0] == 2
+
+
+def test_decontamination_rejects_zero_commit_interval(tmp_path: Path) -> None:
+    with CorpusState(tmp_path / "state.sqlite", token_counter=counter, token_counter_id="test") as state:
+        with pytest.raises(ValueError, match="commit_every"):
+            state.run_decontamination(object(), commit_every=0)
 
 
 def test_output_bundle_is_atomic_on_failure(tmp_path: Path, monkeypatch) -> None:

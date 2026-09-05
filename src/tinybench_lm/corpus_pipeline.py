@@ -462,7 +462,11 @@ class CorpusState:
             raise ResumeMismatchError(
                 f"{origin_source_id} must resume at row {cursor.next_row_index}, got {start_row_index}"
             )
-        interval = int(commit_every or self.acquisition["restart"]["commit_every_documents"])
+        interval = int(
+            self.acquisition["restart"]["commit_every_documents"]
+            if commit_every is None
+            else commit_every
+        )
         if interval <= 0:
             raise ValueError("commit_every must be positive")
         score_iter = iter(scores) if scores is not None else None
@@ -758,8 +762,21 @@ class CorpusState:
             )
         return len(rows)
 
-    def run_decontamination(self, benchmark_index: Any, *, limit: int | None = None) -> int:
+    def run_decontamination(
+        self,
+        benchmark_index: Any,
+        *,
+        limit: int | None = None,
+        commit_every: int | None = None,
+    ) -> int:
         """Classify every cluster member with a complete :class:`BenchmarkIndex`."""
+        interval = int(
+            self.acquisition["restart"]["commit_every_documents"]
+            if commit_every is None
+            else commit_every
+        )
+        if interval <= 0:
+            raise ValueError("commit_every must be positive")
         sql = """
             SELECT r.doc_key, d.text FROM representatives r JOIN documents d USING(doc_key)
             LEFT JOIN decontamination c USING(doc_key)
@@ -770,31 +787,37 @@ class CorpusState:
             sql += " LIMIT ?"
             parameters.append(int(limit))
         processed = 0
-        for row in self.connection.execute(sql, parameters):
-            doc_key, text = str(row[0]), str(row[1])
-            decision = benchmark_index.classify(doc_key, text)
-            evidence = {
-                "rule_id": decision.rule_id,
-                "task_id": decision.task_id,
-                "item_id": decision.item_id,
-                "measurement": decision.measurement,
-                "matched_rules": [
-                    {
-                        "rule_id": match.rule_id,
-                        "reason_code": match.reason_code,
-                        "task_id": match.task_id,
-                        "item_id": match.item_id,
-                        "measurement": match.measurement,
-                    }
-                    for match in decision.matched_rules
-                ],
-            }
-            with self.connection:
+        try:
+            for row in self.connection.execute(sql, parameters):
+                doc_key, text = str(row[0]), str(row[1])
+                decision = benchmark_index.classify(doc_key, text)
+                evidence = {
+                    "rule_id": decision.rule_id,
+                    "task_id": decision.task_id,
+                    "item_id": decision.item_id,
+                    "measurement": decision.measurement,
+                    "matched_rules": [
+                        {
+                            "rule_id": match.rule_id,
+                            "reason_code": match.reason_code,
+                            "task_id": match.task_id,
+                            "item_id": match.item_id,
+                            "measurement": match.measurement,
+                        }
+                        for match in decision.matched_rules
+                    ],
+                }
                 self.connection.execute(
                     "INSERT INTO decontamination VALUES (?, ?, ?, ?)",
                     (doc_key, decision.action, decision.reason_code, json.dumps(evidence, sort_keys=True)),
                 )
-            processed += 1
+                processed += 1
+                if processed % interval == 0:
+                    self.connection.commit()
+            self.connection.commit()
+        except BaseException:
+            self.connection.rollback()
+            raise
         return processed
 
     def _ensure_selection_keys(self, selection_id: str, where_sql: str, parameters: Sequence[Any]) -> None:

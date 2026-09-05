@@ -21,6 +21,15 @@ from .data_protocols import (
 )
 
 
+_SHORT_CANDIDATE_SQL = """
+    SELECT DISTINCT t.text_key, t.item_key, t.text_index, i.task_id, i.item_id,
+                    t.normalized, t.word_count
+    FROM doc_ngrams g CROSS JOIN short_texts s
+      ON s.word_count = g.size AND s.digest = g.digest
+    JOIN texts t USING(text_key) JOIN items i USING(item_key)
+"""
+
+
 class BenchmarkIndexError(RuntimeError):
     """A benchmark index or its source evidence is invalid."""
 
@@ -260,15 +269,9 @@ class BenchmarkIndex:
 
         item_rows: dict[str, sqlite3.Row] = {}
         substring_keys: set[str] = set()
-        for row in self.connection.execute(
-            """
-            SELECT DISTINCT t.text_key, t.item_key, t.text_index, i.task_id, i.item_id,
-                            t.normalized, t.word_count
-            FROM short_texts s JOIN doc_ngrams g
-              ON g.size = s.word_count AND g.digest = s.digest
-            JOIN texts t USING(text_key) JOIN items i USING(item_key)
-            """
-        ):
+        # CROSS JOIN intentionally fixes doc_ngrams as the small outer loop. A normal JOIN
+        # lets SQLite scan the corpus-sized short_texts table once per document.
+        for row in self.connection.execute(_SHORT_CANDIDATE_SQL):
             item_rows[str(row["text_key"])] = row
             substring_keys.add(str(row["text_key"]))
         matched_13: dict[str, list[tuple[bytes, int]]] = {}

@@ -5,6 +5,12 @@ comparison, and retention of existing sources. The immutable record is
 `configs/campaign/submission_scope_v1.yaml` with its digest sidecar. It reduces the
 original experiment campaign; correctness checks and honest gate reporting remain.
 
+**Current handoff:** The reduced 5% expansion is verified under the user-authorized
+any-machine amendment `configs/operations/g2_scope_v2.yaml`. Use [G2_HANDOFF.md](G2_HANDOFF.md),
+`runs/reduced_campaign/g2_report_local.json`, and
+`runs/reduced_campaign/reduced_5pct_v1/aggregate.json` for the current evidence. The
+slice-topup paths below remain historical preparation evidence.
+
 ## Execution
 
 1. **Complete.** Top up math, narrative and textbook for the 1% slice and recompute
@@ -19,14 +25,16 @@ original experiment campaign; correctness checks and honest gate reporting remai
 3. **Complete locally.** `scripts/verify_real_training.py` passed from fresh evidence at
    `runs/reduced_campaign/recovery_verified_inputs_v2/evidence.json`: uninterrupted versus
    pause/resume state is exact, all eight update-level schedule-reference hashes match,
-   a deliberately corrupted checkpoint is rejected, and export/reload passes. Other-machine
-   verification remains separate evidence.
+   a deliberately corrupted checkpoint is rejected, and export/reload passes. The prior
+   cross-machine wording is historical frozen-v1 evidence; active G2 uses the any-machine
+   amendment and `g2_report_local.json`.
 4. **Complete locally.** `scripts/profile_real_training.py` recorded `MEASURED` at
    `runs/reduced_campaign/profile_verified_inputs_v1/measurement.json`: 1,883.02 post-warmup
    seconds (451 samples), p10/median/p90 53,339.55/64,831.86/66,601.79 tok/s, weighted
    62,785.89 tok/s, 1,901.71 optimizer seconds, 1,930.81 wall seconds, and 5.45 GiB peak
    allocation. All 455 runtime update hashes matched the five-pass real-shard schedule. Use p10
-   for planning. Other-machine profiling remains NOT_RUN.
+   for planning. The source-local profile is efficiency evidence only; machine identity is not
+   an active G2 gate.
 5. **Complete for reduced preparation.** The isolated expansion contains 550,094,903 distinct
    stable tokens (minimum 500M), with declared shares and scaled reserved/validation targets;
    the scope-bound reconciliation is `runs/reduced_campaign/reduced_5pct_v1/aggregate.json`.
@@ -37,9 +45,11 @@ original experiment campaign; correctness checks and honest gate reporting remai
 
 Current engineering checkpoint: the reduced 5% expansion aggregate passes all 69 reduced-scope
 checks at `runs/reduced_campaign/reduced_5pct_v1/aggregate.json`. Fresh local recovery is in
-`runs/reduced_campaign/reduced_5pct_v1/recovery/evidence.json`, and the new real-shard profile is
-in `runs/reduced_campaign/reduced_5pct_v1/profile/measurement.json`. No main baseline training
-has started. Other-machine verification remains unrun and is the hard canonical G2 blocker.
+`runs/reduced_campaign/reduced_5pct_v1/g2_recovery_local/evidence.json`, source-export fresh
+process inference is in `runs/reduced_campaign/g2_source_local.json`, and the combined report
+is `runs/reduced_campaign/g2_report_local.json` (`REDUCED_SCOPE_G2_PASS`). This is
+`G2_PASS_UNDER_AMENDED_SCOPE`; canonical full-scale G1/G2 and G4/campaign promotion remain
+unclaimed. No main baseline training has started.
 
 ## Training controls
 
@@ -84,5 +94,6 @@ dedup ran, then restored them before checking new documents. It reset downstream
 the copy to account for cluster merges. Original state remains intact. Do not launch a duplicate
 engineering chain while `finish_engineering.py` is active.
 
-A teammate needs matching code plus the verified shard/schedule/checkpoint bundle for
-other-machine verification and review. No external review or approval is inferred.
+The active G2 result is valid on any compatible machine when the exact fresh-process and
+real-shard commands in `G2_HANDOFF.md` pass. Historical teammate-transfer notes remain
+preserved in earlier evidence and do not block the amended active result.

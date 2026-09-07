@@ -10,10 +10,10 @@ comparison. The original gate table is retained; reduced scope does not imply it
 
 | Snapshot | Value |
 |---|---|
-| Last updated | 2026-09-07 14:30 UTC+8 |
-| Current milestone | **G1 — Reduced-scope evidence complete; canonical G1 remains unpassed** |
-| Current branch | **`g1-evidence`** |
-| Last verified implementation | **`47dd13c`**: reduced-scope G1 pipeline and aggregate evidence implementation; focused checks passed. |
+| Last updated | 2026-09-07 17:12 UTC+8 |
+| Current milestone | **G2 — Reduced any-machine verification PASS** |
+| Current branch | **`g2`** |
+| Last verified implementation | **Reviewed G2 implementation on `g2` over `67141a7`**: any-machine scope amendment, fresh local real-shard recovery, source-export verification, and reduced G2 report. User authorized commit/push; generated build metadata remains excluded. |
 
 ## Milestones
 
@@ -21,30 +21,34 @@ comparison. The original gate table is retained; reduced scope does not imply it
 |---|---|---|---|
 | G0 | Foundation | REVIEW | Every G0 evidence key is audited PASS, including external teammate checks. |
 | G1 | Data | ENGINEERING_RUNNING | Token/profile thresholds, provenance, reserved margin, isolation, decontamination, shards, schedules, and real-shard engineering checks all verify. |
-| G2 | Tiny end-to-end | **BLOCKED_BY_G1 / NOT_RUN** | Canonical G2 still requires independent machine evidence and approvals; no G2 claim is made here. |
-| G3 | Minimum campaign | BLOCKED_BY_G2 | P1–P4/P8 and F1/F2 evidence exists and frozen decision rules are applied. |
-| G4 | Final freeze | BLOCKED_BY_G3 | Two-person freeze, real-shard throughput, and takeover rehearsal pass. |
+| G2 | Tiny end-to-end | **G2_PASS_UNDER_AMENDED_SCOPE** | `runs/reduced_campaign/g2_report_local.json` maps all five amended checks to PASS; canonical full-scale G2 remains NOT_RUN. |
+| G3 | Minimum campaign | NOT_RUN | Canonical campaign work is pending; reduced G2 does not claim G3. |
+| G4 | Final freeze | NOT_RUN | Canonical freeze, throughput, and takeover checks are pending. |
 | G5 | Campaign | NOT_RUN | Stable/fallback lineage, confirmations, counters, and frozen artifacts reconcile. |
 | G6 | Release | NOT_RUN | Fresh evaluation, exports, documentation, public access, and both approvals pass. |
 
-## Active G1 queue
+## Current coordination queue
 
-| ID | State | Owner | Preferred machine | Work / completion evidence |
+G2 ownership is Luna for the implementation and handoff; Terra is the read-only reviewer.
+Active G2 uses the dated any-machine amendment in `configs/operations/g2_scope_v2.yaml`.
+The canonical full-scale G1/G2 gates remain unpassed under reduced scope.
+
+| ID | State | Owner | Execution context | Work / completion evidence |
 |---|---|---|---|---|
 | G1-01 | COMPLETE | repository | Either | Final 12,288-token tokenizer and verification evidence. |
 | G1-02 | COMPLETE | repository | Either | Pinned benchmark quarantine inputs and digest/count evidence (`a7475b3`). |
 | G1-03 | COMPLETE | repository | Either | Disk-backed streaming shard builder, atomic publish, and tests (`6aadedc`). |
-| G1-04 | IMPLEMENTED / REDUCED EVIDENCE ONLY | repository | Current local workspace | Acquisition, filtering, deduplication, decontamination, assignment, and publication paths are implemented and tested; reduced-scope artifacts are documented separately. |
-| G1-05 | IMPLEMENTED / REDUCED CHECK | repository | Current local workspace | Scope-bound aggregate evidence is `runs/reduced_campaign/reduced_5pct_v1/aggregate.json`; canonical full-scale thresholds remain unpassed. |
-| G1-06 | TOP-UP PASS / PUBLISHED | 4070 machine | Current local workspace | Corrected ordered bundle and original top-up bundle both verify; 143,934 decisions, 106,551 accepted rows, 114,478,342 assigned tokens, and zero boundary/slice isolation violations. |
+| G1-04 | IMPLEMENTED / SLICE_NOT_RUN | repository | Any compatible | Restartable pinned-source acquisition, filtering, global deduplication, indexed decontamination, assignment, atomic publication, and reason-coded evidence are implemented and tested. A real slice must prove them. |
+| G1-05 | IMPLEMENTED / FINAL_NOT_RUN | repository | Either | Bounded-memory aggregate verification of source shares, totals, reserved margin, profile selection, shard integrity, and isolation evidence is implemented and tested. Final artifacts do not exist yet. |
+| G1-06 | TOP-UP PASS / PUBLISHED | repository | Current workspace | Corrected ordered bundle and original top-up bundle both verify; 143,934 decisions, 106,551 accepted rows, 114,478,342 assigned tokens, and zero boundary/slice isolation violations. |
 | G1-07 | SHARDS/SCHEDULES BUILT; LOCAL RECOVERY PASS | repository | Current local workspace | `data/shards/slice_topup` and stable/validation/recovery schedules are materialized. Fresh recovery evidence passes exact state, update-input hashes, corruption rejection, and export/reload; shard aggregate/profile reconciliation remains deferred. |
-| G1-08 | LOCAL PROFILE MEASURED | 4070 machine | Current local workspace | 1,883.02 post-warmup seconds measured on real shards: p10 53,339.55, median 64,831.86, p90 66,601.79 tok/s; weighted 62,785.89; 5.45 GiB peak. Other-machine profile remains NOT_RUN. |
-| G1-09 | BLOCKED_BY_08 | Both | Either | Review the machine-readable evidence bundle and record the required corpus freeze approval. |
+| G1-08 | LOCAL PROFILE MEASURED | repository | Current workspace | 1,883.02 post-warmup seconds measured on real shards: p10 53,339.55, median 64,831.86, p90 66,601.79 tok/s; weighted 62,785.89; 5.45 GiB peak. |
+| G1-09 | BLOCKED_BY_08 | Both | Any compatible | Review the machine-readable evidence bundle and record the required corpus freeze approval. |
 | G1-10 | REDUCED 5% SCOPE PASS | repository | Current local workspace | Aggregate PASS (69/69) at `runs/reduced_campaign/reduced_5pct_v1/aggregate.json`; first parser-bug failure preserved as `aggregate_failed_parser_bug.json`. This is scope-bound engineering evidence, not canonical full-scale G1. |
 
-The 3070/64GB machine is the planned bounded-preprocessing host. The 4070 machine is the
-planned canonical accepted-data/checkpoint mirror and primary trainer. Either teammate may
-implement or review repository work; do not duplicate the same long-running job.
+Historical machine assignments remain in prior evidence. Active execution uses any compatible
+machine with the required capability and correctness checks; do not duplicate the same
+long-running job.
 
 ## Human decisions and blockers
 
@@ -69,16 +73,29 @@ implement or review repository work; do not duplicate the same long-running job.
   `runs/reduced_campaign/profile_verified_inputs_v1/measurement.json` reports `MEASURED` with
   no violations: 1,883.02 post-warmup seconds, 1,901.71 optimizer seconds, 1,930.81 wall seconds,
   p10/median/p90 53,339.55/64,831.86/66,601.79 tok/s, weighted 62,785.89 tok/s, and 5.45 GiB
-  peak allocation. Other-machine verification and teammate approvals remain unconfirmed. The
-  No main baseline training has started.
+  peak allocation. The active any-machine G2 report now passes all amended checks; canonical
+  full-scale G1/G2 and G4 remain unclaimed. No main baseline training has started.
+- Terra's read-only audit hardening is complete in the dirty workspace: source,
+  provenance, and environment evidence identities are checked against actual files;
+  structured PASS results, finite losses, ordered cursor/hash identities, and complete
+  checkpoint equality are required. Fresh bounded evidence is
+  `runs/reduced_campaign/reduced_5pct_v1/g2_recovery_luna_fix3/evidence.json` and the
+  regenerated report is `runs/reduced_campaign/g2_report_luna_final.json`.
+- Terra's final read-only review is **APPROVED** for active reduced any-compatible-machine
+  G2. Remaining verification limitations are the two protected-residue alignment-test
+  failures and unavailable Docker/Ruff tooling; neither changes the reduced G2 evidence.
 
 - The reduced 5% expansion now has a scope-bound aggregate PASS at
   `runs/reduced_campaign/reduced_5pct_v1/aggregate.json`: 550,094,903 selected stable tokens,
   fresh recovery, and a new real-shard profile with 1,901.95 optimizer seconds. The first
   aggregate failure is retained as `aggregate_failed_parser_bug.json`; a bounded manifest-parser
   compaction defect was fixed and the focused verifier/aggregate tests passed. This does not claim
-  the original 11B-token G1 threshold, other-machine verification, baseline training, G2/G4, or
+  the original 11B-token G1 threshold, baseline training, canonical G3/G4, or
   release approval.
+
+- The stale pre-expansion wording in `docs/REDUCED_CAMPAIGN.md` describes the earlier
+  `slice_topup` checkpoint. For current G2 preparation use [G2_HANDOFF.md](G2_HANDOFF.md)
+  and the reduced aggregate above; no baseline launch is authorized by this handoff.
 
 - V3 supersedes v2's short-answer over-quarantine; the original state and migration
   evidence are preserved. Short standalone fields and paraphrases remain limitations.
@@ -88,9 +105,9 @@ implement or review repository work; do not duplicate the same long-running job.
   The September 5 G4 target is unmet. Full unchanged campaign timing is unsupported;
   sustained real-shard training throughput and a viable accepted-data yield remain required.
 - The saved 1% state and Hugging Face cache are local, ignored artifacts. A replacement
-  agent on this machine must check for an existing `scripts/prepare_corpus.py` process and
-  monitor it rather than launching a duplicate. A different machine needs an explicit
-  state/cache transfer or a fresh run.
+  agent must check for an existing `scripts/prepare_corpus.py` process and monitor it rather
+  than launching a duplicate. Active G2 can be rerun on any compatible machine from its
+  declared inputs.
 - Saved states: `data/pipeline/slice_1pct_v3/state.sqlite` (original) and
   `data/pipeline/slice_1pct_v3_topup/state.sqlite` (top-up). The viewer default still shows the
   retained v2 state; pass an explicit state path when inspecting either v3 state. The completed

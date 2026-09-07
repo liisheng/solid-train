@@ -63,10 +63,19 @@ def main():
             subprocess.run(base + extra, stdout=log, stderr=subprocess.STDOUT, check=True)
     a = load_verified_checkpoint(uninterrupted / "latest.pt")
     b = load_verified_checkpoint(resumed / "latest.pt")
-    compared = ["model", "optimizer", "scaler", "rng_state", "data_rng_state", "counters",
-                "run_id", "best_validation_state", "schedule_cursor", "schedule_content_hash"]
+    # Compare every durable checkpoint field.  The only justified differences are
+    # run-location and resume-control CLI metadata embedded in training_args; these
+    # do not affect continuation state and are checked for presence by key equality.
+    compared = sorted(a.keys())
+    assert a.keys() == b.keys(), (sorted(a.keys()), sorted(b.keys()))
     for key in compared:
-        assert_equal(a[key], b[key], key)
+        if key == "training_args":
+            left = dict(a[key]); right = dict(b[key])
+            for excluded in ("run_dir", "resume", "stop_after_updates", "stop_after_training_seconds"):
+                left.pop(excluded, None); right.pop(excluded, None)
+            assert_equal(left, right, f"{key} (excluding run-location/resume controls)")
+        else:
+            assert_equal(a[key], b[key], key)
     rows = [json.loads(row) for row in (uninterrupted / "metrics.jsonl").read_text().splitlines()]
     resumed_rows = [json.loads(row) for row in (resumed / "metrics.jsonl").read_text().splitlines()]
     expected_cursor = 0
@@ -83,7 +92,9 @@ def main():
         assert interrupted["train_batch_reference_hash"] == expected_hash, (index, "interrupted")
         batch_reference_hashes.append(expected_hash)
     assert len(rows) == len(resumed_rows) == 8
-    assert rows[-1]["validation_loss"] < rows[0]["validation_loss"]
+    losses = [float(row["validation_loss"]) for row in rows if "validation_loss" in row]
+    assert all(np.isfinite(loss) for loss in losses), losses
+    assert losses[-1] < losses[0], losses
     corrupt = args.output_dir / "deliberately_corrupt.pt"
     shutil.copyfile(resumed / "latest.pt", corrupt)
     shutil.copyfile(manifest_path_for(resumed / "latest.pt"), manifest_path_for(corrupt))
@@ -115,7 +126,8 @@ def main():
               "target_environment": {"hostname": platform.node(), "python": platform.python_version(), "platform": platform.platform()},
               "precision_policy": precision,
               "execution_policy": execution,
-              "exact_resume_fields": compared, "corruption_rejected": corruption_rejected,
+              "exact_resume_fields": compared, "resume_state_complete_equal": True,
+              "corruption_rejected": corruption_rejected,
               "training_input_identity": {
                   "base_schedule_content_hash": schedule.content_hash(),
                   "epochs": 3,
@@ -123,7 +135,7 @@ def main():
                   "expected_cursors": [row["schedule_cursor"] for row in rows],
                   "batch_reference_hashes": batch_reference_hashes,
               },
-              "validation_losses": [rows[0]["validation_loss"], rows[-1]["validation_loss"]],
+              "validation_losses": losses,
               "export": report.to_dict()}
     (args.output_dir / "evidence.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))

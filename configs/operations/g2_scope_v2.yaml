@@ -1,0 +1,40 @@
+# Narrow, user-authorized G2 scope amendment.  The frozen operations measurement
+# protocol remains unchanged; this file changes only the active reduced-campaign
+# interpretation of the cross-machine artifact requirement.
+protocol: g2_scope
+version: v2
+frozen: true
+scope: reduced_5pct_v1
+amendment_date: 2026-09-07
+supersedes_for_active_scope:
+  historical_requirement: other_machine_evaluates_artifact
+  replacement_requirement: fresh_process_evaluates_source_artifact
+  reason: user_authorized_any_compatible_machine_execution
+machine_policy:
+  compatible_machine_allowed: true
+  machine_identity_required_for_pass: false
+  capability_and_correctness_required: true
+  preserve_environment_facts: true
+requirements:
+  - real_shards_train_and_loss_decreases
+  - interruption_resume_matches_fixture
+  - corruption_fails_closed
+  - export_reload_matches
+  - fresh_process_evaluates_source_artifact
+source_artifact:
+  export_role: source_engineering_export
+  provenance_role: source_step_zero_provenance
+  export_path: runs/reduced_campaign/reduced_5pct_v1/recovery/engineering_export.pt
+  export_size: 199464398
+  export_sha256: 6bb259e6a0b8434f880ed2dbffac4c466aa0611c99f3e27025e7ced0990879a2
+  provenance_path: runs/reduced_campaign/reduced_5pct_v1/recovery/resumed/step_zero_provenance.json
+  provenance_size: 1177
+  provenance_sha256: 3ab6ce1ee5c114cca7e3d1a5006d927a38ef6e1901dd024fe7143349323c2a66
+  evaluation: existing_verify_release_fixed_batch_inference
+  substitution: fail_closed
+reporting:
+  reduced_scope_pass: all_requirements_pass
+  canonical_full_scale_g1: NOT_RUN
+  canonical_full_scale_g2: NOT_RUN
+  canonical_status_after_reduced_pass: G2_PASS_UNDER_AMENDED_SCOPE
+  retain_historical_v1_evidence: true

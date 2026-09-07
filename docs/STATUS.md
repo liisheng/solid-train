@@ -12,8 +12,8 @@ comparison. The original gate table is retained; reduced scope does not imply it
 |---|---|
 | Last updated | 2026-09-07 17:12 UTC+8 |
 | Current milestone | **G2 — Reduced any-machine verification PASS** |
-| Current branch | **`g2`** |
-| Last verified implementation | **Reviewed G2 implementation on `g2` over `67141a7`**: any-machine scope amendment, fresh local real-shard recovery, source-export verification, and reduced G2 report. User authorized commit/push; generated build metadata remains excluded. |
+| Current branch | **`g2-any-machine`** |
+| Last verified implementation | **Reviewed G2 implementation on `g2-any-machine` at `f4b5c87`**: any-machine scope amendment, fresh local real-shard recovery, source-export verification, and reduced G2 report. User authorized commit/push; generated build metadata remains excluded. |
 
 ## Milestones
 

@@ -41,6 +41,7 @@ from tinybench_lm.evaluation_protocol import (
     write_run_bundle,
 )
 from tinybench_lm.lm_eval_adapter import SUPPORTED_PRECISIONS, TinyBenchHarnessLM
+from tinybench_lm.evaluation_tasks import resolve_harness_tasks
 
 
 class _Tee:
@@ -110,12 +111,12 @@ def main() -> None:
     parser.add_argument(
         "--protocol",
         type=Path,
-        default=PROVISIONAL_PROTOCOL_PATH,
+        default=PROVISIONAL_PROTOCOL_PATH.with_name("evaluation_provisional_v2.yaml"),
         help="Frozen evaluation protocol that defines and labels this run",
     )
     parser.add_argument(
         "--tasks",
-        default="hellaswag,arc_easy,piqa,winogrande",
+        default="hellaswag,arc_easy,piqa,winogrande,wikitext103",
         help="Comma-separated tasks. Defaults to the provisional required commonsense set.",
     )
     parser.add_argument(
@@ -207,7 +208,7 @@ def main() -> None:
     captured = io.StringIO()
     candidates = {
         "model": model,
-        "tasks": tasks,
+        "tasks": resolve_harness_tasks(tasks, protocol),
         "num_fewshot": num_fewshot,
         "limit": args.limit,
         "bootstrap_iters": bootstrap_iters,

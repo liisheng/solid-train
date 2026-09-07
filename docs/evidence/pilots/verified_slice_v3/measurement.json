@@ -1,0 +1,138 @@
+{
+  "updates": 64,
+  "loss_tokens": 16777216,
+  "training_seconds": 285.5615403999982,
+  "post_warmup_tps": 59006.5750675637,
+  "peak_vram_gib": 5.399240970611572,
+  "validation": [
+    {
+      "step": 0,
+      "validation_loss": 9.113659858703613,
+      "validation_perplexity": 9078.460045544887
+    },
+    {
+      "step": 15,
+      "validation_loss": 7.457047939300537,
+      "validation_perplexity": 1732.027452726132
+    },
+    {
+      "step": 31,
+      "validation_loss": 7.259457588195801,
+      "validation_perplexity": 1421.4852976504294
+    },
+    {
+      "step": 47,
+      "validation_loss": 6.9849467277526855,
+      "validation_perplexity": 1080.2488689147217
+    },
+    {
+      "step": 63,
+      "validation_loss": 6.803170204162598,
+      "validation_perplexity": 900.6981674132358
+    }
+  ],
+  "assignments": [
+    [
+      "reserved",
+      "reserved_edu_decile",
+      684,
+      597228
+    ],
+    [
+      "reserved",
+      "reserved_math_prose",
+      99,
+      199779
+    ],
+    [
+      "reserved",
+      "reserved_science",
+      883,
+      1367082
+    ],
+    [
+      "reserved",
+      "reserved_textbook",
+      905,
+      561907
+    ],
+    [
+      "reserved",
+      "reserved_wikipedia",
+      91,
+      785008
+    ],
+    [
+      "stable_train",
+      "dclm",
+      28701,
+      22000836
+    ],
+    [
+      "stable_train",
+      "fineweb_edu",
+      69512,
+      77001870
+    ],
+    [
+      "stable_train",
+      "narrative",
+      15,
+      1054961
+    ],
+    [
+      "stable_train",
+      "openwebmath",
+      2338,
+      4443709
+    ],
+    [
+      "validation_dev",
+      "dclm",
+      49,
+      30060
+    ],
+    [
+      "validation_dev",
+      "fineweb_edu",
+      100,
+      105353
+    ],
+    [
+      "validation_dev",
+      "narrative",
+      1,
+      303177
+    ],
+    [
+      "validation_dev",
+      "openwebmath",
+      9,
+      17790
+    ],
+    [
+      "validation_final",
+      "dclm",
+      40,
+      30127
+    ],
+    [
+      "validation_final",
+      "fineweb_edu",
+      89,
+      105754
+    ],
+    [
+      "validation_final",
+      "narrative",
+      4,
+      4699
+    ],
+    [
+      "validation_final",
+      "openwebmath",
+      10,
+      11116
+    ]
+  ]
+}

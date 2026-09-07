@@ -1,0 +1,110 @@
+{
+  "label": "PILOT_ONLY_PROVISIONAL_NOT_OFFICIAL",
+  "results": {
+    "arc_easy": {
+      "acc,none": 0.26,
+      "acc_norm,none": 0.24,
+      "acc_norm_stderr,none": "N/A",
+      "acc_stderr,none": "N/A",
+      "alias": "arc_easy",
+      "name": "arc_easy",
+      "sample_len": 100
+    },
+    "hellaswag": {
+      "acc,none": 0.27,
+      "acc_norm,none": 0.28,
+      "acc_norm_stderr,none": "N/A",
+      "acc_stderr,none": "N/A",
+      "alias": "hellaswag",
+      "name": "hellaswag",
+      "sample_len": 100
+    },
+    "piqa": {
+      "acc,none": 0.5,
+      "acc_norm,none": 0.45,
+      "acc_norm_stderr,none": "N/A",
+      "acc_stderr,none": "N/A",
+      "alias": "piqa",
+      "name": "piqa",
+      "sample_len": 100
+    },
+    "wikitext": {
+      "alias": "wikitext",
+      "bits_per_byte,none": 2.5048841498620567,
+      "bits_per_byte_stderr,none": "N/A",
+      "byte_perplexity,none": 5.676037613889016,
+      "byte_perplexity_stderr,none": "N/A",
+      "name": "wikitext",
+      "sample_len": 62,
+      "word_perplexity,none": 10770.102413652216,
+      "word_perplexity_stderr,none": "N/A"
+    },
+    "winogrande": {
+      "acc,none": 0.44,
+      "acc_stderr,none": "N/A",
+      "alias": "winogrande",
+      "name": "winogrande",
+      "sample_len": 100
+    }
+  },
+  "sample_counts": {
+    "arc_easy": {
+      "effective": 100,
+      "original": 2376
+    },
+    "hellaswag": {
+      "effective": 100,
+      "original": 10042
+    },
+    "piqa": {
+      "effective": 100,
+      "original": 1838
+    },
+    "wikitext": {
+      "effective": 62,
+      "original": 62
+    },
+    "winogrande": {
+      "effective": 100,
+      "original": 1267
+    }
+  },
+  "runtime_seconds": {
+    "total": 135.23553910000192
+  },
+  "checkpoint_sha256": "99a87b03d1d55bff5986241a2c4b13d3d4f9fcf36262a908f53d27986027107f",
+  "bundle_integrity_checks_passed": 12,
+  "semantic_issue": "Default harness wikitext uses wikitext-2-raw-v1; protocol mapping to wikitext_103_perplexity is incorrect. This result is NOT WikiText-103. Separate explicit pinned WikiText-103 pilot is supplied.",
+  "actual_dataset_configs": {
+    "arc_easy": {
+      "dataset_path": "allenai/ai2_arc",
+      "dataset_name": "ARC-Easy",
+      "test_split": "test",
+      "validation_split": "validation"
+    },
+    "hellaswag": {
+      "dataset_path": "Rowan/hellaswag",
+      "dataset_name": null,
+      "test_split": null,
+      "validation_split": "validation"
+    },
+    "piqa": {
+      "dataset_path": "baber/piqa",
+      "dataset_name": null,
+      "test_split": null,
+      "validation_split": "validation"
+    },
+    "wikitext": {
+      "dataset_path": "EleutherAI/wikitext_document_level",
+      "dataset_name": "wikitext-2-raw-v1",
+      "test_split": "test",
+      "validation_split": "validation"
+    },
+    "winogrande": {
+      "dataset_path": "allenai/winogrande",
+      "dataset_name": "winogrande_xl",
+      "test_split": null,
+      "validation_split": "validation"
+    }
+  }
+}

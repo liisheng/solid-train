@@ -1,0 +1,46 @@
+{
+  "recorded_at": "2026-09-06T01:19:00+08:00",
+  "decontamination_counts": [
+    [
+      "KEEP",
+      "CLEAN",
+      123754
+    ],
+    [
+      "QUARANTINE",
+      "BENCHMARK_CONTIGUOUS_OVERLAP",
+      219
+    ],
+    [
+      "QUARANTINE",
+      "BENCHMARK_ITEM_SUBSTRING",
+      86
+    ],
+    [
+      "QUARANTINE",
+      "BENCHMARK_SHINGLE_COVERAGE",
+      91
+    ]
+  ],
+  "assignments": [
+    [
+      "reserved",
+      "reserved_science",
+      883
+    ],
+    [
+      "reserved",
+      "reserved_textbook",
+      905
+    ],
+    [
+      "reserved",
+      "reserved_wikipedia",
+      91
+    ]
+  ],
+  "scan_started_at": "2026-09-05T22:28:24+08:00",
+  "scan_observed_complete_at": "2026-09-06T01:16:13+08:00",
+  "scan_duration_upper_bound_seconds": 10069,
+  "note": "Original run paused after scan completion to add missing cluster index. Exact scan stage timer was not flushed before pause; upper bound only."
+}

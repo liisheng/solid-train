@@ -1,0 +1,48 @@
+{
+  "scope": "PILOT_ONLY",
+  "final_use_prohibited": true,
+  "actual_vocab_size": 12288,
+  "train_tokens": 16696140,
+  "validation_tokens": 324486,
+  "documents": {
+    "train": 21583,
+    "validation": 417
+  },
+  "source_tokens": {
+    "dclm": 17020626
+  },
+  "source_state": "D:\\SWE\\benchmark-50m-lm\\data\\pipeline\\slice_1pct_v3\\state.sqlite",
+  "decontamination_counts": [
+    [
+      "KEEP",
+      "CLEAN",
+      123754
+    ],
+    [
+      "QUARANTINE",
+      "BENCHMARK_CONTIGUOUS_OVERLAP",
+      219
+    ],
+    [
+      "QUARANTINE",
+      "BENCHMARK_ITEM_SUBSTRING",
+      86
+    ],
+    [
+      "QUARANTINE",
+      "BENCHMARK_SHINGLE_COVERAGE",
+      91
+    ]
+  ],
+  "decontamination_protocol_digest": "66abe996a08ede1e09f4562c5bbbc42a94adf506be2d035751170b41c2c8c041",
+  "benchmark_sha256": "976f81cfef5ef3d6ff9d3d608c482b348e1e9606acec1dfd261d2f235536fa4d",
+  "cluster_isolation": true,
+  "all_cluster_members_decontamination_keep": true,
+  "hashes": {
+    "documents.jsonl": "0f8f38bf79b1cd9ed82abc5a474e256993eac7c039d3e3c749340b11a34a5c8d",
+    "tokenizer.json": "2103d520df7a23490054cff474f5c0e0f241bb56b51051284ab92889a683c635",
+    "train.bin": "5a3936b4e58c92a2a132e71cf37d2fc3e2c58dd026d9fd321a73821dc2bb7f00",
+    "validation.bin": "abe22f34ac4c3666449e7a71571fecef910db239d019820bd50e7443a1c7d679"
+  },
+  "limitations": "Engineering subset, random flat sampler; not frozen production splits or source mixture. Do not resume this checkpoint as final campaign model."
+}

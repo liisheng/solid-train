@@ -19,8 +19,8 @@ Three properties matter more than convenience here:
    never rewritten by anything in this module.
 
 Nothing here downloads benchmark data or scans a real corpus. The default v1 remains the
-provisional evaluation contract; ``decontam_v2`` is an explicit production input that pins
-the public benchmark revisions used by the G1 corpus scanner.
+provisional evaluation contract; ``decontam_v3`` is the explicit production input. It
+retains v2's benchmark pins and corrects standalone short-answer over-quarantine.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DATA_PROTOCOL_DIR = REPOSITORY_ROOT / "configs" / "data"
 DEDUP_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "dedup_v1.yaml"
 DECONTAM_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "decontam_v1.yaml"
-PRODUCTION_DECONTAM_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "decontam_v2.yaml"
+PRODUCTION_DECONTAM_PROTOCOL_PATH = DATA_PROTOCOL_DIR / "decontam_v3.yaml"
 
 #: SHA-256 of each frozen protocol, computed over file bytes with CRLF normalized to LF.
 #: These digests are the freeze. Editing a `v1` config without publishing a `v2` makes
@@ -47,6 +47,7 @@ FROZEN_PROTOCOL_SHA256: Mapping[str, str] = {
     "dedup_v1.yaml": "81ede480e48c094814e1be1e036559ba9fd72e9c9df1c4a3e3437b8ab9fb80f7",
     "decontam_v1.yaml": "b17130c573f1feb25c07d58f64e1b03ee0e55ff994c330ce43df9b853c61391c",
     "decontam_v2.yaml": "a50dbb7145e9d95dd6c9a927afe0d06cb89a5a320821eba2cd7e176ba715e3ea",
+    "decontam_v3.yaml": "66abe996a08ede1e09f4562c5bbbc42a94adf506be2d035751170b41c2c8c041",
 }
 
 #: Reason codes. Every decision carries exactly one primary code from this vocabulary.

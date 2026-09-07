@@ -23,13 +23,32 @@ decontamination, boundary assignment, and atomic publication.
   the final decision. Document n-grams are the forced outer side of short-text lookups so
   SQLite performs targeted primary-key probes instead of rescanning the benchmark index for
   every document.
+- The active `decontam_v3.yaml` requires 13 normalized words in a complete matched field.
+  Standalone answers such as `2` no longer trigger quarantine. The 50-word overlap and
+  shingle-coverage rules are unchanged. This also leaves short copied questions and
+  paraphrases outside the detector's guarantees. V2 remains frozen historical evidence.
 - A resumed state must match acquisition, source, filter, dedup, and tokenizer identities.
+  Decontamination additionally binds the rule digest and benchmark-input hash; unbound
+  legacy decisions and mismatches fail closed, including before CLI assignment/publication.
 - Decontamination decisions commit in restart-safe batches; a failed partial batch rolls
-  back while earlier complete batches remain resumable.
+  back while earlier complete batches remain resumable. Each bounded read batch closes
+  before writes so a full-scan cursor cannot pin the SQLite write log across commits.
 - Accepted text and the text-free decision ledger publish together through one sibling
   staging-directory rename. Their shared target directory must not already exist.
 
 ## Evidence
+
+Use `scripts/fork_decontamination_v3.py` only after stopping the source writer to recover
+an unpublished v2 run. It takes a consistent SQLite backup (including committed WAL pages)
+into a new staging directory, validates it, removes only the copied decontamination rows,
+binds v3, records source-snapshot and destination hashes, and publishes the new directory.
+The source state is retained. Existing destinations and any downstream selections are
+refused. Legacy v2 protocol identity must be explicitly attested because old states did
+not record that binding. The immutable benchmark index can be reused specifically from
+v2 to v3 because normalization, source fields, and indexed shingles did not change;
+the index keeps its original v2 digest. Other protocol mismatches remain errors.
+
+See `REPRODUCING_THE_CORPUS.md` for the migration and resume commands.
 
 The pipeline evidence JSON is `PASS` only for an end-to-end run whose selections reach all
 targets, whose accepted corpus and decision ledger are published, whose every accepted

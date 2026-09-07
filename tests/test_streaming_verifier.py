@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import io
 from pathlib import Path
 
 from tinybench_lm.shards import (
@@ -17,7 +18,7 @@ from tinybench_lm.shards import (
     write_split_manifest,
 )
 from tinybench_lm.source_manifest import load_source_registry
-from tinybench_lm.streaming_verify import verify_shard_outputs_streaming
+from tinybench_lm.streaming_verify import _JsonStream, verify_shard_outputs_streaming
 from tinybench_lm.tokenizer import load_tokenizer_artifact, load_tokenizer_protocol
 
 
@@ -63,6 +64,12 @@ def test_streaming_verifier_parses_one_shard_at_a_time(tmp_path: Path) -> None:
     assert not any(item.status == "FAIL" for item in report.results), [item.__dict__ for item in report.results if item.status == "FAIL"]
     assert report.facts["manifests"] == 4
     assert all(item.status != "PASS" for item in report.results if item.check_id.startswith("shards.stable_share."))
+
+
+def test_json_stream_string_survives_compaction_before_opening_quote() -> None:
+    stream = _JsonStream(io.StringIO('xxxxx"boundary-safe"'), chunk_size=4)
+    stream.position = 5
+    assert stream.string() == "boundary-safe"
 
 
 def test_streaming_verifier_rejects_manifest_content_hash_tampering(tmp_path: Path) -> None:

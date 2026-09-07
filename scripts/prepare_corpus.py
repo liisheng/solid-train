@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import itertools
 import json
 import math
@@ -15,7 +14,7 @@ from typing import Iterable, Iterator
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
 
-from tinybench_lm.benchmark_index import BenchmarkIndex  # noqa: E402
+from tinybench_lm.benchmark_index import BenchmarkIndex, file_sha256  # noqa: E402
 from tinybench_lm.corpus_pipeline import (  # noqa: E402
     CorpusPipelineError,
     CorpusState,
@@ -24,7 +23,7 @@ from tinybench_lm.corpus_pipeline import (  # noqa: E402
     iter_huggingface_source,
     load_acquisition_protocol,
 )
-from tinybench_lm.data_protocols import load_decontamination_protocol  # noqa: E402
+from tinybench_lm.data_protocols import PRODUCTION_DECONTAM_PROTOCOL_PATH, load_decontamination_protocol  # noqa: E402
 from tinybench_lm.source_manifest import FINAL_TOKEN_COUNTER_ID, load_source_registry  # noqa: E402
 from tinybench_lm.tokenizer import load_tokenizer_artifact  # noqa: E402
 
@@ -118,9 +117,7 @@ def main() -> int:
         raise SystemExit("the full source scan requires --confirm-full-scan after slice forecasts are reviewed")
     acquisition = load_acquisition_protocol()
     registry = load_source_registry()
-    decontamination = load_decontamination_protocol(
-        REPOSITORY_ROOT / "configs" / "data" / "decontam_v2.yaml"
-    )
+    decontamination = load_decontamination_protocol(PRODUCTION_DECONTAM_PROTOCOL_PATH)
     tokenizer, _ = load_tokenizer_artifact(args.tokenizer_dir)
     token_counter = lambda text: len(tokenizer.encode(text).ids)
     assert_write_space(args.state.parent, acquisition)
@@ -209,6 +206,9 @@ def main() -> int:
                 "documents_processed": processed,
             }
         if "assign" in stages:
+            state.bind_decontamination(
+                decontamination["_digest"], str(acquisition["decontamination"]["benchmark_items_sha256"])
+            )
             stage_started = time.perf_counter()
             selection_results = state.assign_production(target_fraction=args.target_fraction)
             incomplete = [result for result in selection_results if not result.complete]
@@ -223,6 +223,9 @@ def main() -> int:
                 "selected_tokens": sum(item.selected_tokens for item in selection_results),
             }
         if "publish" in stages:
+            state.bind_decontamination(
+                decontamination["_digest"], str(acquisition["decontamination"]["benchmark_items_sha256"])
+            )
             stage_started = time.perf_counter()
             accepted_rows, accepted_hash, decision_rows, decisions_hash = state.publish_jsonl_bundle(
                 args.accepted_output, args.decisions_output
@@ -254,7 +257,7 @@ def main() -> int:
         ) and coverage_complete and isolation["status"] == "PASS"
         state.connection.commit()
         state.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        state_sha256 = hashlib.sha256(args.state.read_bytes()).hexdigest()
+        state_sha256 = file_sha256(args.state)
         evidence = {
             "status": "PASS" if complete_run else "NOT_RUN",
             "scale": "FULL" if args.target_fraction == 1 else "SLICE",

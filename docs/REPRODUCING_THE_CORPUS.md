@@ -103,7 +103,7 @@ This stage does not claim global near-dedup/isolation evidence.
 
 ## Rebuilding the benchmark quarantine inputs
 
-The production decontamination protocol is `configs/data/decontam_v2.yaml`. It pins all
+The production decontamination protocol is `configs/data/decontam_v3.yaml`. It retains all
 required and secondary public benchmark datasets plus the lm-evaluation-harness commit used
 for G1. Recreate the local, gitignored benchmark-item body with:
 
@@ -117,6 +117,12 @@ committed evidence manifest. A matching run contains 1,362,239 usable rows and h
 Blank WikiText rows are excluded and counted in the manifest; no other benchmark fields or
 metadata are added implicitly. PIQA, LogiQA, and MathQA require their reviewed dataset loader
 code, whose expected SHA-256 values are frozen in the protocol.
+
+The existing input manifest records the v2 acquisition; its byte hash remains valid for
+v3 because input fields and pins are unchanged. V3 requires at least 13 normalized words
+for a standalone complete-field match, correcting v2's blanket matching of short answers.
+The other overlap rules are unchanged. The correction does not detect every short copied
+question or paraphrase, and no claim of complete contamination absence is made.
 
 ## Running a pipeline slice
 
@@ -156,6 +162,42 @@ To observe a local run without modifying its state, use the read-only progress v
 ```
 
 `Ctrl+C` stops only the viewer; it does not stop the corpus pipeline.
+
+### Recovering the paused v2 slice under v3
+
+Stop the source pipeline first. Preserve `slice_1pct.state.sqlite` and its SQLite sidecars;
+never copy only the main file while a WAL exists. This migration creates a separate state
+with SQLite's backup API and refuses to overwrite any destination or invalidate selections:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\fork_decontamination_v3.py `
+  --source data\pipeline\slice_1pct.state.sqlite `
+  --destination data\pipeline\slice_1pct_v3 `
+  --legacy-protocol-digest a50dbb7145e9d95dd6c9a927afe0d06cb89a5a320821eba2cd7e176ba715e3ea
+```
+
+The digest is the explicit historical v2 attestation for the legacy unbound decisions.
+The new directory contains `state.sqlite` and `migration.json`. Acquisition, source cursors,
+filtering, and deduplication are copied intact; only decontamination is recomputed. The
+existing benchmark index is reusable without downloading or reindexing benchmark data.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\prepare_corpus.py --stage all `
+  --state data\pipeline\slice_1pct_v3\state.sqlite `
+  --cache-dir data\hf_cache `
+  --benchmark-index data\pipeline\benchmark_index.sqlite `
+  --accepted-output data\pipeline\slice_1pct_v3_output\accepted.jsonl `
+  --decisions-output data\pipeline\slice_1pct_v3_output\decisions.jsonl `
+  --evidence-output runs\bench\slice_1pct_v3.pipeline.json `
+  --target-fraction 0.01
+
+.\.venv\Scripts\python.exe scripts\show_corpus_progress.py `
+  --state data\pipeline\slice_1pct_v3\state.sqlite --watch 15
+```
+
+The original viewer command still addresses the preserved historical state. Use the explicit
+v3 state path above to follow the corrected run. A completed decontamination scan does not
+guarantee that every source or reserved-pool selection quota will be met.
 
 Do not run `--target-fraction 1` from an estimate. The CLI requires the explicit
 `--confirm-full-scan` switch, and that switch should be used only after the 1% and 2–5%

@@ -14,6 +14,7 @@ from .data_protocols import (
     KEEP,
     QUARANTINE,
     DecontaminationDecision,
+    FROZEN_PROTOCOL_SHA256,
     RuleMatch,
     load_decontamination_protocol,
     normalize_for_matching,
@@ -145,12 +146,28 @@ class BenchmarkIndex:
         row = self.connection.execute(
             "SELECT value FROM metadata WHERE key = 'protocol_digest'"
         ).fetchone()
-        if row and str(row[0]) != expected:
+        # V3 only raises the rule-1 matching threshold. V2 stored every field and
+        # every 13-word shingle, so its index bytes also cover v3 exactly. Never
+        # relabel that historical index or permit any other protocol mismatch.
+        compatible_v2 = (
+            row is not None
+            and str(row[0]) == FROZEN_PROTOCOL_SHA256["decontam_v2.yaml"]
+            and expected == FROZEN_PROTOCOL_SHA256["decontam_v3.yaml"]
+        )
+        if row and str(row[0]) != expected and not compatible_v2:
             raise BenchmarkIndexError("benchmark index was built under a different decontamination protocol")
         with self.connection:
             self.connection.execute(
                 "INSERT OR IGNORE INTO metadata VALUES ('protocol_digest', ?)", (expected,)
             )
+
+    @property
+    def source_sha256(self) -> str:
+        self._require_complete()
+        row = self.connection.execute("SELECT value FROM metadata WHERE key = 'source_sha256'").fetchone()
+        if row is None:
+            raise BenchmarkIndexError("benchmark index has no source binding")
+        return str(row[0])
 
     def build(
         self,
@@ -257,12 +274,13 @@ class BenchmarkIndex:
         self._require_complete()
         normalized = normalize_for_matching(text, self.protocol)
         words = normalized.split()
+        minimum_item_words = int(rule_by_id(self.protocol, "RULE_1_COMPLETE_ITEM_SUBSTRING")["minimum_item_words"])
         self.connection.execute(
             "CREATE TEMP TABLE IF NOT EXISTS doc_ngrams(size INTEGER, position INTEGER, digest BLOB, PRIMARY KEY(size, position)) WITHOUT ROWID"
         )
         self.connection.execute("DELETE FROM doc_ngrams")
         values: list[tuple[int, int, bytes]] = []
-        for size in range(1, min(12, len(words)) + 1):
+        for size in range(minimum_item_words, min(12, len(words)) + 1):
             values.extend((size, position, digest) for position, digest in _ngrams(words, size))
         values.extend((13, position, digest) for position, digest in _ngrams(words, 13))
         self.connection.executemany("INSERT INTO doc_ngrams VALUES (?, ?, ?)", values)
@@ -277,7 +295,7 @@ class BenchmarkIndex:
         matched_13: dict[str, list[tuple[bytes, int]]] = {}
         for row in self.connection.execute(
             """
-            SELECT s.text_key, s.digest, g.position, t.item_key, i.task_id, i.item_id,
+            SELECT s.text_key, s.digest, g.position, t.item_key, t.text_index, i.task_id, i.item_id,
                    t.normalized, t.word_count
             FROM shingles_13 s JOIN doc_ngrams g ON g.size = 13 AND g.digest = s.digest
             JOIN texts t USING(text_key) JOIN items i USING(item_key)
@@ -287,7 +305,7 @@ class BenchmarkIndex:
             key = str(row["text_key"])
             item_rows[key] = row
             matched_13.setdefault(key, []).append((bytes(row["digest"]), int(row["position"])))
-            if f" {str(row['normalized'])} " in f" {normalized} ":
+            if int(row["word_count"]) >= minimum_item_words and f" {str(row['normalized'])} " in f" {normalized} ":
                 substring_keys.add(key)
 
         # Any 50-word overlap necessarily shares at least one 13-word shingle, so the
@@ -300,7 +318,7 @@ class BenchmarkIndex:
         for key in sorted(substring_keys, key=lambda value: (str(item_rows[value]["item_key"]), int(item_rows[value]["text_index"]))):
             row = item_rows[key]
             # Hashes only propose candidates; verify the complete word-boundary-aligned text.
-            if f" {str(row['normalized'])} " in f" {normalized} ":
+            if int(row["word_count"]) >= minimum_item_words and f" {str(row['normalized'])} " in f" {normalized} ":
                 rule1_by_item.setdefault(
                     str(row["item_key"]),
                     RuleMatch(

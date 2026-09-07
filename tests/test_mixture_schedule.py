@@ -31,6 +31,7 @@ from hypothesis import given, settings, strategies as st
 
 from tinybench_lm.data import SAMPLER_SCOPE, PackedTokenDataset
 from tinybench_lm.data_protocols import ProtocolMutatedError, protocol_digest
+from tinybench_lm.repeated_schedule import RepeatedScheduledStream
 from tinybench_lm.schedule import (
     CURSOR_STATE_KEY,
     FROZEN_SCHEDULE_PROTOCOL_SHA256,
@@ -532,6 +533,8 @@ def test_reads_are_memory_mapped_and_match_the_referenced_shard_tokens(
         inputs, targets = stream.get_batch(3, 6, CPU)
         assert inputs.shape == (3, 6) and targets.shape == (3, 6)
         assert torch.equal(inputs[:, 1:], targets[:, :-1])
+        assert stream.last_batch_entries == schedule.entries[:3]
+        assert stream.last_batch_reference_hash == training_order_hash(schedule.entries[:3])
 
         for position, entry in enumerate(schedule.entries[:3]):
             record = records[entry.shard_id]
@@ -542,6 +545,31 @@ def test_reads_are_memory_mapped_and_match_the_referenced_shard_tokens(
             raw._mmap.close()
         # The reader memory-maps each shard once instead of re-opening per sequence.
         assert set(stream._memmaps) <= set(records)
+    finally:
+        stream.close()
+
+
+# **Validates: Requirements 1.1, 2.1, 2.2**
+def test_optimizer_update_reference_hash_covers_all_microbatches_across_a_repeat_boundary(
+    shard_root: Path, manifest: SplitManifest
+) -> None:
+    """A final-microbatch hash must not stand in for the update's exposure order."""
+    available = available_sequences_per_source(manifest, sequence_length=8)
+    quotas = {source_id: 1 for source_id in available}
+    schedule = build_materialized_schedule(
+        manifest, sequence_length=8, seed=91, source_sequence_quotas=quotas, local_shuffle_buffer_sequences=1
+    )
+    base = ScheduledTokenStream(shard_root, manifest, schedule)
+    stream = RepeatedScheduledStream(base, 2)
+    try:
+        # The second microbatch wraps from pass one into pass two.
+        stream.get_batch(schedule.sequence_count - 1, 8, CPU)
+        first = stream.last_batch_entries
+        stream.get_batch(2, 8, CPU)
+        second = stream.last_batch_entries
+        update_entries = first + second
+        assert update_entries == schedule.entries[:-1] + (schedule.entries[-1], schedule.entries[0])
+        assert training_order_hash(update_entries) != training_order_hash(second)
     finally:
         stream.close()
 
@@ -741,6 +769,13 @@ def test_open_batch_sources_uses_the_schedule_cursor_for_final_training(
         # needs to reproduce the consumed training input exactly.
         assert train_data.state_dict()[CURSOR_STATE_KEY] == 0
         assert validation_data.wrap is True
+        expected = validation_data.get_batch(2, 8, CPU)
+        assert validation_data.position == 2
+        validation_data.rewind()
+        assert validation_data.position == 0
+        replayed = validation_data.get_batch(2, 8, CPU)
+        assert torch.equal(expected[0], replayed[0])
+        assert torch.equal(expected[1], replayed[1])
     finally:
         train_data.close()
         validation_data.close()

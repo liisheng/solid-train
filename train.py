@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import time
 from pathlib import Path
@@ -30,7 +31,8 @@ from tinybench_lm.checkpointing import (
 )
 from tinybench_lm.data import PackedTokenDataset, TrainingSource, load_data_metadata
 from tinybench_lm.provenance import record_step_zero_provenance, write_step_zero_provenance
-from tinybench_lm.schedule import CURSOR_STATE_KEY, open_scheduled_stream
+from tinybench_lm.schedule import CURSOR_STATE_KEY, ScheduledTokenStream, open_scheduled_stream, training_order_hash
+from tinybench_lm.repeated_schedule import RepeatedScheduledStream
 from tinybench_lm.training_recipe import (
     SCOPE_FINAL,
     SCOPE_PILOT,
@@ -83,6 +85,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--shard-root", type=Path, help="root of the source-tagged uint16 shard namespaces")
     parser.add_argument("--train-manifest", type=Path, help="split manifest for the training split")
     parser.add_argument("--train-schedule", type=Path, help="materialized index schedule for training")
+    parser.add_argument("--train-epochs", type=int, default=1,
+                        help="explicit finite passes over the verified schedule; changes run identity")
     parser.add_argument("--validation-manifest", type=Path, help="split manifest for validation_dev")
     parser.add_argument("--validation-schedule", type=Path, help="materialized index schedule for validation_dev")
     parser.add_argument("--run-dir", type=Path, default=Path("runs/pilot"))
@@ -123,6 +127,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--resume", type=Path)
+    parser.add_argument(
+        "--stop-after-updates", type=int,
+        help="save and stop at this completed update count without changing the declared training horizon",
+    )
+    parser.add_argument("--stop-after-training-seconds", type=float,
+                        help="profiling: stop at an update boundary after this optimizer-time window")
     return parser.parse_args()
 
 
@@ -164,6 +174,9 @@ def open_batch_sources(args: argparse.Namespace) -> tuple[TrainingSource, Traini
         return train_data, validation_data, {"batch_source": "PILOT_ONLY random flat stream", **metadata}
 
     train_data = open_scheduled_stream(args.shard_root, args.train_manifest, args.train_schedule)
+    epochs = getattr(args, "train_epochs", 1)
+    if epochs > 1:
+        train_data = RepeatedScheduledStream(train_data, epochs)
     # Validation replays its own schedule from the start of every evaluation pass, so a short
     # validation schedule is reused rather than exhausted mid-run.
     validation_data = open_scheduled_stream(
@@ -175,6 +188,8 @@ def open_batch_sources(args: argparse.Namespace) -> tuple[TrainingSource, Traini
         "train_schedule_content_hash": train_data.content_hash,
         "train_schedule_id": train_data.schedule.schedule_id,
         "train_scheduled_sequences": train_data.schedule.sequence_count,
+        "train_epochs": epochs,
+        "train_total_scheduled_sequences": train_data.schedule.sequence_count * epochs,
         "train_sequences_per_source": train_data.schedule.sequences_per_source,
         "validation_schedule_content_hash": validation_data.content_hash,
         "validation_schedule_id": validation_data.schedule.schedule_id,
@@ -305,6 +320,10 @@ def evaluate(
     device: torch.device,
     autocast_context,
 ) -> float:
+    # Validation is a fixed replay, not a second traversal of the validation schedule.
+    # `wrap=True` only prevents exhaustion; it does not restore the initial cursor.
+    if isinstance(dataset, ScheduledTokenStream):
+        dataset.rewind()
     model.eval()
     losses = []
     for _ in range(args.eval_batches):
@@ -317,14 +336,48 @@ def evaluate(
     return torch.stack(losses).mean().item()
 
 
+def configure_strict_cuda_determinism() -> dict[str, object]:
+    """Enable CUDA's strict deterministic contract before the first model operation.
+
+    PyTorch raises if an invoked CUDA operation has no deterministic implementation.  That
+    failure is intentional: exact recovery evidence cannot silently downgrade to a
+    numerically nondeterministic execution policy.
+    """
+    requested_workspace = ":4096:8"
+    # A checkpoint resume always receives this one canonical cuBLAS policy, even if its
+    # parent process carried another legal deterministic workspace size.
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = requested_workspace
+    torch.use_deterministic_algorithms(True, warn_only=False)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.set_float32_matmul_precision("highest")
+    return {
+        "strict_deterministic_algorithms": True,
+        "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "cuda_matmul_allow_tf32": False,
+        "cudnn_allow_tf32": False,
+        "float32_matmul_precision": "highest",
+    }
+
+
 def main() -> None:
     args = parse_args()
+    if args.train_epochs < 1 or (args.train_epochs != 1 and not use_materialized_schedule(args)):
+        raise ValueError("train-epochs must be positive and requires a materialized schedule")
+    if args.stop_after_updates is not None and not 0 < args.stop_after_updates <= args.steps:
+        raise ValueError("stop-after-updates must be positive and no greater than steps")
+    if args.stop_after_training_seconds is not None and args.stop_after_training_seconds <= 0:
+        raise ValueError("stop-after-training-seconds must be positive")
     random.seed(args.seed)
     np.random.seed(args.seed)
+    deterministic_execution = configure_strict_cuda_determinism()
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
-    torch.set_float32_matmul_precision("high")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type != "cuda":
@@ -351,6 +404,7 @@ def main() -> None:
     args.warmup_steps = lr_schedule.warmup_updates
 
     train_data, validation_data, data_facts = open_batch_sources(args)
+    data_facts["execution_policy"] = deterministic_execution
     if "actual_vocab_size" in data_facts and int(data_facts["actual_vocab_size"]) > config.vocab_size:
         raise ValueError("Tokenizer vocabulary is larger than the model vocabulary")
     if data_facts["batch_source"] != "materialized index schedule":
@@ -360,6 +414,10 @@ def main() -> None:
             "exposure order are reproducible from one schedule hash and one integer cursor."
         )
     train_schedule_hash = str(data_facts.get("train_schedule_content_hash", "PILOT_ONLY_NO_SCHEDULE"))
+    available = data_facts.get("train_total_scheduled_sequences")
+    needed = args.steps * plan.loss_tokens_per_update // args.sequence_length
+    if available is not None and int(available) < needed:
+        raise ValueError(f"Training horizon needs {needed} scheduled sequences; only {available} supplied")
 
     model = TinyBenchLM(config).to(device)
     parameter_count = model.count_parameters()
@@ -530,6 +588,7 @@ def main() -> None:
     model.train()
 
     previous_record = None
+    measured_training_seconds = 0.0
     for step in range(first_step, args.steps):
         started = time.perf_counter()
         lr = lr_schedule.learning_rate(step)
@@ -540,12 +599,14 @@ def main() -> None:
         # Counted, not assumed: this is what makes "save only at accumulation boundaries"
         # checkable instead of a comment.
         pending_microbatches = 0
+        update_batch_entries = []
         # Plan Section 15 fails closed on invalid token IDs. Shard verification already bounds
         # every stored ID, so the in-loop check samples update boundaries instead of adding a
         # device synchronization to every microbatch of a multi-day run.
         check_tokens = step == first_step or (step + 1) % args.eval_interval == 0
         for _ in range(plan.gradient_accumulation):
             inputs, targets = train_data.get_batch(args.micro_batch_size, args.sequence_length, device)
+            update_batch_entries.extend(getattr(train_data, "last_batch_entries", ()))
             if check_tokens:
                 assert_valid_token_ids(inputs, config.vocab_size, name="input_ids")
                 assert_valid_token_ids(targets, config.vocab_size, name="targets", allow_ignore_index=True)
@@ -565,6 +626,7 @@ def main() -> None:
         pending_microbatches = 0
         torch.cuda.synchronize()
         elapsed = time.perf_counter() - started
+        measured_training_seconds += elapsed
 
         update_record = assert_update_record(
             build_update_record(
@@ -592,8 +654,12 @@ def main() -> None:
             "step_seconds": elapsed,
             "peak_vram_gib": torch.cuda.max_memory_allocated() / 2**30,
         }
+        # The hash must cover every scheduled sequence consumed by this optimizer
+        # update.  A last-microbatch hash cannot demonstrate the full exposure order.
+        if update_batch_entries:
+            record["train_batch_reference_hash"] = training_order_hash(update_batch_entries)
 
-        should_eval = step == first_step or (step + 1) % args.eval_interval == 0 or step + 1 == args.steps
+        should_eval = step == 0 or (step + 1) % args.eval_interval == 0 or step + 1 == args.steps
         if should_eval:
             validation_loss = evaluate(model, validation_data, args, device, autocast_context)
             record["validation_loss"] = validation_loss
@@ -617,6 +683,14 @@ def main() -> None:
             )
         if (step + 1) % args.save_interval == 0 or step + 1 == args.steps:
             write_checkpoint(args.run_dir / "latest.pt", step, pending_microbatches)
+        if args.stop_after_updates is not None and step + 1 >= args.stop_after_updates:
+            write_checkpoint(args.run_dir / "latest.pt", step, pending_microbatches)
+            print(f"Stopped safely after {step + 1} updates; declared horizon remains {args.steps}.")
+            break
+        if args.stop_after_training_seconds is not None and measured_training_seconds >= args.stop_after_training_seconds:
+            write_checkpoint(args.run_dir / "latest.pt", step, pending_microbatches)
+            print(f"Profiling window complete: {measured_training_seconds:.2f} optimizer seconds.")
+            break
 
     report_retention(args.run_dir)
 

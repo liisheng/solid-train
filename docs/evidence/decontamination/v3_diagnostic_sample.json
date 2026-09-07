@@ -1,0 +1,80 @@
+{
+  "recorded_at": "2026-09-05T20:45:36.416134+08:00",
+  "selection": "first 20 candidate document IDs per physical source; diagnostic sample, not final acceptance or sustained throughput",
+  "protocol_digest": "66abe996a08ede1e09f4562c5bbbc42a94adf506be2d035751170b41c2c8c041",
+  "sources": [
+    {
+      "source": "dclm",
+      "documents": 20,
+      "seconds": 2.054117799999858,
+      "counts": {
+        "KEEP": 20
+      },
+      "quarantine_examples": []
+    },
+    {
+      "source": "fineweb_edu",
+      "documents": 20,
+      "seconds": 1.8227500000002692,
+      "counts": {
+        "KEEP": 20
+      },
+      "quarantine_examples": []
+    },
+    {
+      "source": "narrative",
+      "documents": 20,
+      "seconds": 74.08774240000002,
+      "counts": {
+        "KEEP": 19,
+        "QUARANTINE": 1
+      },
+      "quarantine_examples": [
+        {
+          "doc_id": "narrative/gutenberg:4",
+          "reason": "BENCHMARK_SHINGLE_COVERAGE",
+          "words_or_coverage": 0.23972602739726026
+        }
+      ]
+    },
+    {
+      "source": "openwebmath",
+      "documents": 20,
+      "seconds": 0.9137263000002349,
+      "counts": {
+        "KEEP": 20
+      },
+      "quarantine_examples": []
+    },
+    {
+      "source": "reserved_textbook",
+      "documents": 20,
+      "seconds": 0.9792187999996713,
+      "counts": {
+        "KEEP": 16,
+        "QUARANTINE": 4
+      },
+      "quarantine_examples": [
+        {
+          "doc_id": "reserved_textbook/reserved_textbook:000000000004",
+          "reason": "BENCHMARK_CONTIGUOUS_OVERLAP",
+          "words_or_coverage": 97.0
+        },
+        {
+          "doc_id": "reserved_textbook/reserved_textbook:000000000005",
+          "reason": "BENCHMARK_CONTIGUOUS_OVERLAP",
+          "words_or_coverage": 280.0
+        }
+      ]
+    },
+    {
+      "source": "reserved_wikipedia",
+      "documents": 20,
+      "seconds": 8.536432500000046,
+      "counts": {
+        "KEEP": 20
+      },
+      "quarantine_examples": []
+    }
+  ]
+}

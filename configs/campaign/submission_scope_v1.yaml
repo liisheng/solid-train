@@ -1,0 +1,63 @@
+protocol: submission_scope
+version: v1
+frozen: true
+recorded_at: '2026-09-06T05:37:04.185504+08:00'
+authorization: User accepted 1B baseline, conditional 3-5B target, one optional comparison,
+  retain existing public sources and top up shortages.
+supersedes_scope_only:
+- configs/campaign/preregistration_v1.yaml
+- configs/operations/measurement_v1.yaml
+preserves:
+- Fresh weights and <=50M trainable parameters
+- Dataset provenance, v3 decontamination, duplicate-group isolation
+- Production shard integrity and deterministic schedules
+- Resume, corruption and export correctness checks
+- Honest evaluation and compute reporting
+training:
+  baseline_updates: 3815
+  loss_tokens_per_update: 262144
+  baseline_loss_tokens: 1000079360
+  conditional_total_tokens:
+  - 3000000000
+  - 5000000000
+  extension_condition: Production data throughput, release fallback, evaluation reserve
+    and dated run schedule support it. Declare a new run identity/horizon before extension;
+    never silently extend a decayed baseline.
+  pilot_checkpoint_initialization_prohibited: true
+data:
+  initial_target_distinct_stable_tokens: 550000000
+  minimum_distinct_stable_tokens: 500000000
+  reason: About two corpus passes for baseline; reassess larger target from measured
+    acquisition yield and runtime.
+  stable_source_shares:
+    fineweb_edu: 0.7
+    dclm: 0.2
+    openwebmath: 0.07
+    narrative: 0.03
+  first_action: Complete existing 1% engineering slice by topping up textbook/math/narrative;
+    then profile before scaling.
+  original_11b_gate_claim_prohibited: true
+experiments:
+  mandatory: One baseline training run; correctness tests and training validation
+    monitoring.
+  optional: At most one controlled comparison after baseline export and full evaluation
+    exist.
+  omitted_original_campaign:
+  - Mandatory P1-P4/P8 and F1/F2 screen
+  - Mandatory three-arm plus confirmations
+gates:
+  G0: Review foundation evidence and correct evaluation dataset identity.
+  G1: 'For reduced scope: >=500M distinct stable tokens, declared shares/whole-document
+    rounding, scaled reserved and validation targets explicitly recorded, provenance/decontamination/isolation
+    and shards/schedules verified. Original G1 remains unmet below its full threshold.'
+  G2: Production data train/resume/corruption/export checks; other-machine check requires
+    teammate availability.
+  G3: Replaced by recorded baseline recipe; optional comparison only after baseline
+    is secured. Do not mark original G3 passed.
+  G4: 30-60min sustained production data profile, declared final baseline horizon,
+    recovery rehearsal and teammate review.
+  G5: Execute baseline with verified checkpoints and reconciled counters; optional
+    expansion/comparison conditional.
+  G6: Fresh full evaluation, verified export, public assets, compute disclosure, video/screenshots
+    and human release approvals.
+publication: No remote publishing is authorized by this scope record alone.

@@ -1,0 +1,28 @@
+{
+  "recorded_at": "2026-09-05T12:47:48.797529+00:00",
+  "source_state": "D:\\SWE\\benchmark-50m-lm\\data\\pipeline\\slice_1pct.state.sqlite",
+  "destination_state": "D:\\SWE\\benchmark-50m-lm\\data\\pipeline\\slice_1pct_v3\\state.sqlite",
+  "source_snapshot_sha256": "fc01fbf570f78e3342b3a3ffb56d4486cef0e30778a896a3e821bf6c09031762",
+  "previous_protocol_digest": "a50dbb7145e9d95dd6c9a927afe0d06cb89a5a320821eba2cd7e176ba715e3ea",
+  "previous_binding": "operator_attested_legacy_v2",
+  "new_protocol_digest": "66abe996a08ede1e09f4562c5bbbc42a94adf506be2d035751170b41c2c8c041",
+  "benchmark_sha256": "976f81cfef5ef3d6ff9d3d608c482b348e1e9606acec1dfd261d2f235536fa4d",
+  "previous_decision_counts": [
+    [
+      "QUARANTINE",
+      "BENCHMARK_ITEM_SUBSTRING",
+      8767
+    ]
+  ],
+  "preserved_table_counts": {
+    "documents": 130164,
+    "source_cursors": 6,
+    "ingest_events": 0,
+    "dedup_decisions": 124150,
+    "representatives": 124150,
+    "minhash_bands": 3972800,
+    "boundary_review_pairs": 2
+  },
+  "reason": "v2 standalone short benchmark answers quarantined unrelated corpus documents",
+  "initial_destination_sha256": "7615d0c73b2f760372530c00c3e5dabd324a7842ae6ee5a324a3e60014b3babf"
+}

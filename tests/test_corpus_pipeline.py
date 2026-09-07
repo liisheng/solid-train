@@ -76,6 +76,38 @@ def test_disk_floors_warn_then_fail_closed(tmp_path: Path, monkeypatch) -> None:
         assert_write_space(tmp_path)
 
 
+def test_cluster_membership_lookup_does_not_scan_corpus(tmp_path: Path) -> None:
+    with CorpusState(tmp_path / "state.sqlite", token_counter=counter, token_counter_id="test_counter") as state:
+        plan = state.connection.execute(
+            "EXPLAIN QUERY PLAN SELECT member.doc_key FROM dedup_decisions member "
+            "JOIN decontamination scan USING(doc_key) "
+            "WHERE member.cluster_id = ? AND scan.action != 'KEEP'",
+            ("cluster:example",),
+        ).fetchall()
+        details = [str(row[3]) for row in plan]
+        assert any("SEARCH member" in detail and "cluster_id=?" in detail for detail in details)
+        assert not any("SCAN member" in detail for detail in details)
+
+
+def test_published_boundaries_follow_shard_consumer_order(tmp_path: Path) -> None:
+    from tinybench_lm.shards import ISOLATED_BOUNDARIES
+
+    with CorpusState(tmp_path / "state.sqlite", token_counter=counter, token_counter_id="test") as state:
+        state.ingest("fineweb_edu", [candidate(str(i)) for i in range(4)])
+        keys = [row[0] for row in state.connection.execute("SELECT doc_key FROM documents ORDER BY doc_key")]
+        for key, boundary in zip(keys, reversed(ISOLATED_BOUNDARIES)):
+            state.connection.execute("INSERT INTO representatives VALUES (?, ?, ?, ?)", (key, key, key, b""))
+            state.connection.execute("INSERT INTO dedup_decisions VALUES (?, 'KEEP', 'UNIQUE', ?, NULL, NULL)",
+                                     (key, "cluster:" + key))
+            state.connection.execute("INSERT INTO assignments VALUES (?, 'fineweb_edu', ?, NULL, 'fixture', ?)",
+                                     (key, boundary, key))
+        state.connection.commit()
+        output = tmp_path / "accepted.jsonl"
+        state.write_accepted_jsonl(output)
+        rows = [json.loads(line) for line in output.read_text().splitlines()]
+        assert [row["boundary"] for row in rows] == list(ISOLATED_BOUNDARIES)
+
+
 def test_pipeline_is_restartable_deduplicates_and_writes_sorted_shard_input(tmp_path: Path) -> None:
     state_path = tmp_path / "state.sqlite"
     prefix_changed = "Different opening words appear here. " + BASE
@@ -194,6 +226,8 @@ def test_completed_slice_stages_are_idempotent_without_new_ingestion(tmp_path: P
 def test_decontamination_batches_are_restart_safe(tmp_path: Path) -> None:
     class FailingIndex:
         calls = 0
+        protocol = {"_digest": "fixture_protocol"}
+        source_sha256 = "fixture_benchmark"
 
         def classify(self, doc_id: str, _text: str) -> DecontaminationDecision:
             self.calls += 1

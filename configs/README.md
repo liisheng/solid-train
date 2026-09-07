@@ -1,5 +1,10 @@
 # Model configuration purposes
 
+The accepted reduced submission scope is pinned in `campaign/submission_scope_v1.yaml`.
+It preserves correctness checks while replacing the original mandatory experiment breadth.
+Evaluation now defaults to sidecar-pinned `evaluation/evaluation_provisional_v2.yaml`,
+which binds WikiText-103 explicitly; v1 remains historical. See `docs/REDUCED_CAMPAIGN.md`.
+
 - `final_49m.json`: canonical final competition architecture and the default for final-facing model tools.
 - `baseline_49m.json`: compatibility alias for the canonical final architecture; retained for existing commands and audit references.
 - `pilot_12m.json`: smaller pipeline and bounded-training pilot; not a final model candidate.
@@ -18,15 +23,22 @@ closed if a threshold is edited. A protocol change means publishing the next ver
 - `data/decontam_v1.yaml`: the three benchmark quarantine rules plus the frozen required and
   secondary task identities. Dataset revisions and the harness commit are `PENDING_PIN`/`BLOCKED`;
   fixture calibration is allowed while blocked, a real-corpus scan is not.
-- `data/decontam_v2.yaml`: production G1 successor with the same matching rules and task set,
+- `data/decontam_v2.yaml`: historical G1 successor with the same matching rules and task set,
   pinned to the public dataset revisions and lm-evaluation-harness commit resolved on
-  2026-09-05. This protocol is `READY` for a real-corpus scan. The downloaded benchmark-item
+  2026-09-05. Its one-word matching rule was superseded after observing blanket quarantine.
+  The downloaded benchmark-item
   body remains local; its compact count and SHA-256 evidence is committed at
   `docs/evidence/decontamination/benchmark_inputs.json`.
 
-The matching rules were calibrated on planted fixtures only (`tests/test_data_protocols.py`).
-The production benchmark inputs have been acquired, but no real training-corpus removal or
-quarantine rate has been measured yet.
+- `data/decontam_v3.yaml`: active production precision correction. Complete-field matches
+  require at least 13 normalized words; the 50-word overlap and 13-word shingle-coverage
+  rules and benchmark inputs are unchanged. The existing v2 index is reusable, but v2
+  decisions are not. Regression coverage is in `tests/test_decontamination_v3.py`.
+
+V2 quarantined every one of the first 7,767 inspected real documents, including matches to
+standalone numeric answers. V3 explicitly records this post-observation correction rather
+than claiming it was calibrated before the scan. Fields shorter than 13 words are not
+standalone contamination detectors; paraphrased and short-question contamination can remain.
 
 # Frozen source registry and integrity filters
 

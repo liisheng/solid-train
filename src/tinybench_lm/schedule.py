@@ -722,6 +722,11 @@ class ScheduledTokenStream:
             raise ScheduleContractError(f"{SCHEDULE_SHARD_UNKNOWN}: {missing} are absent from the split manifest")
         self._memmaps: dict[str, np.memmap] = {}
         self.cursor = schedule.cursor(0)
+        self.last_batch_reference_hash: str | None = None
+        # Keep the immutable references for the just-read microbatch so the training
+        # loop can record the ordered *optimizer-update* exposure, rather than only
+        # the final microbatch of an accumulation window.
+        self.last_batch_entries: tuple[ScheduleEntry, ...] = ()
 
     # -- resume ------------------------------------------------------------------------
 
@@ -734,6 +739,10 @@ class ScheduledTokenStream:
     @property
     def position(self) -> int:
         return self.cursor.position
+
+    def rewind(self) -> None:
+        """Restart a non-training replay at the first immutable schedule entry."""
+        self.cursor.position = 0
 
     # -- reading -----------------------------------------------------------------------
 
@@ -791,7 +800,10 @@ class ScheduledTokenStream:
                 f"the schedule was materialized for sequence_length={self.schedule.sequence_length}, "
                 f"not {seq_len}. Rebuild the schedule instead of reshaping its references."
             )
-        rows = np.stack([self.read_entry(entry) for entry in self.next_entries(batch_size)])
+        entries = self.next_entries(batch_size)
+        self.last_batch_entries = entries
+        self.last_batch_reference_hash = training_order_hash(entries)
+        rows = np.stack([self.read_entry(entry) for entry in entries])
         batch = torch.from_numpy(rows)
         if device.type == "cuda":
             batch = batch.pin_memory().to(device, non_blocking=True)

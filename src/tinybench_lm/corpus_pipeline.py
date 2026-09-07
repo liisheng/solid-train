@@ -356,6 +356,8 @@ class CorpusState:
                 matched_doc_key TEXT,
                 estimated_jaccard REAL
             ) WITHOUT ROWID;
+            CREATE INDEX IF NOT EXISTS dedup_decisions_cluster
+                ON dedup_decisions(cluster_id);
             CREATE TABLE IF NOT EXISTS representatives (
                 doc_key TEXT PRIMARY KEY REFERENCES documents(doc_key),
                 exact_hash TEXT NOT NULL,
@@ -762,6 +764,23 @@ class CorpusState:
             )
         return len(rows)
 
+    def bind_decontamination(self, protocol_digest: str, benchmark_sha256: str) -> None:
+        """Never combine decisions from different rules or benchmark inputs."""
+        if not protocol_digest or not benchmark_sha256:
+            raise ResumeMismatchError("decontamination requires protocol and benchmark bindings")
+        expected = {
+            "decontamination_protocol_digest": protocol_digest,
+            "decontamination_benchmark_sha256": benchmark_sha256,
+        }
+        present = dict(self.connection.execute("SELECT key, value FROM metadata"))
+        count = int(self.connection.execute("SELECT COUNT(*) FROM decontamination").fetchone()[0])
+        if count and not all(key in present for key in expected):
+            raise ResumeMismatchError("legacy unbound decontamination decisions require an explicit migration")
+        if any(key in present and present[key] != value for key, value in expected.items()):
+            raise ResumeMismatchError("decontamination protocol or benchmark input changed; migrate to a fresh state")
+        with self.connection:
+            self.connection.executemany("INSERT OR IGNORE INTO metadata VALUES (?, ?)", expected.items())
+
     def run_decontamination(
         self,
         benchmark_index: Any,
@@ -777,44 +796,50 @@ class CorpusState:
         )
         if interval <= 0:
             raise ValueError("commit_every must be positive")
+        if limit is not None and limit < 0:
+            raise ValueError("limit must be nonnegative")
+        self.bind_decontamination(benchmark_index.protocol["_digest"], benchmark_index.source_sha256)
         sql = """
             SELECT r.doc_key, d.text FROM representatives r JOIN documents d USING(doc_key)
             LEFT JOIN decontamination c USING(doc_key)
-            WHERE c.doc_key IS NULL ORDER BY r.doc_key
+            WHERE c.doc_key IS NULL AND r.doc_key > ? ORDER BY r.doc_key LIMIT ?
         """
-        parameters: list[Any] = []
-        if limit is not None:
-            sql += " LIMIT ?"
-            parameters.append(int(limit))
         processed = 0
+        last_key = ""
         try:
-            for row in self.connection.execute(sql, parameters):
-                doc_key, text = str(row[0]), str(row[1])
-                decision = benchmark_index.classify(doc_key, text)
-                evidence = {
-                    "rule_id": decision.rule_id,
-                    "task_id": decision.task_id,
-                    "item_id": decision.item_id,
-                    "measurement": decision.measurement,
-                    "matched_rules": [
-                        {
-                            "rule_id": match.rule_id,
-                            "reason_code": match.reason_code,
-                            "task_id": match.task_id,
-                            "item_id": match.item_id,
-                            "measurement": match.measurement,
-                        }
-                        for match in decision.matched_rules
-                    ],
-                }
-                self.connection.execute(
-                    "INSERT INTO decontamination VALUES (?, ?, ?, ?)",
-                    (doc_key, decision.action, decision.reason_code, json.dumps(evidence, sort_keys=True)),
-                )
-                processed += 1
-                if processed % interval == 0:
-                    self.connection.commit()
-            self.connection.commit()
+            while limit is None or processed < limit:
+                batch_size = interval if limit is None else min(interval, limit - processed)
+                # Close the read cursor before writes so WAL checkpoints are not
+                # pinned for the entire corpus scan. Only one batch is materialized.
+                rows = self.connection.execute(sql, (last_key, batch_size)).fetchall()
+                if not rows:
+                    break
+                for row in rows:
+                    doc_key, text = str(row[0]), str(row[1])
+                    decision = benchmark_index.classify(doc_key, text)
+                    evidence = {
+                        "rule_id": decision.rule_id,
+                        "task_id": decision.task_id,
+                        "item_id": decision.item_id,
+                        "measurement": decision.measurement,
+                        "matched_rules": [
+                            {
+                                "rule_id": match.rule_id,
+                                "reason_code": match.reason_code,
+                                "task_id": match.task_id,
+                                "item_id": match.item_id,
+                                "measurement": match.measurement,
+                            }
+                            for match in decision.matched_rules
+                        ],
+                    }
+                    self.connection.execute(
+                        "INSERT INTO decontamination VALUES (?, ?, ?, ?)",
+                        (doc_key, decision.action, decision.reason_code, json.dumps(evidence, sort_keys=True)),
+                    )
+                    processed += 1
+                    last_key = doc_key
+                self.connection.commit()
         except BaseException:
             self.connection.rollback()
             raise
@@ -1021,7 +1046,12 @@ class CorpusState:
         temporary = path.with_name(f".{path.name}.staging")
         if path.exists() or temporary.exists():
             raise CorpusPipelineError(f"refusing to overwrite existing output or staging file for {path}")
-        boundary_case = "CASE a.boundary WHEN 'reserved' THEN 0 WHEN 'stable_train' THEN 1 WHEN 'validation_dev' THEN 2 WHEN 'validation_final' THEN 3 ELSE 99 END"
+        # Packing order is independent of reserved-first quota selection order.
+        from .shards import ISOLATED_BOUNDARIES
+
+        boundary_case = "CASE a.boundary " + " ".join(
+            f"WHEN '{boundary}' THEN {index}" for index, boundary in enumerate(ISOLATED_BOUNDARIES)
+        ) + " ELSE 99 END"
         rows = self.connection.execute(
             f"""
             SELECT d.document_id, a.source_id, d.text, a.boundary, a.protected_slice, x.cluster_id

@@ -184,8 +184,14 @@ class _JsonStream:
         return value
 
     def string(self) -> str:
-        self.take('"')
-        start = self.position - 1
+        # Consume the opening quote without compacting first. ``take`` may reset
+        # ``position`` after compaction, which would make the slice below start at
+        # the wrong offset on large manifests at a chunk boundary.
+        self.peek()
+        if self.buffer[self.position] != '"':
+            raise StreamingManifestError(f"expected '\"', got {self.buffer[self.position]!r}")
+        start = self.position
+        self.position += 1
         escaped = False
         while True:
             while self.position < len(self.buffer):

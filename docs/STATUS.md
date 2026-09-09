@@ -3,7 +3,8 @@
 Coordination override 2026-09-09T14:28:00+08:00: active publication milestone is
 `codex/g3.5-pre-campaign-experiments`, based on `4e27266`. User authorized committing
 and pushing the verified package plus its existing G4 tooling dependencies.
-The implementation checkpoint is the commit containing this publication note.
+Verified implementation commit `21a0eccffb39db2254a42719960aa95d3634171a` is
+pushed to origin on that branch; the remote hash was checked after publication.
 User approved Astra's replacement:
 three final49M screen jobs plus conditional two-run confirmation,12 aggregate GPUh,
 Sep18 submission target. **Experiment package verified, experiments NOT_RUN**:

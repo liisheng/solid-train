@@ -1,0 +1,21 @@
+protocol: submission_scope
+version: v2
+recorded_at: '2026-09-09T12:52:54+08:00'
+authorization: User approved the bounded v2 experiment package. Preparation only in this task; no GPU jobs launched.
+inherits: configs/campaign/submission_scope_v1.yaml
+supersedes_scope_only:
+  experiments: Use the approved successor configs/campaign/pre_campaign_v2.json; pre_campaign_v1.json remains historical.
+  G3: Recorded experiment results, deterministic selection, full-size safety/confirmation and successor baseline integration. No original full-scale G3 PASS claim.
+preserves:
+  - Reduced verified corpus and tokenizer; provenance, isolation and decontamination
+  - Fresh 1B-token baseline, conditional 3-5B only after separate measured budget
+  - No pilot checkpoint initialization of baseline
+  - G4 recovery, takeover, measured budget and two-person approval
+  - At most one later comparison after baseline export and full evaluation
+  - No restoration of original later A/B/C campaign or original full-scale data thresholds
+  - No holdout or submission-benchmark selection; no model publication authorization
+experiment_contract: configs/campaign/pre_campaign_v2.json
+experiment_status: APPROVED_NOT_RUN
+deadline: '2026-09-12T23:59:59+08:00'
+baseline_status: Existing baseline_reduced_v1 remains historical fixed control. Selected recipe requires successor contract/run identity and integration before G4 final recipe verification.
+calendar_status: UNCONFIRMED; remeasure both machines and reserve baseline/evaluation/recovery time before scheduling experiments.

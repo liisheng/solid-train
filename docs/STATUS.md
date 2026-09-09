@@ -1,17 +1,36 @@
 # Project status
 
-Updated 2026-09-09T11:25:00+08:00. This is a coordination snapshot; artifact checks and
+Coordination override 2026-09-09T14:28:00+08:00: active publication milestone is
+`codex/g3.5-pre-campaign-experiments`, based on `4e27266`. User authorized committing
+and pushing the verified package plus its existing G4 tooling dependencies.
+The implementation checkpoint is the commit containing this publication note.
+User approved Astra's replacement:
+three final49M screen jobs plus conditional two-run confirmation,12 aggregate GPUh,
+Sep18 submission target. **Experiment package verified, experiments NOT_RUN**:
+795 container tests, lint/compile/build/dependencies, real-input CPU prepare and
+six parsed trainer identity checks pass; final image source/tests and36 installed
+modules match. Astra planned, Luna-medium authored, root integrated, Sol/Terra-medium
+independently approved. [Verification](experiments/VERIFICATION.md) binds final hashes.
+Next: [operator guide](experiments/OPERATOR_GUIDE.md) and
+[LLM handoff](experiments/LLM_HANDOFF.md); obtain actual per-machine smoke evidence,
+run/close experiments, integrate the recipe, then G4 sections3–7. Earlier seven-run
+draft is retired. Scope amendment: `configs/campaign/submission_scope_v2.yaml`.
+The G4 section-2 checkpoint below remains historical; no new gate
+pass or production training/scoring is authorized by this publication task.
+
+Historical G4 snapshot, recorded 2026-09-09T12:01:00+08:00. Artifact checks and
 immutable scope contracts determine gate outcomes.
 
 | Snapshot | Value |
 |---|---|
-| Current milestone | G4 part 1 PASS: Docker/container tests, lint, source/input/environment preflight complete |
-| Branch / verified implementation commit | `codex/g4-verification`; `201bf38f7a1507f9bc139d9ef41c10e9d16c3302` (part 1 and guide) |
-| Current verified source identity | 148-file manifest `0b20afde26466900ad23ae78345f16e8873f1e281d149f003269fe89fc9f6da1` |
-| Next task | G4 section 2: prepare/test the production profiler; one chat per section |
+| Current milestone | G4 sections 1–2 PASS: bounded production profiler prepared, reviewed and tested |
+| Branch / implementation checkpoint | `codex/g4-verification`; HEAD `4e27266e5afafd50ddc3bb7c840e358bde3c74ec`; verified section-2 changes uncommitted (prior implementation `201bf38`) |
+| Current verified source identity | 151-file manifest `63e83aaac746a7752208d27fbd964e8202193192c22eaeca29a6857f917da656` |
+| Active ownership | Root completed verification/handoff; Sol and Terra final reviews approve; all agents finished |
+| Next task | Section 3 only on a separate request; refresh competing load/space/custody before sustained profile |
 | Guide and evidence | [Seven-section guide](g4/README.md) / [current handoff](g4/CURRENT_HANDOFF.md) / [verification](g4/VERIFICATION.md) |
 
-Accepted scope remains `configs/campaign/submission_scope_v1.yaml`: fixed 1B baseline,
+The historical scope was `configs/campaign/submission_scope_v1.yaml`: fixed 1B baseline,
 conditional 3–5B, at most one comparison after baseline export and full evaluation.
 The recipe is fresh seed 1337, 3,815 updates, batch 8 x 32 x 1,024, WSD 38/3395/382,
 1,000,079,360 loss tokens, full-dev monitoring and recovery cadence 100 plus completion.
@@ -25,11 +44,23 @@ Frozen configs and the user's RULES are unchanged.
 | G1 | Reduced aggregate PASS, 69/69, 550,094,903 distinct stable tokens; original full-scale G1 unpassed. |
 | G2 | `REDUCED_SCOPE_G2_PASS` under any-machine amendment; canonical full-scale G2 NOT_RUN. |
 | G3 | Six sections implemented; local correctness PASS; historical blocked aggregate preserved, tool blockers superseded by G4 part 1; original G3 NOT_RUN. |
-| G4 | No gate PASS; part 1 PASS. Sustained profile, applicable recovery/takeover, budget and teammate review remain. |
+| G4 | No gate PASS; sections 1–2 PASS. Sustained profile, applicable recovery/takeover, budget and teammate review remain. |
 | G5 | NOT_RUN; no main baseline launched. |
 | G6 | NOT_RUN; baseline full evaluation, verified release assets and human approvals remain. |
 
-## G4 part-1 verification
+## G4 section-2 profile preparation
+
+- [Profile plan/evidence](g4/PROFILE_PLAN.md): fixed 3815-update recipe with 2400 optimizer-second,
+  800-update and 3600 wall-second bounds; 38 updates excluded, ≥1800 valid seconds required.
+- Docker build and **756 tests** pass; Windows profiler/telemetry **41 tests** pass.
+  Ruff/compile/dependencies and environments 98/97 checks pass; copied source/modules match.
+- Real dry-run is PLAN_ONLY, runner `baseline-9d50a02e9d741daf`; required telemetry available.
+  New timing fields invalidate old timing evidence; unchanged input-reader proof is reused.
+- Evidence `runs/verification/g4/section-02/20260909-1127/report.json`, SHA-256
+  `2f24bafcb22962a0505062857bd1f66be7e401fcc1c400e2cfa006e3beccc226`.
+  No training/profile/scoring/commit/push. Build-time memory/GPU load needs a fresh check.
+
+## Historical G4 part-1 verification
 
 - Final CPU container suite: 715 passed in 81.59s; final Windows suite: 715 passed
   in 133.90s. Ruff 0.11.13, compilation, dependency consistency and diff checks pass.
@@ -40,7 +71,7 @@ Frozen configs and the user's RULES are unchanged.
 - Lint and two test portability repairs change source identities. Frozen configs,
   constraints, production inputs and unrelated user files are preserved. Evidence in
   `runs/verification/g4-part1-20260909/`; agents finished, implementation committed
-  as `201bf38`. User authorized pushing the G4 branch; no later section has started.
+  as `201bf38`. User authorized pushing that checkpoint; later sections were then unstarted.
 
 ## Historical G3 review repair verification
 

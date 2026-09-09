@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from tinybench_lm import LOSS_IGNORE_INDEX, ModelConfig, TinyBenchLM
 from tinybench_lm.checkpointing import (
@@ -65,6 +66,9 @@ from tinybench_lm.training_recipe import (
 STEP_ZERO_PROVENANCE_FILENAME = "step_zero_provenance.json"
 RUN_IDENTITY_FILENAME = "run_identity.json"
 PHASE_TIMING_HISTORY_FILENAME = "phase_timing_history.jsonl"
+EXPERIMENT_PROTECTED_SLICES = frozenset((
+    "broad_general", "educational_science", "narrative_coreference", "math_technical",
+))
 
 #: Preserved bounded-pilot accumulation. A final run derives the accumulation that hits the
 #: frozen 262,144-loss-token global batch instead; a pilot smoke run stays small on purpose.
@@ -139,6 +143,8 @@ def parse_args() -> argparse.Namespace:
         default="sampled",
         help="validation policy; full-dev scores every validation_dev schedule reference exactly once",
     )
+    parser.add_argument("--experiment-slice-reporting", action="store_true",
+                        help="experiment-only: report losses for declared dev slices")
     parser.add_argument("--log-interval", type=int, default=10)
     parser.add_argument("--save-interval", type=int, default=500)
     parser.add_argument("--seed", type=int, default=1337)
@@ -380,7 +386,14 @@ def assert_runner_identity(args, *, config, plan, lr_schedule, precision, data_f
         identity = json.loads(args.runner_identity.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ValueError(f"runner identity cannot be read: {error}") from error
-    if identity.get("identity_schema") != "reduced_baseline_runner_v1":
+    if identity.get("identity_schema") == "pre_campaign_runner_v2":
+        from tinybench_lm.experiments import validate_identity
+        validate_identity(identity, args)
+        if not getattr(args, "experiment_slice_reporting", False):
+            raise ValueError("pre_campaign_runner_v2 requires experiment slice reporting")
+    elif identity.get("identity_schema") == "pre_campaign_runner_v1":
+        raise ValueError("obsolete pre_campaign_runner_v1 identity; use pre_campaign_runner_v2")
+    elif identity.get("identity_schema") != "reduced_baseline_runner_v1":
         raise ValueError("unknown runner identity schema")
     expected = {
         "validation_mode": args.validation_mode,
@@ -459,7 +472,8 @@ class ValidationResult:
     """Token-weighted development replay result and auditable coverage metadata."""
 
     def __init__(self, loss: float, mode: str, sequence_count: int, scored_token_count: int,
-                 batch_count: int, schedule_content_hash: str | None, schedule_id: str | None) -> None:
+                 batch_count: int, schedule_content_hash: str | None, schedule_id: str | None,
+                 slice_metrics: dict[str, dict[str, float | int]] | None = None) -> None:
         self.loss = loss
         self.mode = mode
         self.sequence_count = sequence_count
@@ -467,9 +481,10 @@ class ValidationResult:
         self.batch_count = batch_count
         self.schedule_content_hash = schedule_content_hash
         self.schedule_id = schedule_id
+        self.slice_metrics = slice_metrics
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        result = {
             "validation_loss": self.loss,
             "validation_mode": self.mode,
             "validation_sequence_count": self.sequence_count,
@@ -478,6 +493,10 @@ class ValidationResult:
             "validation_schedule_content_hash": self.schedule_content_hash,
             "validation_schedule_id": self.schedule_id,
         }
+        if self.slice_metrics is not None:
+            result["validation_slice_metrics"] = self.slice_metrics
+            result["validation_slices"] = {name: values["loss"] for name, values in self.slice_metrics.items()}
+        return result
 
 
 def _rng_snapshot() -> tuple[object, object, object, list[torch.Tensor] | None]:
@@ -514,6 +533,17 @@ def evaluate_result(
     rng = _rng_snapshot()
     total_loss = torch.zeros((), dtype=torch.float64, device=device)
     scored_token_total = torch.zeros((), dtype=torch.int64, device=device)
+    slice_sums: dict[str, float] = {}
+    slice_counts: dict[str, int] = {}
+    slice_enabled = bool(getattr(args, "experiment_slice_reporting", False))
+    slice_by_shard: dict[str, str] = {}
+    if slice_enabled:
+        manifest = getattr(dataset, "manifest", None)
+        for shard in getattr(manifest, "shards", ()):
+            declared = tuple(getattr(shard, "protected_slices", ()))
+            if len(declared) != 1:
+                raise ValueError("experiment slice reporting requires exactly one protected slice per shard")
+            slice_by_shard[str(shard.shard_id)] = str(declared[0])
     sequence_count = 0
     batches = 0
     try:
@@ -532,11 +562,28 @@ def evaluate_result(
             batch_size = min(args.micro_batch_size, remaining) if mode == "full-dev" else args.micro_batch_size
             inputs, targets = dataset.get_batch(batch_size, args.sequence_length, device)
             with autocast_context():
-                _, loss = model(inputs, targets)
+                logits, loss = model(inputs, targets)
             assert loss is not None
             token_count = (targets != LOSS_IGNORE_INDEX).sum()
             total_loss += loss.detach().double() * token_count
             scored_token_total += token_count
+            if slice_enabled:
+                entries = tuple(getattr(dataset, "last_batch_entries", ()))
+                if len(entries) != batch_size:
+                    raise ValueError("validation reader did not expose one reference per scored sequence")
+                per_token = F.cross_entropy(
+                    logits.float().reshape(-1, logits.size(-1)), targets.reshape(-1),
+                    ignore_index=LOSS_IGNORE_INDEX, reduction="none",
+                ).reshape(targets.shape)
+                for row, entry in enumerate(entries):
+                    name = slice_by_shard.get(str(entry.shard_id))
+                    if name is None:
+                        raise ValueError("validation reference shard has no declared protected slice")
+                    kept = targets[row] != LOSS_IGNORE_INDEX
+                    count = int(kept.sum().item())
+                    if count:
+                        slice_sums[name] = slice_sums.get(name, 0.0) + float(per_token[row][kept].sum().item())
+                        slice_counts[name] = slice_counts.get(name, 0) + count
             sequence_count += batch_size
             batches += 1
             remaining -= batch_size
@@ -555,6 +602,18 @@ def evaluate_result(
     scored_tokens = int(scored_token_total.item())
     if sequence_count == 0 or scored_tokens == 0:
         raise ValueError("validation schedule produced no scored tokens")
+    slice_metrics = None
+    if slice_enabled:
+        if (set(slice_sums) != EXPERIMENT_PROTECTED_SLICES
+                or set(slice_counts) != EXPERIMENT_PROTECTED_SLICES
+                or sum(slice_counts.values()) != scored_tokens):
+            raise ValueError("validation slice coverage does not reconcile with global token coverage")
+        if any(count <= 0 or not math.isfinite(total) for name, total in slice_sums.items() for count in (slice_counts[name],)):
+            raise ValueError("validation slice totals/counts are non-finite or empty")
+        slice_metrics = {
+            name: {"loss_sum": total, "token_count": slice_counts[name], "loss": total / slice_counts[name]}
+            for name, total in sorted(slice_sums.items())
+        }
     return ValidationResult(
         loss=float((total_loss / scored_tokens).item()),
         mode=mode,
@@ -563,6 +622,7 @@ def evaluate_result(
         batch_count=batches,
         schedule_content_hash=getattr(dataset, "content_hash", None),
         schedule_id=(getattr(getattr(dataset, "schedule", None), "schedule_id", None)),
+        slice_metrics=slice_metrics,
     )
 
 
@@ -863,12 +923,14 @@ def main() -> None:
     measured_training_seconds = 0.0
     phase_timing = {
         "training_optimizer_seconds": 0.0,
+        "data_wait_seconds": 0.0,
         "validation_seconds": 0.0,
         "checkpoint_seconds": 0.0,
     }
     completed_updates = first_step
     for step in range(first_step, args.steps):
         started = time.perf_counter()
+        update_started_seconds = started - process_started
         lr = lr_schedule.learning_rate(step)
         for group in optimizer.param_groups:
             group["lr"] = lr
@@ -886,7 +948,9 @@ def main() -> None:
         # device synchronization to every microbatch of a multi-day run.
         check_tokens = step == first_step or (step + 1) % args.eval_interval == 0
         for _ in range(plan.gradient_accumulation):
+            data_wait_started = time.perf_counter()
             inputs, targets = train_data.get_batch(args.micro_batch_size, args.sequence_length, device)
+            phase_timing["data_wait_seconds"] += time.perf_counter() - data_wait_started
             update_batch_entries.extend(getattr(train_data, "last_batch_entries", ()))
             if check_tokens:
                 assert_valid_token_ids(inputs, config.vocab_size, name="input_ids")
@@ -909,7 +973,8 @@ def main() -> None:
         pending_microbatches = 0
         torch.cuda.synchronize()
         accumulated_loss = float(accumulated_loss_device.item())
-        elapsed = time.perf_counter() - started
+        optimizer_finished_seconds = time.perf_counter() - process_started
+        elapsed = optimizer_finished_seconds - update_started_seconds
         measured_training_seconds += elapsed
         phase_timing["training_optimizer_seconds"] += elapsed
 
@@ -938,6 +1003,8 @@ def main() -> None:
             "tokens": update_record.consumed_loss_tokens,
             "tokens_per_second": tokens_per_step / elapsed,
             "step_seconds": elapsed,
+            "update_started_seconds": update_started_seconds,
+            "optimizer_finished_seconds": optimizer_finished_seconds,
             "peak_vram_gib": torch.cuda.max_memory_allocated() / 2**30,
         }
         # The hash must cover every scheduled sequence consumed by this optimizer
@@ -954,6 +1021,11 @@ def main() -> None:
             validation = evaluate_result(model, validation_data, args, device, autocast_context)
             phase_timing["validation_seconds"] += time.perf_counter() - validation_started
             record.update(validation.to_dict())
+            if getattr(args, "experiment_slice_reporting", False):
+                # Bind the endpoint slice evidence into the durable checkpoint's immutable
+                # training_args envelope before the checkpoint is written.  The runner can
+                # therefore reject a metrics.jsonl-only edit during independent verification.
+                args.experiment_endpoint_validation = validation.to_dict()
             validation_loss = validation.loss
             record["validation_perplexity"] = math.exp(min(20.0, validation_loss))
             if validation_loss < best_validation_loss:
@@ -964,6 +1036,9 @@ def main() -> None:
                     relative_path="best.pt",
                 )
                 write_checkpoint(args.run_dir / "best.pt", step, pending_microbatches)
+        if getattr(args, "experiment_slice_reporting", False):
+            record["peak_vram_gib"] = torch.cuda.max_memory_allocated() / 2**30
+            record["peak_reserved_vram_gib"] = torch.cuda.max_memory_reserved() / 2**30
         with log_path.open("a", encoding="utf-8") as output:
             output.write(json.dumps(record, sort_keys=True) + "\n")
         if step == first_step or (step + 1) % args.log_interval == 0 or should_eval:

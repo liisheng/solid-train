@@ -1,7 +1,12 @@
 # G4: one chat per section
 
+The approved [pre-campaign experiment stage](../experiments/README.md) now comes
+before section 3. Complete or explicitly close that stage, integrate its settings
+into a successor baseline recipe, then use the section guide below. Earlier
+sections 1–2 remain historical evidence; recheck anything affected by the changes.
+
 Prepared 2026-09-09. This is a workflow guide, not a new gate contract or permission
-to execute all sections at once. Section 1 is complete; start the next chat at section 2.
+to execute all sections at once. Sections 1–2 are complete; start the next chat at section 3.
 
 G4 establishes a reproducible, measured, recoverable setup for the fresh 1B baseline.
 G5 runs that baseline; G6 performs its full evaluation and release. These seven chat
@@ -13,8 +18,8 @@ external-machine coordination do not compete for one context window.
 | Chat | Brief | Deliverable | Prerequisite |
 |---|---|---|---|
 | 1 — complete | [Verification](01-verification.md) | Working container/lint and verified source/inputs/environment | Reduced G3 |
-| 2 — next | [Profile preparation](02-profile-preparation.md) | Tested bounded profiler, timing/telemetry plan, exact dry-run command | 1 |
-| 3 | [Sustained production profile](03-sustained-profile.md) | One valid 30–60 minute profile and explained throughput/costs | 2 |
+| 2 — complete | [Profile preparation](02-profile-preparation.md) | Tested bounded profiler, timing/telemetry plan, exact dry-run command; [evidence](PROFILE_PLAN.md) | 1 |
+| 3 — next | [Sustained production profile](03-sustained-profile.md) | One valid 30–60 minute profile and explained throughput/costs | 2 |
 | 4 | [Local recovery](04-local-recovery.md) | Current-source exact resume and crash-ledger evidence | 2; normally after 3 |
 | 5 | [Target-machine takeover](05-takeover.md) | Verified source-to-target custody and resumed training | 4; target available |
 | 6 | [Baseline horizon and budget](06-budget.md) | Measured dated budget, explicit reserves and unresolved inputs | 3–5 |
@@ -101,6 +106,10 @@ a submission endpoint. The baseline starts fresh even if an engineering run is r
 Section-1 proof: [VERIFICATION.md](VERIFICATION.md), 715 tests each in CPU Docker and
 Windows, Ruff PASS, 141 input checks PASS. Historical ~51k versus ~67k tokens/s remains
 unresolved. Neither figure is a measured current campaign runtime.
+
+Section-2 proof: [PROFILE_PLAN.md](PROFILE_PLAN.md), 756 CPU Docker tests and 41
+Windows profiler tests pass; real production preparation is PLAN_ONLY. The source
+manifest is refreshed for instrumentation. Section 3 requires a separate request.
 
 ## Evidence invalidation
 

@@ -1,0 +1,45 @@
+{
+  "version": "pre_campaign_v1",
+  "purpose": "Bounded restored G3 screen on reduced data; no canonical full-scale G3 claim",
+  "batch": {"micro_batch_size": 4, "gradient_accumulation": 64, "sequence_length": 1024},
+  "ordering_seed": 1001,
+  "proxy": {"updates": 573, "warmup": 6, "decay": 57, "layers": 8},
+  "confirmation": {"updates": 191, "warmup": 2, "decay": 19, "layers": 14},
+  "mixtures": {
+    "base": {"fineweb_edu": 70, "dclm": 20, "openwebmath": 7, "narrative": 3},
+    "edu": {"fineweb_edu": 85, "dclm": 5, "openwebmath": 7, "narrative": 3}
+  },
+  "jobs": {
+    "P1": {"stage": "proxy", "lane": "rtx_4070", "seed": 1001, "lr": 0.0006, "mixture": "base"},
+    "P2": {"stage": "proxy", "lane": "rtx_3070", "seed": 1002, "lr": 0.0006, "mixture": "base"},
+    "P3": {"stage": "proxy", "lane": "rtx_3070", "seed": 1003, "lr": 0.0006, "mixture": "base"},
+    "P4": {"stage": "proxy", "lane": "rtx_4070", "seed": 1001, "lr": 0.001, "mixture": "base"},
+    "P8": {"stage": "proxy", "lane": "rtx_4070", "seed": 1001, "lr": 0.0006, "mixture": "edu"},
+    "F1": {"stage": "confirmation", "lane": "rtx_4070", "seed": 1001, "lr": 0.0006, "mixture": "base"},
+    "F2": {"stage": "confirmation", "lane": "rtx_4070", "seed": 1001, "lr": "SELECTED", "mixture": "SELECTED"}
+  },
+  "selection": {
+    "endpoint": "completed checkpoint; all fixed validation_dev schedule targets",
+    "bootstrap_unit": "document; target losses attributed to document containing target token",
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 20260909,
+    "confidence": 0.95,
+    "minimum_relative_improvement": 0.003,
+    "maximum_slice_regression": 0.01,
+    "mixture_seed_sd_multiple": 2.0,
+    "slices": ["broad_general", "educational_science", "narrative_coreference", "math_technical"],
+    "fallback": {"lr": 0.0006, "mixture": "base"},
+    "full_size_rule": "F2 must pass paired improvement and slice rules against F1; otherwise control",
+    "identical_candidate_rule": "If both proxy decisions retain control, omit redundant F2 and retain F1 after safety verification"
+  },
+  "safety": {
+    "fresh_weights": true,
+    "precision": "bfloat16",
+    "minimum_free_vram_fraction": 0.1,
+    "eval_interval": 100,
+    "save_interval": 100,
+    "smoke_updates": 2,
+    "main_baseline_launch": false,
+    "validation_final_access": false
+  }
+}

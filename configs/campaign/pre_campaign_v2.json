@@ -1,0 +1,21 @@
+{
+  "version": "pre_campaign_v2",
+  "purpose": "Approved bounded five-job experiment package; no main baseline execution",
+  "stage": "final",
+  "final": {"updates": 382, "warmup": 4, "stable": 340, "decay": 38, "layers": 14, "parameters": 49658368},
+  "batch": {"micro_batch_size": 8, "gradient_accumulation": 32, "sequence_length": 1024, "loss_tokens_per_update": 262144},
+  "mixtures": {
+    "base": {"fineweb_edu": 70, "dclm": 20, "openwebmath": 7, "narrative": 3},
+    "edu": {"fineweb_edu": 85, "dclm": 5, "openwebmath": 7, "narrative": 3}
+  },
+  "jobs": {
+    "S0": {"lane": "rtx_4070", "seed": 1001, "lr": 0.0006, "mixture": "base", "depends_on": []},
+    "SLR": {"lane": "rtx_4070", "seed": 1001, "lr": 0.001, "mixture": "base", "depends_on": ["S0"]},
+    "SMIX": {"lane": "rtx_4070", "seed": 1001, "lr": 0.0006, "mixture": "edu", "depends_on": ["SLR"]},
+    "C0": {"lane": "rtx_3070", "seed": 1002, "lr": 0.0006, "mixture": "base", "depends_on": []},
+    "C1": {"lane": "rtx_3070", "seed": 1002, "lr": "SELECTED", "mixture": "SELECTED", "depends_on": ["C0"]}
+  },
+  "selection": {"minimum_relative_improvement": 0.003, "maximum_slice_regression": 0.01, "slices": ["broad_general", "educational_science", "narrative_coreference", "math_technical"], "fallback": {"lr": 0.0006, "mixture": "base"}},
+  "budget": {"aggregate_gpu_hours": 12, "lane_gpu_hours": 6, "deadline": "2026-09-12T23:59:59+08:00"},
+  "safety": {"fresh_weights": true, "precision": "bfloat16", "minimum_free_vram_fraction": 0.1, "validation_mode": "full-dev", "validation_targets": 771072, "main_baseline_launch": false, "validation_final_access": false}
+}

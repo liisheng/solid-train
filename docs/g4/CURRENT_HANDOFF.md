@@ -1,32 +1,45 @@
 # Current G4 handoff
 
-Updated 2026-09-09. Section 1 PASS; sections 2–7 have not started. The user requested
-one chat per section and authorized committing/pushing the completed verification
-work plus this guide. No later section is launched by that request.
+Current coordination amendment: the approved pre-campaign experiment stage now
+precedes section 3. Follow [the experiment handoff](../experiments/README.md),
+record its outcome and integrate the successor baseline recipe before resuming
+G4 sections 3–7. The section 1–2 evidence below is historical and may be reused
+only where its source, inputs and settings remain applicable. Current branch is
+`codex/g3.5-pre-campaign-experiments`; no experiment or main training has started.
 
-Branch: `codex/g4-verification`; verified implementation and guide commit
-`201bf38f7a1507f9bc139d9ef41c10e9d16c3302` (after G3 `d5016f0`). Later coordination-only
-commits do not change that implementation. Inspect branch HEAD and local changes.
-Source/config/tooling proof is the 148-file manifest
-`runs/verification/g4-part1-20260909/final-v2/source-manifest.json`, SHA-256
-`0b20afde26466900ad23ae78345f16e8873f1e281d149f003269fe89fc9f6da1`.
-The guide changes documentation only after that tested snapshot.
+Updated 2026-09-09. **Sections 1–2 PASS; section 3 NEXT.** No sustained profile,
+baseline, full scoring or later-section execution occurred. G4 itself is not passed.
 
-Evidence: [VERIFICATION.md](VERIFICATION.md) and local
-`runs/verification/g4-part1-20260909/report.json`. Docker and Windows each passed
-715 tests with no skips; Ruff/compile/build/dependencies passed; 34 installed modules
-match source; 141 production-input checks and actual CPU input-opening reads passed.
-Docker restored by preserving stale socket directories. Lint and two test portability
-issues repaired; fixed configs, constraints and production inputs unchanged.
+Branch `codex/g4-verification`, HEAD `4e27266e5afafd50ddc3bb7c840e358bde3c74ec`;
+section-2 changes are **uncommitted**. Previous verified implementation was `201bf38`.
+Current 151-file working-tree identity:
+`63e83aaac746a7752208d27fbd964e8202193192c22eaeca29a6857f917da656`.
 
-Next: [section 2](02-profile-preparation.md). The existing historical profiler uses
-different horizon/schedule/validation controls; prepare a tested wrapper around the
-current baseline runner before section 3's sustained measurement. No trustworthy
-current sustained profile or full-campaign forecast exists. Recovery/takeover, budget
-and actual teammate approval remain. G2's any-machine amendment does not waive G4.
+Changed: new `scripts/profile_baseline_training.py`, `scripts/profile_telemetry.py`
+and matching test files; lightweight timers in `train.py`, CPU assertions in
+`tests/test_metric_ledger.py`; profile plan and coordination docs. Model/optimizer,
+reader, frozen inputs and unrelated build/egg-info/RULES are preserved. Section-1
+input-opening proof is reusable; historical timing is not current-source evidence.
 
-Refresh source/environment, process/load and disk observations before GPU work. No
-training is left running by section 1. Preserve unrelated build/egg-info/RULES and
-historical evidence. `data/` and `runs/` are ignored and require separate transfer or
-reproduction; a fresh checkout alone is insufficient. No automatic commit/push or
-baseline launch is authorized for later sections by this handoff.
+Evidence root: `runs/verification/g4/section-02/20260909-1127/`.
+`report.json` SHA-256:
+`2f24bafcb22962a0505062857bd1f66be7e401fcc1c400e2cfa006e3beccc226`.
+The source manifest is `dry-run/source_manifest.json`; input manifest SHA-256:
+`dfefb12cdd17aba1779f9c99d919926c130ae908d6cb1133a0bd4f963deebc44`.
+See [PROFILE_PLAN.md](PROFILE_PLAN.md) for exact commands and remaining hashes.
+
+Verified: Docker build, **756 tests/zero skips**, Ruff, compile, dependencies;
+Windows profiler tests **41 passed**; environments 98/97 checks. All 149 copied
+image files and 34 installed modules match. Rechecked 133 payloads and metadata;
+real dry-run retains runner `baseline-9d50a02e9d741daf`, captures telemetry, launches
+nothing. Sol/Terra approve; root checked final hashes. All agents finished.
+
+Next safe command: `Get-Content docs/g4/03-sustained-profile.md`. A separately
+requested section 3 uses the reviewed 2400 optimizer-second / 800-update / 3600
+wall-second bounds, excluding 38 updates and requiring ≥1800 valid seconds. Full
+3815-update recipe remains intact. No automatic launch, retry, commit or push.
+
+No collector blocker remains. Refresh load/space/custody before launch: Docker-build
+telemetry showed memory pressure and competing GPU use. Final check found no Python
+processes. Sustained rate gap, recovery/takeover, budget and human approval remain.
+Ignored `data/` and evidence require separate transfer; Git alone is insufficient.

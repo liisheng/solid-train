@@ -191,6 +191,11 @@ with contextlib.ExitStack() as stack:
     launch(["--resume", str(run / "latest.pt"), "--stop-after-updates", "4"])
     canonical = [json.loads(line) for line in (run / "metrics.jsonl").read_text().splitlines()]
     assert [row["update_index"] for row in canonical] == [0, 1, 2, 3]
+    for row in canonical:
+        assert 0 <= row["update_started_seconds"] < row["optimizer_finished_seconds"]
+        assert row["optimizer_finished_seconds"] - row["update_started_seconds"] == pytest.approx(
+            row["step_seconds"]
+        )
     archive = json.loads(next((run / "superseded_metrics").glob("*.json")).read_text())
     assert [row["update_index"] for row in archive["records"]] == [2]
     assert archive["records"][0]["invocation_id"] != canonical[2]["invocation_id"]
@@ -198,3 +203,4 @@ with contextlib.ExitStack() as stack:
     timings = [json.loads(line) for line in (run / "phase_timing_history.jsonl").read_text().splitlines()]
     assert [row["started_at_update"] for row in timings] == [0, 2, 2]
     assert timings[-1]["metric_invocation_id"] == canonical[-1]["invocation_id"]
+    assert all(0 <= row["data_wait_seconds"] <= row["training_optimizer_seconds"] for row in timings)

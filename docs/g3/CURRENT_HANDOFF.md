@@ -1,5 +1,19 @@
 # Current G3 handoff
 
+- **2026-09-09 repair completion supersedes the open findings below:** R1–R3 fixed;
+  separate independent reviewer found no unresolved actionable issue. Root full suite
+  715 passed; independent focused suite 90 passed; compile/build/diff passed and all
+  34 wheel modules match. See [REVIEW_FIXES.md](REVIEW_FIXES.md) for behavior, identities
+  and successor evidence. Branch `codex/g3-baseline-recipe`; this reviewed repair checkpoint
+  follows `9078430`, with commit/push authorized at 2026-09-09T10:33:39+08:00.
+  No baseline/full scoring started. Docker/Ruff remain unavailable.
+- New trusted-digest identity fields intentionally change runner IDs. Do not resume old
+  engineering manifests through the repaired runner or relabel final-v2 as current-source
+  proof. Continue [G4_HANDOFF.md](G4_HANDOFF.md) with successor evidence, tool checks,
+  sustained changed-input profiling and applicable recovery/human review.
+
+## Historical checkpoints
+
 - **2026-09-09 checkpoint:** user authorized committing/pushing the G3 implementation and
   review on `codex/g3-baseline-recipe`, based on `f643e9f`. The uncommitted/no-push statements
   below describe the historical section-6 verification, not this publication request.

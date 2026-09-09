@@ -19,7 +19,7 @@ import torch
 import yaml
 
 from tinybench_lm.checkpointing import frozen_config_hashes, verify_checkpoint
-from tinybench_lm.exposure import load_exposure_plan, verify_exposure
+from tinybench_lm.exposure import BASELINE_RECIPE_SHA256, load_exposure_plan, verify_exposure
 from tinybench_lm.evaluation_protocol import load_evaluation_protocol
 from tinybench_lm.provenance import export_release, read_step_zero_provenance, verify_release_export, verify_step_zero_provenance
 from tinybench_lm.schedule import load_schedule
@@ -58,6 +58,25 @@ def _norm_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
+def _verified_baseline_config(config: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Trust the registered bytes, then reject substitutions of their parsed semantics."""
+    content = CONFIG.read_bytes().replace(b"\r\n", b"\n")
+    if hashlib.sha256(content).hexdigest() != BASELINE_RECIPE_SHA256:
+        raise RunnerError("baseline_reduced_v1 does not match its trusted frozen digest; publish a successor")
+    frozen = yaml.safe_load(content.decode("utf-8"))
+    if config is not None and dict(config) != frozen:
+        raise RunnerError("baseline config differs from trusted frozen semantics; publish a successor")
+    return frozen
+
+
+def _baseline_evaluation_protocol(config: Mapping[str, Any]) -> dict[str, Any]:
+    contract = config["interfaces"]["evaluation_binding"]
+    protocol = load_evaluation_protocol(ROOT / contract["protocol_path"])
+    if protocol["_digest"] != contract["protocol_sha256"]:
+        raise RunnerError("evaluation protocol identity does not match the frozen baseline contract")
+    return protocol
+
+
 def _required_paths(config: Mapping[str, Any]) -> dict[str, Path]:
     data = config["data"]
     schedules = config["schedule_inputs"]
@@ -79,6 +98,8 @@ def _required_paths(config: Mapping[str, Any]) -> dict[str, Path]:
 
 def build_identity(*, config: Mapping[str, Any], paths: Mapping[str, Path], environment: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Build the runner-owned identity, including policy fields omitted by legacy RunSemantics."""
+    config = _verified_baseline_config(config)
+    evaluation_protocol = _baseline_evaluation_protocol(config)
     missing = [name for name, path in paths.items() if not path.is_file()]
     if missing:
         raise RunnerError(f"baseline input is missing: {missing}")
@@ -90,7 +111,6 @@ def build_identity(*, config: Mapping[str, Any], paths: Mapping[str, Path], envi
     if dev_manifest.split_id != "validation_dev" or dev_schedule.split_id != "validation_dev":
         raise RunnerError("development validation inputs must be validation_dev")
     from tinybench_lm.evaluation_binding import resolve_effective_binding
-    evaluation_protocol = load_evaluation_protocol(ROOT / "configs/evaluation/evaluation_provisional_v2.yaml")
     _, evaluation_facts = resolve_effective_binding(
         evaluation_protocol, ["hellaswag", "arc_easy", "piqa", "winogrande", "wikitext103"]
     )
@@ -120,6 +140,8 @@ def build_identity(*, config: Mapping[str, Any], paths: Mapping[str, Path], envi
     identity = {
         "identity_schema": "reduced_baseline_runner_v1",
         "scope": "baseline_reduced_v1",
+        "baseline_contract_sha256_normalized_lf": BASELINE_RECIPE_SHA256,
+        "evaluation_protocol_sha256_normalized_lf": evaluation_protocol["_digest"],
         "recipe_sha256_normalized_lf": config["optimizer"]["recipe_sha256_normalized_lf"],
         "model_config_sha256": _norm_hash(paths["model_config"]),
         "model_config_canonical_hash": str(config["model"]["canonical_config_hash"]),
@@ -170,7 +192,7 @@ def prepare(
 ) -> dict[str, Any]:
     if config_path.resolve() != CONFIG.resolve():
         raise RunnerError("production baseline runner is bound to baseline_reduced_v1.yaml")
-    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config = _verified_baseline_config()
     paths = _required_paths(config)
     identity = build_identity(config=config, paths=paths, environment=environment)
     needed = int(config["horizon"]["consumed_sequences"])

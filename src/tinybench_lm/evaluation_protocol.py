@@ -70,6 +70,7 @@ PROVISIONAL_PROTOCOL_PATH = EVALUATION_PROTOCOL_DIR / "evaluation_provisional_v1
 #: Kept separate from the data, corpus, and tokenizer tables so each family freezes alone.
 FROZEN_EVALUATION_PROTOCOL_SHA256: Mapping[str, str] = {
     "evaluation_provisional_v1.yaml": "f6d2315ff47bd0c3cc38cd9d760519076d59ddbd989073652bbe17651c94c8a0",
+    "evaluation_provisional_v2.yaml": "60eb9750bd70e74e2d5db868af068bf5cf2c578704cc1da2be12b9f2b536976b",
 }
 
 #: Protocol identifiers. The provisional one is the Plan Section 2.2 versioned protocol.
@@ -210,6 +211,12 @@ def load_evaluation_protocol(
                     f"(expected {expected}, observed {payload['_digest']}). "
                     "Promote a new protocol instead of editing a frozen one."
                 )
+    # A renamed copy must not turn a registered identity into a sidecar-trusted one.
+    registered = FROZEN_EVALUATION_PROTOCOL_SHA256.get(str(payload.get("protocol_id")) + ".yaml")
+    if verify and registered is not None and payload["_digest"] != registered:
+        raise EvaluationProtocolError(
+            "evaluation protocol identity does not match its trusted frozen digest; publish a successor"
+        )
     if str(payload.get("protocol")) != "evaluation":
         raise EvaluationProtocolError(f"{path.name} must declare protocol: evaluation")
     for section in _REQUIRED_SECTIONS:
@@ -876,6 +883,7 @@ def write_run_bundle(
     harness_facts: Mapping[str, Any] | None = None,
     allow_undeclared: bool = False,
     raw_results_json: str | None = None,
+    execution: Mapping[str, Any] | None = None,
 ) -> RunBundle:
     """Write the complete evidence bundle for one evaluation run.
 
@@ -894,6 +902,9 @@ def write_run_bundle(
         harness_facts=harness_facts,
         allow_undeclared=allow_undeclared,
     )
+    # Legacy callers remain explicitly partial; a --full command cannot acquire a
+    # full claim without preflight split evidence and complete logged samples.
+    metadata["execution"] = dict(execution or {"mode": "partial", "limit": None, "full_coverage": {}})
     names = _artifact_names(protocol)
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -1526,6 +1537,33 @@ def verify_run_bundle(
             else "a scored task is missing or misreporting its tier label",
         )
     )
+
+    from .evaluation_coverage import validate_execution, verify_full_results, verify_trusted_coverage
+    try:
+        execution = metadata.get("execution", {"mode": "partial", "limit": None})
+        mode = execution["mode"]
+        tasks = [str(entry.get("harness_task", entry["task_id"])) for entry in metadata["tasks"]]
+        validate_execution(mode, execution.get("limit"), tasks, harness_task_names(resolved, tier=REQUIRED_TIER))
+        command = metadata["command"]
+        command_full = "--full" in command
+        if command_full != (mode == "full") or (command_full and any(
+            arg == "--smoke" or arg == "--limit" or arg.startswith("--limit=") for arg in command
+        )):
+            raise ValueError("command and execution mode disagree")
+        if mode == "full":
+            raw = json.loads((directory / names["raw_results"]).read_text(encoding="utf-8"))
+            verify_trusted_coverage(resolved, execution.get("full_coverage", {}))
+            verify_full_results(raw, tasks, execution.get("full_coverage", {}))
+            if metadata["sample_counts"] != raw["n-samples"]:
+                raise ValueError("full metadata sample counts disagree with raw results")
+        execution_error = ""
+    except (ValueError, KeyError, TypeError, AttributeError) as error:
+        execution_error = str(error)
+    results.append(_verdict(
+        "bundle.execution_coverage", "honest execution mode and complete full-split coverage",
+        execution_error or mode, not execution_error,
+        execution_error or "execution scope verified; partial is never full evidence",
+    ))
 
     return EvaluationVerificationReport(
         tuple(results),

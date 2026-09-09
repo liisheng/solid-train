@@ -35,6 +35,7 @@ from tinybench_lm.checkpointing import (
 )
 from tinybench_lm.data import PackedTokenDataset, TrainingSource, load_data_metadata
 from tinybench_lm.exposure import CompositeTokenStream, load_exposure_plan, verify_exposure
+from tinybench_lm.metric_ledger import reconcile_metrics
 from tinybench_lm.shards import load_split_manifest
 from tinybench_lm.provenance import record_step_zero_provenance, verify_step_zero_provenance, write_step_zero_provenance
 from tinybench_lm.schedule import CURSOR_STATE_KEY, ScheduledTokenStream, open_scheduled_stream, training_order_hash
@@ -161,6 +162,7 @@ def write_phase_timing(
     started_at_update: int,
     completed_updates: int,
     resume_checkpoint: Path | None,
+    invocation_id: str | None = None,
 ) -> dict[str, object]:
     """Persist latest timing and append one immutable record per process invocation."""
     history_path = run_dir / PHASE_TIMING_HISTORY_FILENAME
@@ -175,6 +177,7 @@ def write_phase_timing(
         "started_at_update": int(started_at_update),
         "completed_updates": int(completed_updates),
         "resume_checkpoint": str(resume_checkpoint) if resume_checkpoint is not None else None,
+        "metric_invocation_id": invocation_id,
         **{key: float(value) for key, value in timing.items()},
     }
     with history_path.open("a", encoding="utf-8", newline="\n") as output:
@@ -751,6 +754,13 @@ def main() -> None:
             f"schedule_cursor={resume_state.schedule_cursor})"
         )
 
+    previous_record, metric_invocation_id = reconcile_metrics(
+        args.run_dir, completed_updates=first_step, run_id=run_id,
+        schedule=lr_schedule, plan=plan, precision=precision,
+        schedule_content_hash=train_schedule_hash,
+        checkpoint_cursor=train_data.state_dict().get(CURSOR_STATE_KEY),
+        resume_checkpoint=args.resume,
+    )
     provenance_path = args.run_dir / STEP_ZERO_PROVENANCE_FILENAME
     if args.resume:
         # A resumed run inherits its lineage; re-recording would overwrite frozen evidence
@@ -849,7 +859,6 @@ def main() -> None:
     torch.cuda.reset_peak_memory_stats()
     model.train()
 
-    previous_record = None
     measured_training_seconds = 0.0
     phase_timing = {
         "training_optimizer_seconds": 0.0,
@@ -922,6 +931,7 @@ def main() -> None:
         previous_record = update_record
         record = {
             **update_record.to_dict(),
+            "invocation_id": metric_invocation_id,
             "step": step,
             "train_loss": update_record.loss,
             "tokens": update_record.consumed_loss_tokens,
@@ -999,6 +1009,7 @@ def main() -> None:
         started_at_update=first_step,
         completed_updates=completed_updates,
         resume_checkpoint=args.resume,
+        invocation_id=metric_invocation_id,
     )
     report_retention(args.run_dir)
 

@@ -1,11 +1,15 @@
 [PLANS]
 
+- 2026-09-09T10:03:00+08:00 [TOOL] R1–R3 repaired by three agents; root full suite715pass/124.08s, independent focused90pass. See docs/g3/REVIEW_FIXES.md. Source manifest105files af6651cea79b899c78bd183dd8e3c08547bd887b9213c85fc9441ac11cc56bfc; prior section6 source/evidence historical. G4 still requires tools, changed-input production evidence/profile and applicable human/recovery checks. Repairs uncommitted on9078430.
+
 - 2026-09-09T09:37:18+08:00 [TOOL] Fresh comprehensive pre-G4 review requests changes: docs/g3/PRE_G4_REVIEW.md. R1 crash rollback can append duplicate/unsegmented metric tails; R2 --full evaluation accepts limits/partial tasks; R3 runner does not enforce fixed recipe/evaluation digests at runtime. Fix/test before clean G4 sign-off. Implementation unchanged; historical local PASS remains scoped to existing tests. This supersedes tools-only blockers below.
 
 - 2026-09-08T23:46:43.5226610+08:00 [TOOL] G3 section 6 implementation and local correctness are complete. Aggregate REDUCED_BASELINE_RECIPE_BLOCKED_FOR_G4: required Docker engine and Ruff unavailable. Next task is docs/g3/G4_HANDOFF.md: resolve tools, one sustained changed-input production profile, applicable recovery/takeover and teammate review. No G4/G5/G6 execution started. Canonical G3–G6 remain NOT_RUN.
 - 2026-09-08T23:46:43.5226610+08:00 [TOOL] Continue codex/g3-baseline-recipe, HEAD f643e9f09c0700686222712eb58d90e4a0fe1de2; G3 changes uncommitted. Final source/test manifest (103 files): runs/verification/g3-section6-root/final-source-manifest.json, SHA 8ebf3d6ec5f863c94a0807bd1967d86841d9d25f4c5c7b28928a8153bba5dbdd. Read docs/STATUS.md and docs/g3/CURRENT_HANDOFF.md first. Preserve unrelated build/egg-info changes and user RULES; ignored data/runs need transfer/reproduction.
 
 [DECISIONS]
+
+- 2026-09-09T10:33:39+08:00 [USER] Authorized committing and pushing the reviewed R1–R3 repairs to origin/codex/g3-baseline-recipe. Source manifest105files rechecked without drift; prior715pass and independent90pass remain applicable. Include repair source/tests/coordination docs; exclude unrelated build/egg-info/RULES and ignored evidence/data. This supersedes repair-task uncommitted status for this checkpoint.
 
 - 2026-09-09T09:41:12+08:00 [USER] Authorized commit and push of current G3 work to its own branch. Use existing codex/g3-baseline-recipe and origin; include implementation/tests/config/docs and review findings, preserve R1–R3 as open. Exclude unrelated generated build/egg-info files, user docs/RULES.md, and ignored corpus/run/checkpoint artifacts. This supersedes earlier no-commit/push task boundaries for this checkpoint only.
 
@@ -16,6 +20,8 @@
 - 2026-09-05T00:26:00+08:00 [CODE] Default CPU container workflow is Dockerfile build/run; Windows CUDA exception is documented in docs/ENVIRONMENT.md. Never install host packages without instruction. No data/runs enter the image. No automatic commit/push from these briefs.
 
 [PROGRESS]
+
+- 2026-09-09T09:53:00+08:00 [USER] Requested subagents to fix R1–R3 followed by a separate agent reviewing with root. Active ownership: fix_resume (trainer ledger), fix_eval (full evaluation coverage), fix_hash (trusted runtime digests). Root coordinates and verifies; fresh independent review follows combined fixes. Work remains on codex/g3-baseline-recipe, checkpoint 9078430; no baseline launch. Prior evidence remains historical once source changes.
 
 - 2026-09-08T23:46:43.5226610+08:00 [TOOL] [MILESTONE] Sections1–5 completed: contract/exact two-component exposure/full-dev/composite runner/eligible export/runtime evaluation binding. Detailed hashes and original checks are in docs/g3/*_EVIDENCE.md. Full prior continuity archived byte-identically in .agent/archive/CONTINUITY_2026-09-08_before_section6_completion.md.
 - 2026-09-08T23:46:43.5226610+08:00 [CODE] Section6 fixed logging scalar transfers32→1/update without optimizer math change, duplicate latest writes, full checkpoint timing and append-only invocation timing history. Added source/artifact/command/counter/order/timing postverifier and immediate stop on child failure. Docker copies root entrypoints. Audits now use intended source scope; ignored root runs cannot satisfy implementation markers or change fingerprint, while unreadable in-scope source fails. Protected residue preserved.
@@ -30,6 +36,10 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-09T10:03:36+08:00 [TOOL] Fresh independent reviewer final: no unresolved actionable source findings; root matched all9 reviewed file hashes and105-file test manifest after715pass. Report runs/verification/g3-review-fixes-20260909/independent-review.md SHA dd0ecf7c95b838e04d3f30895a594e1417a39ac712e964231cb1b38f61065e2d. All repair/review agents finished; docs/STATUS.md and CURRENT_HANDOFF.md updated. No G4 pass claimed.
+
+- 2026-09-09T10:03:00+08:00 [TOOL] Review repairs: resume startup archives superseded metric rows with invocation costs and canonical prefix; conflicting interrupted archive retry fails closed. Full scoring enforces no limit/all tasks and trusted split/sample coverage. Runtime baseline/v2 digests and parsed settings enforced; new identity fields deliberately change runner IDs. CPU-adapted actual trainer resume regression and negative tamper tests pass. Compile/diff/isolated build pass;34wheelmodules byte-match, wheel4490ad1e5929d0d55d573fec575bb059d98ea7fc6ff01098f8e27b6773d0dfef. Frozen inputs/RULES/pre-existing metadata unchanged. Docker engine unavailable/Ruff absent. No production training/full scoring/install/commit/push; dataset counts measured without scoring.
 
 - 2026-09-09T09:37:18+08:00 [TOOL] Sol/Terra independent code review; Luna fresh675pass/0fail in168.35s and compilePASS. Root checked103source files and221indexed artifacts (~2.04GB), no drift before coordination updates. Fresh postverify of original final-v2 PASS has unchanged43f69a23...9188 hash; output runs/verification/g3-section6-postverify-audit-20260909/integration_report.postverified.json. Original evidence untouched. Docker/Ruff unavailable. Terra actual CPU build_identity accepted in-memory LR0.0005 with unchanged exposure as baseline_reduced_v1; no config file changed or model launched. No source edits/GPU training/profile/full evaluation/install/commit/push.
 

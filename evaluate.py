@@ -105,7 +105,7 @@ def _serialize_results(results: dict[str, Any]) -> str:
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description="Evaluate a checkpoint with lm-evaluation-harness")
+    parser = argparse.ArgumentParser(description="Evaluate a checkpoint with lm-evaluation-harness", allow_abbrev=False)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--tokenizer", type=Path, required=True)
     parser.add_argument(
@@ -142,8 +142,9 @@ def main() -> None:
         help="Forward precision. Reduced precision requires CUDA; CPU runs in float32.",
     )
     parser.add_argument("--limit", type=float, help="Harness limit; smoke mode requires a whole example count")
-    parser.add_argument("--smoke", action="store_true", help="Bound every required task to at most 100 examples")
-    parser.add_argument("--full", action="store_true", help="Permit an unbounded evaluation (reserved for G6)")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--smoke", action="store_true", help="Bound every required task to at most 100 examples")
+    modes.add_argument("--full", action="store_true", help="Score all required tasks without a limit (reserved for G6)")
     parser.add_argument("--bootstrap-iters", type=int, default=None, help="Defaults to the protocol setting")
     parser.add_argument("--output", type=Path, default=Path("runs/evaluation/results.json"))
     parser.add_argument(
@@ -168,16 +169,15 @@ def main() -> None:
         tasks = [task.strip() for task in args.tasks.split(",") if task.strip()]
     if not tasks:
         parser.error("no tasks were requested")
-    required_names = {"hellaswag", "arc_easy", "piqa", "winogrande", "wikitext103"}
+    required_names = set(harness_task_names(protocol, tier="required_official"))
     if set(tasks) <= required_names and not args.full and not args.smoke:
         args.smoke = True
-    if args.smoke and (
-        args.limit is None
-        or not float(args.limit).is_integer()
-        or args.limit <= 0
-        or args.limit > 100
-    ):
-        parser.error("--smoke requires a whole-number --limit between 1 and 100 per required task")
+    from tinybench_lm.evaluation_coverage import validate_execution
+    execution_mode = "full" if args.full else "smoke" if args.smoke else "partial"
+    try:
+        validate_execution(execution_mode, args.limit, tasks, list(required_names))
+    except ValueError as error:
+        parser.error(str(error))
 
     labels = classify_tasks(protocol, tasks)
     num_fewshot = resolved_num_fewshot(protocol, tasks)
@@ -194,6 +194,7 @@ def main() -> None:
         "num_fewshot": num_fewshot,
         "seed": seed,
         "batch_size": batch_size,
+        "execution_mode": execution_mode,
     }
     print(json.dumps(banner, indent=2, sort_keys=True))
     if not is_official(protocol):
@@ -226,6 +227,11 @@ def main() -> None:
         resolved_tasks, binding_facts = resolve_effective_binding(protocol, tasks)
     else:
         resolved_tasks = resolve_harness_tasks(tasks, protocol)
+    full_coverage = {}
+    if args.full:
+        from tinybench_lm.evaluation_coverage import prepare_full_tasks, verify_trusted_coverage
+        resolved_tasks, full_coverage = prepare_full_tasks(resolved_tasks, tasks)
+        verify_trusted_coverage(protocol, full_coverage)
     candidates = {
         "model": model,
         "tasks": resolved_tasks,
@@ -244,6 +250,9 @@ def main() -> None:
     elapsed = time.perf_counter() - started
     if results is None:
         raise RuntimeError("lm-evaluation-harness returned no results")
+    if args.full:
+        from tinybench_lm.evaluation_coverage import verify_full_results
+        verify_full_results(results, tasks, full_coverage)
     if args.smoke:
         from tinybench_lm.evaluation_binding import verify_smoke_results
         sample_counts = verify_smoke_results(results, tasks, limit=int(args.limit))
@@ -276,9 +285,13 @@ def main() -> None:
         },
         harness_facts={"installed_version": getattr(lm_eval, "__version__", "unknown"), **binding_facts},
         allow_undeclared=args.allow_undeclared_tasks,
+        execution={"mode": execution_mode, "limit": args.limit, "full_coverage": full_coverage},
     )
     print(f"\nEvidence bundle: {bundle.directory}")
-    print(format_report(verify_run_bundle(bundle_dir, protocol)))
+    report = verify_run_bundle(bundle_dir, protocol)
+    print(format_report(report))
+    if not report.ok:
+        raise RuntimeError("evaluation bundle verification failed")
 
 
 if __name__ == "__main__":

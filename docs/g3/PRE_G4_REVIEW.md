@@ -1,5 +1,8 @@
 # Independent pre-G4 review
 
+Repair follow-up: [REVIEW_FIXES.md](REVIEW_FIXES.md). The findings and verification below
+describe the original review; successor checks apply to the repaired source separately.
+
 Reviewed 2026-09-09T09:37:18+08:00. **Disposition: changes requested before a clean G4
 readiness sign-off.** This review assumes the user's "phase 4" means G4 after G3 section 6.
 No implementation was changed, no GPU training/profile/full evaluation was launched, and no

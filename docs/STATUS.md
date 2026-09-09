@@ -1,14 +1,14 @@
 # Project status
 
-Updated 2026-09-09T09:37:18+08:00. This is a coordination snapshot; artifact checks and
+Updated 2026-09-09T10:33:39+08:00. This is a coordination snapshot; artifact checks and
 immutable scope contracts determine gate outcomes.
 
 | Snapshot | Value |
 |---|---|
-| Current milestone | Reduced G3 implemented; existing checks PASS; fresh review requests fixes before G4 sign-off |
-| Branch | `codex/g3-baseline-recipe`; dedicated G3 checkpoint, based on `f643e9f` |
-| Current source identity | 103-file manifest `8ebf3d6ec5f863c94a0807bd1967d86841d9d25f4c5c7b28928a8153bba5dbdd` |
-| Next task | Fix [pre-G4 review findings R1–R3](g3/PRE_G4_REVIEW.md), then continue G4 readiness |
+| Current milestone | Reduced G3 repairs R1–R3 complete; independent source review clear; G4 readiness checks remain |
+| Branch | `codex/g3-baseline-recipe`; reviewed repair checkpoint follows `9078430`; user authorized commit/push |
+| Current verified source identity | 105-file manifest `af6651cea79b899c78bd183dd8e3c08547bd887b9213c85fc9441ac11cc56bfc`; [repair evidence](g3/REVIEW_FIXES.md) |
+| Next task | Continue G4 tool checks and successor production evidence/profile; applicable recovery and human review |
 | Detailed evidence | [Integration evidence](g3/INTEGRATION_EVIDENCE.md) / [short handoff](g3/CURRENT_HANDOFF.md) |
 
 Accepted scope remains `configs/campaign/submission_scope_v1.yaml`: fixed 1B baseline,
@@ -29,7 +29,16 @@ Frozen configs and the user's RULES are unchanged.
 | G5 | NOT_RUN; no main baseline launched. |
 | G6 | NOT_RUN; baseline full evaluation, verified release assets and human approvals remain. |
 
-## Final section-6 evidence
+## Review repair verification
+
+- Three agents fixed R1–R3; a separate reviewer found no unresolved actionable issue.
+  Root full suite: 715 passed in 124.08s. Independent focused suite: 90 passed.
+- Compilation, isolated build and whitespace checks pass; all 34 wheel modules byte-match
+  source. Frozen inputs and unrelated user files remain unchanged. No agents remain active.
+- New runner identity fields deliberately change IDs; old manifests and the section-6
+  report below are historical. This checkpoint contains the verified repairs after `9078430`.
+
+## Historical final section-6 evidence
 
 - Aggregate: `runs/verification/g3-section6-integration-final-v2/reduced_g3_report.json`,
   SHA-256 `a587cca114ee8e6444770117ab2a96c2f3ee1b21aaf0c524c03ff8cf840209ef`.
@@ -43,19 +52,17 @@ Frozen configs and the user's RULES are unchanged.
 - Sol and Terra independently approved final source/evidence and the blocked aggregate;
   this does not replace G4 teammate approval. Luna implemented the initial rehearsal;
   Sol hardened verifier/timing and composite opening; Terra repaired audit scope; root
-  ran final checks/rehearsal and verified artifacts. No agents own active work now.
+  ran final checks/rehearsal and verified artifacts.
 - Fixed per-microbatch loss scalarization, duplicate checkpoint writes, timing overwrite,
   composite launch defects and audits incorrectly scanning ignored run outputs. Protected
   history is preserved; formerly failing alignment tests now pass.
 
 ## Blockers and efficiency limits
 
-- **New review findings, 2026-09-09:** crash recovery does not reconcile a metrics tail newer
-  than its checkpoint; `--full` evaluation permits limited/partial runs; fixed recipe/evaluation
-  digests are not enforced by all runtime entry points. See [review](g3/PRE_G4_REVIEW.md).
-  Fresh 675-test suite and retained postverification still pass, and all 103 source hashes
-  match; these findings expose missing negative cases rather than source drift. Implementation
-  remains unchanged. Resolve these before a clean G4 readiness sign-off.
+- **Review findings R1–R3 resolved:** metrics rollback preserves superseded work, full
+  evaluation requires trusted complete coverage, and runtime digest guards enforce the
+  fixed recipe. See [repairs](g3/REVIEW_FIXES.md). CPU-adapted trainer regression is not
+  successor CUDA/production evidence; G4 must bind new evidence to the repaired source.
 - **Docker:** build could not connect to `dockerDesktopLinuxEngine`; container tests did
   not run. Owner: G4 verification-environment operator. Restore a working approved engine
   and run the documented build/test against the bound source.
@@ -69,10 +76,11 @@ Frozen configs and the user's RULES are unchanged.
   separate; complete accounting must include all invocations and later export/evaluation.
 - Organizer scoring details/harness Git provenance remain provisional; local evaluation
   content and revisions are pinned. Full CUDA/BF16 benchmark runtime is unmeasured.
-- Only final-v2 is current; earlier incomplete/failed section-6 attempts are preserved.
+- Final-v2 is the retained historical section-6 rehearsal; no current-source production
+  rehearsal was launched for these repairs. Earlier failed attempts are preserved.
   Existing unrelated build/metadata files and RULES remain; data/runs are ignored local
   artifacts that require separate transfer or reproduction. The user authorized committing
-  and pushing this G3 checkpoint on 2026-09-09; review findings remain open and this does not
+  and pushing these reviewed G3 repairs on 2026-09-09; this does not
   authorize a model release or baseline launch.
 
 Sections 1–5 evidence remains linked from [the section index](g3/README.md). Frozen

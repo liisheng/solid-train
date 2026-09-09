@@ -54,7 +54,11 @@ def _implementation_text(repository: Path) -> str:
         directory = pending.pop()
         for path in sorted(directory.iterdir()):
             if path.is_dir():
-                if path.name not in excluded_parts:
+                # `runs/` is ignored local output, not implementation.  Only exclude it at
+                # the root so a nested directory with the same name cannot hide source text.
+                if path.name not in excluded_parts and not (
+                    directory == repository and path.name == "runs"
+                ):
                     pending.append(path)
                 continue
             if path.suffix.lower() not in included_suffixes:
@@ -64,6 +68,29 @@ def _implementation_text(repository: Path) -> str:
             except UnicodeDecodeError:
                 continue
     return "\n".join(chunks)
+
+
+def test_implementation_predicate_ignores_local_run_artifacts(tmp_path: Path) -> None:
+    """A run artifact must not make an implementation requirement pass."""
+    _write(
+        tmp_path / "runs" / "verification" / "markers.py",
+        "schedule_cursor\nshard_id\ntoken_offset\n",
+    )
+    entry = ContractEntry(
+        "fixture.implementation",
+        "content_predicate",
+        ".",
+        rule="tree_contains_all",
+        needle=("schedule_cursor", "shard_id", "token_offset"),
+    )
+
+    assert not _content_satisfies(tmp_path, entry, "")
+
+    _write(
+        tmp_path / "src" / "implementation.py",
+        "schedule_cursor\nshard_id\ntoken_offset\n",
+    )
+    assert _content_satisfies(tmp_path, entry, "")
 
 
 def _adamw_uses_distinct_decay_groups(source: str) -> bool:

@@ -23,6 +23,7 @@ from pathlib import Path
 
 import pytest
 
+from tinybench_lm import alignment
 from tinybench_lm.alignment import (
     ALIGNMENT_PROTOCOL_PATH,
     AUDIT_DEFERRAL_CATEGORY_INVALID,
@@ -268,6 +269,39 @@ def test_a_prohibited_pretrained_call_fails(checklist: dict, mirror: Path) -> No
     assert _entry(report, "verifier.eligibility_scan").status == FAIL
 
 
+# **Validates: Requirements 1.1, 2.1, 2.2, 2.4, 2.5**
+def test_eligibility_scan_excludes_ignored_run_artifacts(checklist: dict, mirror: Path) -> None:
+    """Ignored local outputs are not part of the eligible production path."""
+    artifact = mirror / "runs/verification/ineligible.py"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(
+        "from transformers import AutoModel\n\nmodel = AutoModel.from_pretrained('gpt2')\n",
+        encoding="utf-8",
+    )
+
+    report = audit_repository(checklist, root=mirror)
+    assert report.ok, [f"{entry.entry_id}: {entry.detail}" for entry in report.failures]
+
+
+# **Validates: Requirements 1.1, 2.1, 2.2, 2.4, 2.5**
+def test_eligibility_scan_fails_closed_on_unreadable_production_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An access failure in the canonical production surface must not be suppressed."""
+    source = tmp_path / "train.py"
+    source.write_text("def train():\n    return None\n", encoding="utf-8")
+    original_read_text = Path.read_text
+
+    def denied_read_text(path: Path, *args, **kwargs) -> str:
+        if path == source:
+            raise PermissionError("fixture denies production-source read")
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", denied_read_text)
+    with pytest.raises(PermissionError, match="fixture denies production-source read"):
+        alignment._scan_production_from_pretrained(tmp_path)
+
+
 # **Validates: Requirements 1.1, 1.2, 2.1, 2.2, 2.4, 2.5**
 def test_a_cosine_final_decay_fails(checklist: dict, mirror: Path) -> None:
     train = mirror / "train.py"
@@ -451,6 +485,17 @@ def test_the_fingerprint_notices_any_edit(mirror: Path) -> None:
     # A new file changes it too, so a stray artifact cannot slip past.
     (mirror / "stray.txt").write_text("x", encoding="utf-8")
     assert tree_fingerprint(mirror) != before
+
+
+# **Validates: Requirements 1.1, 2.1, 2.4, 2.5**
+def test_fingerprint_excludes_ignored_local_run_artifacts(mirror: Path) -> None:
+    """A local run must not alter the fingerprint of the tracked source surface."""
+    before = tree_fingerprint(mirror)
+    artifact = mirror / "runs/verification/local.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text('{"local": true}\n', encoding="utf-8")
+
+    assert tree_fingerprint(mirror) == before
 
 
 # **Validates: Requirements 1.1, 2.1, 2.4, 2.5**

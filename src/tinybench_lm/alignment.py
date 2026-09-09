@@ -44,6 +44,7 @@ from .data_protocols import (
     protocol_digest,
 )
 from .environment import CheckResult
+from .eligibility import production_python_paths
 from .shards import FAIL, PASS
 
 ALIGNMENT_PROTOCOL_DIR = REPOSITORY_ROOT / "configs" / "audit"
@@ -178,25 +179,13 @@ def reconcile_parameter_count(config: Mapping[str, Any]) -> int:
 # Integrity scans
 # --------------------------------------------------------------------------------------
 
-_SCAN_EXCLUDED_DIRECTORIES = frozenset(
-    {".git", ".kiro", ".pytest_cache", ".venv", "__pycache__", "tests", "node_modules"}
-)
-
-
 def _production_python_files(root: Path) -> list[Path]:
-    """Every production Python file. Tests are excluded: fixtures may name what they forbid."""
-    found: list[Path] = []
-    pending = [root]
-    while pending:
-        directory = pending.pop()
-        for path in sorted(directory.iterdir()):
-            if path.is_dir():
-                if path.name not in _SCAN_EXCLUDED_DIRECTORIES:
-                    pending.append(path)
-                continue
-            if path.suffix == ".py":
-                found.append(path)
-    return found
+    """Return the canonical eligible production-source surface.
+
+    Local ``runs/`` artifacts are deliberately outside this surface.  Reuse the eligibility
+    module's enumerator so the two source audits cannot disagree about which files ship.
+    """
+    return list(production_python_paths(root))
 
 
 def _scan_production_from_pretrained(root: Path) -> tuple[str, ...]:
@@ -541,7 +530,11 @@ def tree_fingerprint(root: Path = REPOSITORY_ROOT) -> str:
         directory = pending.pop()
         for path in sorted(directory.iterdir()):
             if path.is_dir():
-                if path.name not in _FINGERPRINT_EXCLUDED:
+                # `runs/` is ignored local output and not part of the tracked source surface.
+                # Restrict this to the root so nested source directories remain observable.
+                if path.name not in _FINGERPRINT_EXCLUDED and not (
+                    directory == root and path.name == "runs"
+                ):
                     pending.append(path)
                 continue
             files.append(path)

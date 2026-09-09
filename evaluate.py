@@ -141,7 +141,9 @@ def main() -> None:
         choices=SUPPORTED_PRECISIONS,
         help="Forward precision. Reduced precision requires CUDA; CPU runs in float32.",
     )
-    parser.add_argument("--limit", type=float)
+    parser.add_argument("--limit", type=float, help="Harness limit; smoke mode requires a whole example count")
+    parser.add_argument("--smoke", action="store_true", help="Bound every required task to at most 100 examples")
+    parser.add_argument("--full", action="store_true", help="Permit an unbounded evaluation (reserved for G6)")
     parser.add_argument("--bootstrap-iters", type=int, default=None, help="Defaults to the protocol setting")
     parser.add_argument("--output", type=Path, default=Path("runs/evaluation/results.json"))
     parser.add_argument(
@@ -166,6 +168,16 @@ def main() -> None:
         tasks = [task.strip() for task in args.tasks.split(",") if task.strip()]
     if not tasks:
         parser.error("no tasks were requested")
+    required_names = {"hellaswag", "arc_easy", "piqa", "winogrande", "wikitext103"}
+    if set(tasks) <= required_names and not args.full and not args.smoke:
+        args.smoke = True
+    if args.smoke and (
+        args.limit is None
+        or not float(args.limit).is_integer()
+        or args.limit <= 0
+        or args.limit > 100
+    ):
+        parser.error("--smoke requires a whole-number --limit between 1 and 100 per required task")
 
     labels = classify_tasks(protocol, tasks)
     num_fewshot = resolved_num_fewshot(protocol, tasks)
@@ -206,9 +218,17 @@ def main() -> None:
     print(json.dumps(adapter_identity, indent=2, sort_keys=True))
 
     captured = io.StringIO()
+    # Resolve every required task through the v3 effective binding.  This injects the
+    # decontamination revision into the loader and records the installed task definitions.
+    binding_facts = {}
+    if not args.secondary and set(tasks) <= required_names:
+        from tinybench_lm.evaluation_binding import resolve_effective_binding
+        resolved_tasks, binding_facts = resolve_effective_binding(protocol, tasks)
+    else:
+        resolved_tasks = resolve_harness_tasks(tasks, protocol)
     candidates = {
         "model": model,
-        "tasks": resolve_harness_tasks(tasks, protocol),
+        "tasks": resolved_tasks,
         "num_fewshot": num_fewshot,
         "limit": args.limit,
         "bootstrap_iters": bootstrap_iters,
@@ -224,6 +244,11 @@ def main() -> None:
     elapsed = time.perf_counter() - started
     if results is None:
         raise RuntimeError("lm-evaluation-harness returned no results")
+    if args.smoke:
+        from tinybench_lm.evaluation_binding import verify_smoke_results
+        sample_counts = verify_smoke_results(results, tasks, limit=int(args.limit))
+    else:
+        sample_counts = results.get("n-samples", {})
     print(make_table(results))
 
     raw_json = _serialize_results(results)
@@ -238,7 +263,7 @@ def main() -> None:
         raw_results=results,
         raw_results_json=raw_json,
         task_ids=tasks,
-        sample_counts=results.get("n-samples", {}),
+        sample_counts=sample_counts,
         runtime_seconds={"total": elapsed},
         device=str(adapter_identity["device"]),
         precision=str(getattr(model, "precision", args.precision)),
@@ -249,7 +274,7 @@ def main() -> None:
             "tokenizer_path": str(args.tokenizer),
             "tokenizer_sha256": _file_sha256(args.tokenizer),
         },
-        harness_facts={"installed_version": getattr(lm_eval, "__version__", "unknown")},
+        harness_facts={"installed_version": getattr(lm_eval, "__version__", "unknown"), **binding_facts},
         allow_undeclared=args.allow_undeclared_tasks,
     )
     print(f"\nEvidence bundle: {bundle.directory}")

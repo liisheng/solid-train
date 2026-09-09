@@ -1,0 +1,301 @@
+# Reduced G3 baseline contract. This records the fixed 1B-baseline recipe and its
+# interfaces; it does not claim canonical G3/G4/G5/G6 completion.
+#
+# The accepted scope authorizes the 3,815-update horizon. Seed, peak LR, phase lengths,
+# and cadence are fixed engineering choices for this recipe package. The peak LR has
+# engineering evidence at 0.0006, but has not won a controlled LR comparison.
+
+protocol: reduced_baseline_contract
+version: v1
+status: RECIPE_FIXED_PENDING_REDUCED_G3_INTEGRATION
+canonical_g3_status: NOT_RUN
+change_control:
+  immutable: true
+  on_semantic_change: issue_a_new_run_id_and_new_baseline_contract_version
+  hash_algorithm: sha256
+  hash_scope: file bytes with CRLF normalized to LF
+
+scope:
+  accepted_scope_path: configs/campaign/submission_scope_v1.yaml
+  accepted_scope_sha256: 87630f9dc2569fe4c57ab4426d9c083c8cbe550de28e2d8d58cc72da6891f24d
+  authorization: 1B baseline; conditional 3-5B extension; at most one comparison after baseline export and full evaluation
+  baseline_horizon_authorized: true
+  horizon_authority: user-accepted submission scope
+  pilot_checkpoint_initialization_prohibited: true
+  benchmark_driven_training_selection: false
+  original_campaign_g3_claim: PROHIBITED
+
+model:
+  config_path: configs/final_49m.json
+  config_file_sha256: 69db94fe2bd0fef99b7a8ee183678b3bc2fc809a9cdea8fd71adf1149bb1782
+  canonical_config_hash: d0c6021882e2eb8f55ac3609bc5aea995f8b2c619845a4d1f14c23b847d96e3c
+  parameter_count: 49658368
+  parameter_cap: 50000000
+  vocab_size: 12288
+  sequence_length: 1024
+  initialization: fresh_seeded_random
+  pilot_or_pretrained_initialization: forbidden
+
+tokenizer:
+  protocol_path: configs/data/tokenizer_v3.yaml
+  protocol_sha256_normalized_lf: f8e0f39756144ef222cdf1fdb6d274fb2c3fd3e4cd39cef7f16b53f846a38686
+  artifact_path: data/tokenizer_final/tokenizer.json
+  artifact_sha256: 2103d520df7a23490054cff474f5c0e0f241bb56b51051284ab92889a683c635
+  token_counter_id: final_tokenizer_v1
+  vocabulary_size: 12288
+  eos_token_id: 1
+  bos_policy_id: BOS_RESERVED_NOT_PREPENDED_V1
+  bos_prepended: false
+
+horizon:
+  total_updates: 3815
+  loss_tokens_per_update: 262144
+  consumed_loss_tokens: 1000079360
+  sequence_length: 1024
+  sequences_per_update: 256
+  consumed_sequences: 976640
+  arithmetic:
+    consumed_loss_tokens_formula: total_updates * loss_tokens_per_update
+    consumed_sequences_formula: consumed_loss_tokens / sequence_length
+    exact_update_alignment_required: true
+  status: AUTHORIZED_FIXED_HORIZON
+
+batch:
+  micro_batch_size: 8
+  gradient_accumulation: 32
+  sequence_length: 1024
+  sequences_per_update: 256
+  loss_tokens_per_update: 262144
+  exact_division: true
+  rationale: retain the measured reduced G2 batch and BF16 stability evidence
+
+optimizer:
+  algorithm: adamw
+  beta1: 0.9
+  beta2: 0.95
+  epsilon: 1.0e-8
+  weight_decay: 0.1
+  gradient_clip_global_norm: 1.0
+  decay_groups: frozen_recipe_v1
+  recipe_path: configs/training/recipe_v1.yaml
+  recipe_sha256_normalized_lf: fdd5f9ab42d280515456e0caddc8d77bf3e5bfe8be0bf6bf83cf69681250c0f8
+
+learning_rate:
+  schedule: wsd
+  peak_lr: 6.0e-4
+  peak_lr_status: FIXED_ENGINEERING_CHOICE_NOT_CONTROLLED_SELECTION
+  peak_lr_evidence: reduced G2/profile used 0.0006 and remained engineering evidence; no controlled LR comparison selected it
+  warmup_updates: 38
+  stable_updates: 3395
+  decay_updates: 382
+  decay_start_completed_update: 3434
+  final_learning_rate: 0.0
+  phase_sum_formula: warmup_updates + stable_updates + decay_updates
+  phase_sum: 3815
+  warmup_rule: approximately 1 percent of the horizon, half-up, minimum one update
+  decay_rule: linear to exactly zero; no LR floor; no cosine schedule
+  decay_rationale: approximately 10 percent of the fixed horizon, retained as a conservative endpoint choice and not optimized by a comparison
+  status: FIXED_RECIPE_CHOICE_PENDING_G4_READINESS
+
+precision:
+  preferred_dtype: bfloat16
+  grad_scaler: false
+  fallback_dtype: float16
+  fallback_grad_scaler: true
+  final_scope_requires_measured_bf16_stability: true
+  evidence_path: runs/reduced_campaign/reduced_5pct_v1/profile/train/run_config.json
+  evidence_sha256: 2397adde1934bbf6c2e22950341db321f4728f33a7b3ba31f6054b1aacdd1ca8
+  observed_status: PASS
+  observed_device: NVIDIA GeForce RTX 4070 SUPER
+  determinism_policy:
+    strict_deterministic_algorithms: true
+    cublas_workspace_config: ':4096:8'
+    cudnn_benchmark: false
+    cudnn_deterministic: true
+    cuda_matmul_allow_tf32: false
+    cudnn_allow_tf32: false
+    float32_matmul_precision: highest
+  recovery_evidence_path: runs/reduced_campaign/g2_report_luna_final.json
+  recovery_evidence_sha256: 643c3a7538a9f83a5083a23f8802abcacd1a21cffb772f3582805598d8bdfafe
+
+seed:
+  value: 1337
+  status: FIXED_ENGINEERING_CHOICE
+  rationale: fresh reproducible initialization and schedule identity; not a quality-selection result
+
+data:
+  shard_root: data/shards/reduced_5pct_v1
+  shard_protocol_path: configs/data/shards_v1.yaml
+  shard_protocol_sha256_normalized_lf: b93ba07f7ddf6844ce3522bd9568526563c1974b4e76a8bb34bb1b665760015d
+  source_protocol_path: configs/data/sources_v4.yaml
+  source_protocol_sha256_normalized_lf: 5c697f01d06f5541245e03e9663a6ef5d1076515a2962fe1c872029e58052b5b
+  decontamination_protocol_path: configs/data/decontam_v3.yaml
+  decontamination_protocol_sha256_normalized_lf: 66abe996a08ede1e09f4562c5bbbc42a94adf506be2d035751170b41c2c8c041
+  dedup_protocol_sha256_normalized_lf: 81ede480e48c094814e1be1e036559ba9fd72e9c9df1c4a3e3437b8ab9fb80f7
+  filter_protocol_sha256_normalized_lf: a22f631f2df713fb542763cf485b7f3f8db2ac483d69466edaaed8d11ef2453a
+  stable_selected_distinct_tokens: 550094903
+  stable_manifest_tokens_including_rounding: 550611893
+  source_labels:
+    fineweb_edu: 683648
+    dclm: 195328
+    openwebmath: 68365
+    narrative: 29299
+  source_share_target: {fineweb_edu: 0.70, dclm: 0.20, openwebmath: 0.07, narrative: 0.03}
+  source_label_note: dclm is the retained internal ID for the general FineWeb source; it is not a DCLM dataset claim
+  base_g2_evidence_path: runs/reduced_campaign/reduced_5pct_v1/aggregate.json
+  base_g2_evidence_sha256: 6792a2b5c394e2dfcc3f467ca7b6f124715d50540f6808c1d588006e55462f91
+  manifests:
+    stable_train:
+      path: data/shards/reduced_5pct_v1/stable_train.manifest.json
+      content_hash: bd1b29919f46ef6391f7b465699dd260c58befbbef44810698a681b26a3b22e7
+      file_sha256: aae093c8d0dec85284293a2bfd2fdb3814162364f4cb82ecbae57aa955b2b47d
+    validation_dev:
+      path: data/shards/reduced_5pct_v1/validation_dev.manifest.json
+      content_hash: 000a93a63ea07e83e200006e94a0aedaaf46693f7fe3cae1950e3c273879e358
+      file_sha256: fc870df78d8aa2b05240526028f2b82bab20dbb0010c7be9cb4d4c219327cd37
+    validation_final:
+      path: data/shards/reduced_5pct_v1/validation_final.manifest.json
+      content_hash: 2a8ebcd80a9f6da6bfa1cd71a7d615ba8d5f98a052dfa4bc6a7284be4a695be6
+      file_sha256: 79a704b8e84d26d55e97338bf07e6150832a78f057fd708945ee2561eb2a6015
+    reserved:
+      path: data/shards/reduced_5pct_v1/reserved.manifest.json
+      content_hash: 4e1dc4e4944d3c2d13f43c9f1d8ee029c483c2eb2ef2deae7c899381fa9f3c80
+      file_sha256: 776c8a8e2586141c5e049b672fd9089a53569f03507ade40917a1d473975b36d
+
+schedule_inputs:
+  base_schedule:
+    path: data/schedules/reduced_5pct_v1/stable_train.json
+    content_hash: 820bd7f695643b2df82c5ea8c9816dcd763b375382a9a28f94656ad43529b828
+    file_sha256: ee174527f0a00a23f6d13d88e723dea1988f7df44fd4bb6c3aaf5f1300f4052e
+    schedule_id: stable_train/seed1337/len1024
+    sequence_count: 537112
+    source_counts: {fineweb_edu: 375907, dclm: 107439, openwebmath: 37579, narrative: 16187}
+    status: VERIFIED_EXISTING_G2_INPUT
+  development_schedule:
+    path: data/schedules/reduced_5pct_v1/validation_dev.json
+    content_hash: 50ddce9f4f12c5f70e6369170332d168c9a1783ee530c61ab4857c1b16ca61fd
+    file_sha256: 1174495e59fdfade5213d59d67f250c05de20fa14bbd37a946e26592827d65f2
+    schedule_id: validation_dev/seed1337/len1024
+    sequence_count: 753
+    status: VERIFIED_EXISTING_G2_INPUT
+  baseline_exposure_plan: PENDING_SECTION_2
+  baseline_exposure_hash: PENDING_SECTION_2
+  baseline_exposure_artifacts:
+    root: runs/reduced_campaign/reduced_baseline_v1
+    plan: runs/reduced_campaign/reduced_baseline_v1/exposure_plan.json
+    component_1: runs/reduced_campaign/reduced_baseline_v1/component_1.json
+    component_2: runs/reduced_campaign/reduced_baseline_v1/component_2.json
+    accounting: runs/reduced_campaign/reduced_baseline_v1/exposure_accounting.json
+    final_absolute_cursor: 976640
+    component_1_is_existing_base_schedule: true
+    component_1_sequence_count: 537112
+    component_2_sequence_count: 439528
+    component_2_source_quotas: {fineweb_edu: 307741, dclm: 87889, openwebmath: 30786, narrative: 13112}
+    artifact_hashes: PENDING_SECTION_2
+
+validation:
+  split: validation_dev
+  schedule_path: data/schedules/reduced_5pct_v1/validation_dev.json
+  schedule_content_hash: 50ddce9f4f12c5f70e6369170332d168c9a1783ee530c61ab4857c1b16ca61fd
+  reference_count: 753
+  mode: full_dev_each_reference_once
+  mode_status: PENDING_SECTION_3
+  aggregation: token_weighted_sum_then_divide_by_scored_tokens
+  wrap: false
+  final_partial_batch_required: true
+  custody: validation_dev_only; validation_final_stays_closed
+  cadence:
+    event_definition: after_completed_update
+    first_event: completed_update_1
+    periodic_events: completed_updates_100_and_multiples
+    completion_event: completed_update_3815
+    absolute_update_numbering_across_resume: true
+    pretraining_validation: false
+    implementation_reference: train.py step_zero_based_step_0_is_completed_update_1
+
+checkpoint_policy:
+  protocol_path: configs/training/checkpoint_v1.yaml
+  protocol_sha256_normalized_lf: 7d2c33ee9743cda80380a59dfc4dcd0eb477a20a05734332aec5934933639bc1
+  recovery_save_events: [completed_update_100_and_multiples, completed_update_3815]
+  cadence_rationale: 100-update validation/recovery cadence limits I/O while preserving bounded restart loss; completion is always saved
+  save_only_at_accumulation_boundaries: true
+  best_validation_checkpoint: saved_on_improving_dev_validation_event; role_is_selected_endpoint_until_export_verified
+  source_checkpoint_eligibility: PENDING_SECTION_4
+
+timing_and_cost_accounting:
+  optimizer_only_throughput_definition: consumed_loss_tokens / optimizer_seconds; excludes preparation, validation, checkpoint, export, and evaluation wall time
+  per_process_wall_cost_definition: each training, export, and evaluation process reports its own launch_to_exit wall seconds; phase fields stay attached to the process that measured them
+  campaign_wall_cost_definition: aggregate of the separately measured process wall times, with no missing phase inferred from optimizer seconds
+  required_phase_fields:
+    - preparation_seconds
+    - training_optimizer_seconds
+    - validation_seconds
+    - checkpoint_seconds
+    - export_seconds
+    - evaluation_seconds
+    - total_wall_seconds
+  campaign_aggregate_wall_seconds: PENDING
+  active_optimizer_seconds: PENDING
+  missing_phase_status: PENDING
+  historical_profile:
+    path: runs/reduced_campaign/reduced_5pct_v1/profile/measurement.json
+    sha256: 452f398c785bc89e6a55a29b81ac6fa7b2e4dd130b47580e47d3030d048759c6
+    scope: ENGINEERING_PROFILE_NOT_SUBMISSION_MODEL
+    machine_id: rtx_4070
+    optimizer_seconds: 1901.9477939001517
+    post_warmup_optimizer_seconds: 1886.1647485001595
+    wall_seconds: 1932.232609700004
+    weighted_optimizer_tokens_per_second: 66989.59255837736
+    p10_optimizer_tokens_per_second: 67267.73899078279
+    median_optimizer_tokens_per_second: 67686.2902187042
+    p90_optimizer_tokens_per_second: 67810.69975162485
+    peak_allocated_vram_gib: 5.445414066314697
+    validation_batches_per_sample: 8
+    promotion: historical optimizer timing does not establish total baseline wall cost or G4 promotion; composite and full-dev phases require fresh timing
+
+environment:
+  evidence_path: runs/reduced_campaign/environment_check_local.json
+  evidence_sha256: d15f878094063b736b5bdb1b99bb7c34d7d8f81964c81a1a4b7abb69feb9c2b9
+  report_path: runs/reduced_campaign/g2_source_local.json
+  active_machine_id: DESKTOP-0S78ISR
+  observed_device: NVIDIA GeForce RTX 4070 SUPER
+  python_version: 3.12.6
+  torch_version: 2.5.1+cu124
+  cuda_build: '12.4'
+  environment_ok: true
+  status: HISTORICAL_G2_EVIDENCE; NO_NEW_RUNTIME_CLAIM
+
+interfaces:
+  exposure_plan:
+    owner: section_2
+    required: versioned two-component plan, component order/counts/quotas, content hashes, one absolute cursor, within-component duplicate rejection
+    artifact: PENDING_SECTION_2
+  development_replay:
+    owner: section_3
+    required: 753 references once, final partial batch, token-weighted aggregation, schedule identity, repeat/reset proof
+    artifact: PENDING_SECTION_3
+  source_checkpoint:
+    owner: section_4
+    required: fresh provenance, run identity, exact 3815 completed updates, 1000079360 consumed loss tokens, final LR zero, frozen cursor/schedule and checkpoint manifest
+    artifact: PENDING_SECTION_4
+  evaluation_binding:
+    owner: section_5
+    protocol_path: configs/evaluation/evaluation_provisional_v2.yaml
+    protocol_sha256: 60eb9750bd70e74e2d5db868af068bf5cf2c578704cc1da2be12b9f2b536976b
+    required: effective loader/runtime identity and provisional labels; validation_final remains unopened during training
+    artifact: PENDING_SECTION_5
+  run_manifest:
+    owner: section_4_then_section_6
+    required: all input/config/artifact hashes, run semantics, counters, cursor, validation/evaluation binding, phase timing fields, machine facts, checks and limitations
+    artifact: PENDING_SECTION_4
+    generated_hash: PENDING
+
+readiness:
+  section_1_contract: READY_FOR_REVIEW
+  section_2_exposure: PENDING
+  section_3_validation: PENDING
+  section_4_runner_export: PENDING
+  section_5_evaluation: PENDING
+  section_6_integration_review: PENDING
+  final_reduced_g3_bundle: PENDING_SECTION_6
+  canonical_g3_gate: NOT_RUN

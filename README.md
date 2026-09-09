@@ -19,12 +19,13 @@ advice.
 
 ## Status
 
-No final training run has happened. Benchmark scores, perplexity, throughput, memory,
-training time, and compute are therefore **not reported here** — reporting them would mean
-inventing them. The machine-readable status of every submission claim, with its evidence
-path and verifier, is `configs/release/evidence_matrix_v1.yaml`; render it with
-`src\tinybench_lm\release.py`. Nothing in that matrix is `PASS` unless a named verifier has
-actually run.
+No final training run has happened. Submission benchmark scores and baseline training
+costs are not yet available. Measured engineering throughput, memory, and recovery results
+are recorded separately in [G3 integration evidence](docs/g3/INTEGRATION_EVIDENCE.md)
+and the earlier evidence it links; they are not submission results. The frozen release
+matrix `configs/release/evidence_matrix_v1.yaml` retains the original release requirements.
+Current reduced-scope reports supply their own artifact identities and verified outcomes;
+they do not promote the original gates or the release matrix automatically.
 
 For the current milestone, branch, owners, blockers, and next work, see
 [`docs/STATUS.md`](docs/STATUS.md). It is a coordination snapshot; the frozen gate config and
@@ -137,19 +138,14 @@ Generate text from the best checkpoint:
   --prompt "Once upon a time"
 ```
 
-Run the competition's four multiple-choice benchmarks:
+Evaluation uses a pinned provisional five-task bundle: HellaSwag, ARC-Easy, PIQA,
+WinoGrande, and explicit WikiText-103. The runtime checks dataset revisions and task
+implementation identities against the active decontamination inputs. See
+[section 5 evaluation evidence](docs/g3/EVALUATION_EVIDENCE.md) for the bounded engineering
+rehearsal command, artifact verification, and the full-evaluation command reserved for G6.
 
-```powershell
-.\.venv\Scripts\python.exe evaluate.py `
-  --checkpoint runs\full\best.pt `
-  --tokenizer data\processed\final\tokenizer.json `
-  --tasks hellaswag,arc_easy,piqa,winogrande `
-  --output runs\evaluation\core_results.json
-```
-
-`paloma_wikitext_103` is available as a separate harness task for development.
-The final submission must use the exact WikiText-103 held-out slice and evaluation
-settings specified or supplied by the organizers.
+The engineering rehearsal is not a baseline quality result. Organizer-dependent scoring
+settings remain provisional; benchmark outcomes must not guide training decisions.
 
 ## Competition integrity
 
@@ -162,9 +158,11 @@ These are not aspirations. The data-safety protocols under `configs/data/` are f
 pinned by SHA-256, so a threshold cannot be edited after a scan; the eligibility scan fails
 closed on pretrained weights, distillation, or a teacher dependency; and the campaign's
 decision thresholds were frozen in `configs/campaign/preregistration_v1.yaml` before any
-outcome exists. What has *not* happened is the measurement: no corpus has been acquired, no
-decontamination rate has been measured, and no run has started. Every such item is `NOT_RUN`
-or `BLOCKED` in the evidence matrix rather than quietly omitted.
+outcome exists. The reduced data preparation and engineering train/resume checks now have
+measured evidence; the reduced aggregate contains 550,094,903 distinct stable tokens.
+The main baseline and its full evaluation remain unrun. See
+[the accepted reduced scope](docs/REDUCED_CAMPAIGN.md) and
+[the G4 handoff](docs/g3/G4_HANDOFF.md) for the current preparation and remaining checks.
 
 ## Credits
 
@@ -216,8 +214,8 @@ evaluation dependency.
 `configs/release/evidence_matrix_v1.yaml` maps every competition contract item and every
 G0–G6 gate to a path, a verifier, a status, and a failure policy:
 
-- **`PASS`** — a named verifier ran and the artifact exists. Only the parameter cap and the
-  no-pretrained-weights scan currently qualify.
+- **`PASS`** — a named verifier ran and the artifact exists. Original release claims and
+  reduced engineering checks keep separate reports and scope labels.
 - **`BLOCKED`** — an organizer, teammate, or host must act first; the owner and next action
   are recorded. Personal eligibility and the exact WikiText-103 slice are here.
 - **`NOT_RUN`** / **`TBD`** — the artifact or measurement does not exist yet.

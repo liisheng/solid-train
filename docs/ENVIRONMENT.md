@@ -87,9 +87,21 @@ wheel requires the vendor wheel index and is an explicit, documented operator ch
 .\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 ```
 
+## Section 6 local environment check
+
+On 2026-09-08, the existing Windows CUDA environment passed 98 checks with no
+failures. The saved report is
+`runs/verification/g3-section6-root/environment.json`: CPython 3.12.6,
+Windows 11 build 26200, torch 2.5.1+cu124, CUDA 12.4 available, and an NVIDIA
+GeForce RTX 4070 SUPER. This supersedes the previously unrecorded second-lane
+environment status; it does not promote a backend or replace the required G4
+sustained production profile. No packages were installed.
+
+The section-6 container build could not connect to the Docker Desktop Linux
+engine. Ruff was absent from the environment. These checks remain unavailable,
+not passed; their recorded output is under `runs/verification/g3-section6-root/`.
+
 ## Unresolved
 
-- Second-lane (RTX 4070) environment facts have not been captured by this command yet;
-  they must be recorded from an actual run on that machine, not copied from this file.
-- Python versions other than 3.11.4 are supported by declaration (`>=3.11`) but unmeasured
-  here. No incompatibility has been measured, so support is preserved as declared.
+- Python versions other than the measured 3.11.4 and 3.12.6 environments remain
+  supported by declaration (`>=3.11`), with no wider compatibility claim.

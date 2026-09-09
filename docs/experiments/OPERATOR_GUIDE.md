@@ -20,6 +20,8 @@ Do not copy `.venv` or install/change host packages without authorization.
 The CPU Docker image is a test environment, not the production GPU environment.
 
 Source and tokenizer come from Git. Transfer these ignored inputs at matching
+relative paths; see [the teammate ZIP placement table](LLM_HANDOFF.md#teammate-zip-contents-and-placement)
+for the six top-level ZIP items and their exact destinations. Required inputs are at
 relative paths: `data/shards/reduced_5pct_v1/stable/`, `validation_dev/` under the
 same root, `stable_train.manifest.json`, `validation_dev.manifest.json` under that
 root, and `data/schedules/reduced_5pct_v1/validation_dev.json`.

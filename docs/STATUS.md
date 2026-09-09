@@ -1,5 +1,10 @@
 # Project status
 
+Teammate ZIP placement instructions added to `docs/experiments/LLM_HANDOFF.md`:
+six transfer items, exact destinations, post-copy check and later screening update.
+Documentation publication on the current branch authorized 2026-09-09;
+runtime implementation `664c617` is pushed.
+
 Runtime amendment verified locally on `codex/g3.5-pre-campaign-experiments`: user removed
 hard experiment limits in favor of advisory estimates and an operator yes/no choice.
 Policy `configs/campaign/experiment_execution_v1.json` supersedes old budget/cutoff

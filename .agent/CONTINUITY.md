@@ -22,6 +22,8 @@
 
 [DECISIONS]
 
+- 2026-09-09T15:30:04+08:00 [USER] Authorizes commit and push of teammate ZIP handoff documentation on codex/g3.5-pre-campaign-experiments. Include four coordination/guide files only; preserve unrelated build/egg-info/RULES. Documentation diff checked; no source changes or training.
+
 - 2026-09-09T15:19:30+08:00 [USER] Authorizes commit/push of verified advisory runtime amendment on codex/g3.5-pre-campaign-experiments. Supersedes prior no-publication restriction for this amendment only. Include source/tests/policy/coordination docs; exclude unrelated build/egg-info/RULES and ignored data/runs. Teammate transfer must use v2-advisory, not screenshot's historical v2; remaining input destinations unchanged. No GPU execution authorized.
 
 - 2026-09-09T14:28:00+08:00 [USER] Authorizes commit/push of verified experiment package to a G3.5 branch. Active milestone codex/g3.5-pre-campaign-experiments from4e27266; include required previously verified G4 section2 tooling/tests and handoff. Exclude unrelated build/, egg-info, user docs/RULES.md and ignored corpus/run/checkpoint artifacts. Supersedes prior no-commit/push scope for this publication only; no GPU jobs or model publication.
@@ -61,6 +63,8 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-09T15:23:48+08:00 [USER] Teammate will receive a ZIP of the minimal inputs rather than all data. Added six-item ZIP destination table, extraction guidance, check command and later screening-bundle update to LLM_HANDOFF; operator guide links it. Documentation-only local change; no ZIP creation or training requested. Runtime implementation664c617 previously pushed and remote verified.
 
 - 2026-09-09T15:14:52+08:00 [TOOL] Advisory runtime amendment verified locally: no experiment timeout/allowance/calendar cutoff; same-job smoke estimate plus affirmative operator prompt, actual/unknown duration ledger. Luna-medium authored ledger; Sol-medium final review approved. Frozen image821pass/99.06s; focused41pass; build/Ruff/compile/pip PASS; image source/tests and37installed modules match. Evidence runs/advisory-runtime-verification.json and advisory-runtime-tests-frozen.log. Real-input new bundle runs/pre_campaign/v2-advisory validated, SHA15a3e7405f21fca4ee22cacaf4225eed757813de90f5196ad807ec35124df9fe. Original bundle preserved; updated source+bundle required for teammate, corpus unchanged. First mutable suite source-drift failure superseded by frozen run. Docs updated. No GPU job, commit or push; C0 dependency unchanged. Branch codex/g3.5-pre-campaign-experiments HEAD3517e59 remains published historical checkpoint.
 

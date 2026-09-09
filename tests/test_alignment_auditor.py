@@ -33,7 +33,6 @@ from tinybench_lm.alignment import (
     AUDIT_INTEGRITY_VIOLATION,
     AUDIT_STATUSES,
     AUDIT_UNEXPLAINED_DIFFERENCE,
-    AUDIT_VERIFIER_FAILED,
     DEFERRED,
     FROZEN_ALIGNMENT_PROTOCOL_SHA256,
     AlignmentContractError,
@@ -47,7 +46,7 @@ from tinybench_lm.alignment import (
     tree_fingerprint,
 )
 from tinybench_lm.data_protocols import REPOSITORY_ROOT, ProtocolMutatedError, protocol_digest
-from tinybench_lm.shards import FAIL, PASS
+from tinybench_lm.shards import FAIL
 
 FINAL_PARAMETERS = 49_658_368
 CAP = 50_000_000

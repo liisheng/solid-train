@@ -119,7 +119,8 @@ def main() -> int:
     registry = load_source_registry()
     decontamination = load_decontamination_protocol(PRODUCTION_DECONTAM_PROTOCOL_PATH)
     tokenizer, _ = load_tokenizer_artifact(args.tokenizer_dir)
-    token_counter = lambda text: len(tokenizer.encode(text).ids)
+    def token_counter(text):
+        return len(tokenizer.encode(text).ids)
     assert_write_space(args.state.parent, acquisition)
     assert_write_space(args.cache_dir, acquisition)
     selection_results = ()

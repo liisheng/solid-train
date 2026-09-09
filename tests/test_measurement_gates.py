@@ -20,7 +20,6 @@ tooling cannot manufacture a claim:
 
 from __future__ import annotations
 
-import math
 from dataclasses import replace
 from pathlib import Path
 

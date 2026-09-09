@@ -1,5 +1,9 @@
 [PLANS]
 
+- 2026-09-09T11:24:00+08:00 [USER] Requested commit/push of G4 part1 plus a comprehensive one-chat-per-section guide. docs/g4/README.md and seven briefs now bound sections:1verificationPASS,2profile-preparationNEXT,3sustained-profile,4local-recovery,5takeover,6budget,7freeze. No later execution started. Each brief ~400–570words; handoff225words; source148-file manifest unchanged.
+
+- 2026-09-09T11:04:00+08:00 [USER] G4 part1 authorized: container build/tests, Ruff fixes, source/input/environment/space/process verification; subagents allowed. Active branch codex/g4-verification from d5016f0. Root owns integrated checks/docs; artifact and lint agents completed repairs, independent diff review underway. No production profile/training/scoring authorized in this task.
+
 - 2026-09-09T10:03:00+08:00 [TOOL] R1–R3 repaired by three agents; root full suite715pass/124.08s, independent focused90pass. See docs/g3/REVIEW_FIXES.md. Source manifest105files af6651cea79b899c78bd183dd8e3c08547bd887b9213c85fc9441ac11cc56bfc; prior section6 source/evidence historical. G4 still requires tools, changed-input production evidence/profile and applicable human/recovery checks. Repairs uncommitted on9078430.
 
 - 2026-09-09T09:37:18+08:00 [TOOL] Fresh comprehensive pre-G4 review requests changes: docs/g3/PRE_G4_REVIEW.md. R1 crash rollback can append duplicate/unsegmented metric tails; R2 --full evaluation accepts limits/partial tasks; R3 runner does not enforce fixed recipe/evaluation digests at runtime. Fix/test before clean G4 sign-off. Implementation unchanged; historical local PASS remains scoped to existing tests. This supersedes tools-only blockers below.
@@ -8,6 +12,8 @@
 - 2026-09-08T23:46:43.5226610+08:00 [TOOL] Continue codex/g3-baseline-recipe, HEAD f643e9f09c0700686222712eb58d90e4a0fe1de2; G3 changes uncommitted. Final source/test manifest (103 files): runs/verification/g3-section6-root/final-source-manifest.json, SHA 8ebf3d6ec5f863c94a0807bd1967d86841d9d25f4c5c7b28928a8153bba5dbdd. Read docs/STATUS.md and docs/g3/CURRENT_HANDOFF.md first. Preserve unrelated build/egg-info changes and user RULES; ignored data/runs need transfer/reproduction.
 
 [DECISIONS]
+
+- 2026-09-09T11:24:00+08:00 [USER] Authorizes publication of verified G4 part1 and guide to origin/codex/g4-verification. Exclude pre-existing build/egg-info/RULES and ignored corpus/run artifacts. Publication does not authorize executing later guide sections or publishing a model.
 
 - 2026-09-09T10:33:39+08:00 [USER] Authorized committing and pushing the reviewed R1–R3 repairs to origin/codex/g3-baseline-recipe. Source manifest105files rechecked without drift; prior715pass and independent90pass remain applicable. Include repair source/tests/coordination docs; exclude unrelated build/egg-info/RULES and ignored evidence/data. This supersedes repair-task uncommitted status for this checkpoint.
 
@@ -36,6 +42,8 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-09T11:15:29+08:00 [TOOL] G4 part1 PASS, superseding active part1/tool-blocker status above. Branch codex/g4-verification from d5016f0; uncommitted. Docker restored by graceful stop and preserved runtime-directory renames (no reset/delete/install). CPU image fixed;94 Ruff findings and2 test portability issues repaired. Final Docker715pass/81.59s, Windows715pass/133.90s, zero skips; Ruff0.11.13/compile/pip/diffPASS; environments97CPU/98Windows checksPASS;34installed modules and107image files match. Final148-file manifest0b20afde26466900ad23ae78345f16e8873f1e281d149f003269fe89fc9f6da1; evidence runs/verification/g4-part1-20260909/report.json, docs/g4/VERIFICATION.md.141input checks and actual CPU prepare/start/boundary/end/dev readsPASS; final test-only change leaves preflight production source unchanged. No training detected;214GBfreeC/1.37TBfreeD. Frozen inputs/constraints/unrelated files preserved. All agents finished; no training/scoring/commit/push. G4 profile/recovery/takeover/budget/teammate approval remain.
 
 - 2026-09-09T10:03:36+08:00 [TOOL] Fresh independent reviewer final: no unresolved actionable source findings; root matched all9 reviewed file hashes and105-file test manifest after715pass. Report runs/verification/g3-review-fixes-20260909/independent-review.md SHA dd0ecf7c95b838e04d3f30895a594e1417a39ac712e964231cb1b38f61065e2d. All repair/review agents finished; docs/STATUS.md and CURRENT_HANDOFF.md updated. No G4 pass claimed.
 

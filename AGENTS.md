@@ -129,6 +129,12 @@ A task is done when:
 - Use `docker build -t tinybench-lm:verify .` and `docker run --rm tinybench-lm:verify` for
   the clean container test path. Do not mount or bake local corpus, run, or checkpoint data
   into the image.
+- The CPU image installs PyTorch from the official CPU wheel index under the existing
+  public-version constraints and includes Ruff 0.11.13. Run lint with
+  `docker run --rm tinybench-lm:verify python -m ruff check src scripts tests train.py generate.py evaluate.py`.
+  `PYTHONPATH=/workspace/src` keeps subprocess checks bound to the copied checkout.
+  Container tests must use self-contained fixtures; production-input preflight is a
+  separate Windows CUDA-environment check and must not become a hidden corpus dependency.
 
 ## Repository progress tracking
 

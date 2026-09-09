@@ -1186,7 +1186,8 @@ class CorpusState:
         return accepted_count, accepted_hash, decision_count, decision_hash
 
     def summary(self) -> PipelineSummary:
-        scalar = lambda sql: int(self.connection.execute(sql).fetchone()[0])
+        def scalar(sql):
+            return int(self.connection.execute(sql).fetchone()[0])
         reason_counts = {
             str(row[0]): int(row[1])
             for row in self.connection.execute(

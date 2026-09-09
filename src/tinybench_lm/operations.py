@@ -43,7 +43,7 @@ campaign, or passes a gate. Tests drive it entirely with synthetic measurements.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Sequence
 
 from .data_protocols import (

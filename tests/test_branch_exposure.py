@@ -61,7 +61,6 @@ from tinybench_lm.branches import (
     branch_size_bands,
     build_arm_a,
     build_arm_b,
-    build_arm_c,
     build_arm_schedules,
     build_exposure_lists,
     constant_reserved_schedule,

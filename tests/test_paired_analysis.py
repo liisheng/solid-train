@@ -19,7 +19,6 @@ any public wording. What the tests prove is that the analysis cannot be talked i
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -64,7 +63,7 @@ from tinybench_lm.analysis import (
 )
 from tinybench_lm.campaign import decision_thresholds
 from tinybench_lm.data_protocols import ProtocolMutatedError, protocol_digest
-from tinybench_lm.shards import EXPECTED_PROTECTED_SLICES, FAIL, NOT_RUN, PASS
+from tinybench_lm.shards import EXPECTED_PROTECTED_SLICES, NOT_RUN, PASS
 
 DOCUMENTS = 240
 

@@ -21,14 +21,15 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import numpy as np
-import torch
+# These imports follow the path bootstrap so direct script execution can import scripts.
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
 
-from scripts.run_reduced_baseline import prepare, sha256
-from tinybench_lm.checkpointing import verify_checkpoint
-from tinybench_lm.eligibility import production_python_paths
-from tinybench_lm.exposure import load_exposure_plan
-from tinybench_lm.schedule import training_order_hash
+from scripts.run_reduced_baseline import prepare, sha256  # noqa: E402
+from tinybench_lm.checkpointing import verify_checkpoint  # noqa: E402
+from tinybench_lm.eligibility import production_python_paths  # noqa: E402
+from tinybench_lm.exposure import load_exposure_plan  # noqa: E402
+from tinybench_lm.schedule import training_order_hash  # noqa: E402
 DEFAULT_OUTPUT = ROOT / "runs/verification/g3-section6-integration"
 
 

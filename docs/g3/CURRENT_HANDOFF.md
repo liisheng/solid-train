@@ -1,5 +1,12 @@
 # Current G3 handoff
 
+- **2026-09-09 G4 part 1 supersedes the tool blockers below:** Docker restored,
+  CPU container and Windows suites each 715 passed, Ruff/compile/dependencies pass,
+  current source and production-input preflight verified. Work is uncommitted on
+  `codex/g4-verification` from `d5016f0`. See [G4 verification](../g4/VERIFICATION.md)
+  for the new source identity. Sustained profiling, applicable recovery/takeover,
+  budget and teammate approval remain; no G4 gate PASS or baseline launch.
+
 - **2026-09-09 repair completion supersedes the open findings below:** R1–R3 fixed;
   separate independent reviewer found no unresolved actionable issue. Root full suite
   715 passed; independent focused suite 90 passed; compile/build/diff passed and all

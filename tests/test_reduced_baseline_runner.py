@@ -186,8 +186,68 @@ def test_production_runner_rejects_an_engineering_contract(tmp_path: Path) -> No
         prepare(config_path=engineering)
 
 
-def test_production_prepare_binds_the_resolved_evaluation_loader_identity() -> None:
+def test_production_prepare_binds_the_resolved_evaluation_loader_identity(monkeypatch: pytest.MonkeyPatch) -> None:
     """The runner must carry the semantic v3 loader binding, never a sentinel."""
+    from scripts import run_reduced_baseline as runner
+
+    # This unit test exercises real config validation and loader-binding resolution.
+    # Corpus artifacts are deliberately absent from the CPU verification image;
+    # their integrity is checked separately by the production-input preflight.
+    config = runner._verified_baseline_config()
+    paths = runner._required_paths(config)
+    artifact_names = {"base_schedule", "dev_manifest", "dev_schedule", "exposure_plan", "component_1", "component_2"}
+    artifact_paths = {paths[name] for name in artifact_names}
+    real_is_file = Path.is_file
+    real_sha256 = runner.sha256
+    artifact_hashes = {
+        paths["dev_manifest"]: config["data"]["manifests"]["validation_dev"]["file_sha256"],
+        paths["dev_schedule"]: config["schedule_inputs"]["development_schedule"]["file_sha256"],
+        paths["exposure_plan"]: "76f16bfc98620227e2070645e5e901d8a4a8811c3970509b92769ebd84f71f8f",
+    }
+
+    def fixture_is_file(path):
+        return path in artifact_paths or real_is_file(path)
+
+    def fixture_sha256(path):
+        return artifact_hashes[path] if path in artifact_hashes else real_sha256(path)
+
+    exposure = SimpleNamespace(
+        content_hash="fixture-exposure",
+        components=(),
+        to_dict=lambda: {"sequence_count": config["horizon"]["consumed_sequences"]},
+    )
+    stable_manifest = SimpleNamespace(split_id="stable_train")
+    dev_manifest = SimpleNamespace(split_id="validation_dev", content_hash=lambda: "fixture-dev-manifest")
+    dev_schedule = SimpleNamespace(
+        split_id="validation_dev", schedule_id="fixture-dev",
+        content_hash=lambda: config["schedule_inputs"]["development_schedule"]["content_hash"],
+    )
+
+    def fixture_verify_exposure(actual_exposure, actual_manifest):
+        assert actual_exposure is exposure
+        assert actual_manifest is stable_manifest
+
+    def fixture_load_exposure(plan_path, component_paths):
+        assert plan_path == paths["exposure_plan"]
+        assert component_paths == (paths["component_1"], paths["component_2"])
+        return exposure
+
+    def fixture_load_manifest(path):
+        if path == paths["dev_manifest"]:
+            return dev_manifest
+        assert path == runner.ROOT / config["data"]["manifests"]["stable_train"]["path"]
+        return stable_manifest
+
+    def fixture_load_schedule(path):
+        assert path == paths["dev_schedule"]
+        return dev_schedule
+
+    monkeypatch.setattr(Path, "is_file", fixture_is_file)
+    monkeypatch.setattr(runner, "sha256", fixture_sha256)
+    monkeypatch.setattr(runner, "load_exposure_plan", fixture_load_exposure)
+    monkeypatch.setattr(runner, "load_split_manifest", fixture_load_manifest)
+    monkeypatch.setattr(runner, "load_schedule", fixture_load_schedule)
+    monkeypatch.setattr(runner, "verify_exposure", fixture_verify_exposure)
     prepared = prepare()
     facts = prepared["evaluation_binding_facts"]
     assert prepared["evaluation_binding"] == facts["binding_digest"]

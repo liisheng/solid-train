@@ -101,6 +101,33 @@ The section-6 container build could not connect to the Docker Desktop Linux
 engine. Ruff was absent from the environment. These checks remain unavailable,
 not passed; their recorded output is under `runs/verification/g3-section6-root/`.
 
+## CPU container verification
+
+The repository Docker image uses Python 3.11 and the official PyTorch 2.5.1 CPU
+wheel. Both installation steps apply the existing public-version constraints;
+the historical CUDA build label in that file is a comment, not a CPU requirement.
+Runtime pins and the Windows CUDA environment are unchanged. Ruff 0.11.13 is
+installed only in the verification image.
+
+```powershell
+docker build -t tinybench-lm:verify .
+docker run --rm tinybench-lm:verify
+docker run --rm tinybench-lm:verify python -m ruff check src scripts tests train.py generate.py evaluate.py
+```
+
+The image includes the entrypoints, constraints, and documentation required by
+the full test suite. Local corpus, runs, checkpoints, generated build metadata,
+and the untracked personal rules document are excluded. The existing checked-in
+tokenizer fixture remains included. No host package installation is required.
+
+On 2026-09-09 Docker Desktop initially failed on an inaccessible `dockerInference`
+socket. After a graceful stop, the runtime directories were preserved as
+`%LOCALAPPDATA%\Docker\run.g4-backup-20260909-1059` and
+`%LOCALAPPDATA%\docker-secrets-engine.g4-backup-20260909-1059`; restarting restored
+engine access. No factory reset or Docker data deletion was performed. This
+matches the [upstream startup report](https://github.com/docker/desktop-feedback/issues/460).
+Detailed G4 part-1 results are recorded in `docs/g4/VERIFICATION.md`.
+
 ## Unresolved
 
 - Python versions other than the measured 3.11.4 and 3.12.6 environments remain

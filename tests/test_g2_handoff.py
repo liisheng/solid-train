@@ -198,23 +198,50 @@ def test_combined_report_rejects_status_only_structured_results(tmp_path: Path) 
 
 
 def test_combined_report_valid_fixture_and_mutations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    root = tmp_path / "repo"; root.mkdir()
-    scope = root / "g2_scope_v2.yaml"; scope.write_bytes(g2_handoff.SCOPE_PATH.read_bytes()); scope.with_name(scope.name + ".sha256").write_text(g2_handoff._sha256(scope), encoding="utf-8")
-    export = root / "runs/reduced_campaign/reduced_5pct_v1/recovery/engineering_export.pt"; export.parent.mkdir(parents=True); export.write_bytes(b"export"); provenance = root / "runs/reduced_campaign/reduced_5pct_v1/recovery/resumed/step_zero_provenance.json"; provenance.parent.mkdir(parents=True); provenance.write_bytes(b"provenance")
-    env = {"ok": True, "results": [{"status": "PASS"}]}; environment = root / "environment.json"; environment.write_text(json.dumps(env), encoding="utf-8")
-    schedule = root / "recovery.json"; schedule.write_text("fixture schedule", encoding="utf-8")
-    monkeypatch.setattr(g2_handoff, "ROOT", root); monkeypatch.setattr(g2_handoff, "SCOPE_PATH", scope); monkeypatch.setattr(g2_handoff, "EXPECTED_RECOVERY_SCHEDULE", schedule)
+    root = tmp_path / "repo"
+    root.mkdir()
+    scope = root / "g2_scope_v2.yaml"
+    scope.write_bytes(g2_handoff.SCOPE_PATH.read_bytes())
+    scope.with_name(scope.name + ".sha256").write_text(g2_handoff._sha256(scope), encoding="utf-8")
+    export = root / "runs/reduced_campaign/reduced_5pct_v1/recovery/engineering_export.pt"
+    export.parent.mkdir(parents=True)
+    export.write_bytes(b"export")
+    provenance = root / "runs/reduced_campaign/reduced_5pct_v1/recovery/resumed/step_zero_provenance.json"
+    provenance.parent.mkdir(parents=True)
+    provenance.write_bytes(b"provenance")
+    env = {"ok": True, "results": [{"status": "PASS"}]}
+    environment = root / "environment.json"
+    environment.write_text(json.dumps(env), encoding="utf-8")
+    schedule = root / "recovery.json"
+    schedule.write_text("fixture schedule", encoding="utf-8")
+    monkeypatch.setattr(g2_handoff, "ROOT", root)
+    monkeypatch.setattr(g2_handoff, "SCOPE_PATH", scope)
+    monkeypatch.setattr(g2_handoff, "EXPECTED_RECOVERY_SCHEDULE", schedule)
     import tinybench_lm.schedule as schedule_module
     class FakeSchedule:
         entries = list(range(768))
         def content_hash(self): return "e90156b8ca17ed3f1ba19d266778d1a2950351a3eb7f5285db214f4a3454b05e"
     monkeypatch.setattr(schedule_module, "load_schedule", lambda _: FakeSchedule())
     monkeypatch.setattr(schedule_module, "training_order_hash", lambda _: "8036156aa637f806ed500ab710f14d8bbb3364b8857be38fdb307e86e4d23478")
-    monkeypatch.setattr(g2_handoff, "EXPECTED_EXPORT_SIZE", export.stat().st_size); monkeypatch.setattr(g2_handoff, "EXPECTED_EXPORT_SHA256", g2_handoff._sha256(export)); monkeypatch.setattr(g2_handoff, "EXPECTED_PROVENANCE_SIZE", provenance.stat().st_size); monkeypatch.setattr(g2_handoff, "EXPECTED_PROVENANCE_SHA256", g2_handoff._sha256(provenance))
-    source, recovery = _combined_inputs(tmp_path); sp = json.loads(source.read_text()); rp = json.loads(recovery.read_text())
+    monkeypatch.setattr(g2_handoff, "EXPECTED_EXPORT_SIZE", export.stat().st_size)
+    monkeypatch.setattr(g2_handoff, "EXPECTED_EXPORT_SHA256", g2_handoff._sha256(export))
+    monkeypatch.setattr(g2_handoff, "EXPECTED_PROVENANCE_SIZE", provenance.stat().st_size)
+    monkeypatch.setattr(g2_handoff, "EXPECTED_PROVENANCE_SHA256", g2_handoff._sha256(provenance))
+    source, recovery = _combined_inputs(tmp_path)
+    sp = json.loads(source.read_text())
+    rp = json.loads(recovery.read_text())
     sp.update(status="SOURCE_EXPORT_VERIFY_PASS", machine_id="fixture", verify_release={"ok": True, "results": [{"status": "PASS"}]}, environment={"path": str(environment), "size": environment.stat().st_size, "sha256": g2_handoff._sha256(environment), "report": env}, source_export={"path": str(export), "size": export.stat().st_size, "sha256": g2_handoff._sha256(export)}, source_provenance={"path": str(provenance), "size": provenance.stat().st_size, "sha256": g2_handoff._sha256(provenance)}, scope_amendment={"path": str(scope.resolve()), "size": scope.stat().st_size, "sha256": g2_handoff._sha256(scope)})
-    rp.update(exact_resume_fields=sorted(g2_handoff.EXPECTED_RESUME_FIELDS), resume_state_complete_equal=True); rp["export"]={"ok": True, "results": [{"status": "PASS"}]}; rp["training_input_identity"].update(base_schedule_content_hash="e90156b8ca17ed3f1ba19d266778d1a2950351a3eb7f5285db214f4a3454b05e", expected_cursors=[256], batch_reference_hashes=["8036156aa637f806ed500ab710f14d8bbb3364b8857be38fdb307e86e4d23478"], sequences_per_update=256, epochs=3)
-    source.write_text(json.dumps(sp)); recovery.write_text(json.dumps(rp)); report = g2_handoff.combined_report(scope, source, recovery, None); assert report["status"] == "REDUCED_SCOPE_G2_PASS", report["requirements"]
+    rp.update(exact_resume_fields=sorted(g2_handoff.EXPECTED_RESUME_FIELDS), resume_state_complete_equal=True)
+    rp["export"]={"ok": True, "results": [{"status": "PASS"}]}
+    rp["training_input_identity"].update(base_schedule_content_hash="e90156b8ca17ed3f1ba19d266778d1a2950351a3eb7f5285db214f4a3454b05e", expected_cursors=[256], batch_reference_hashes=["8036156aa637f806ed500ab710f14d8bbb3364b8857be38fdb307e86e4d23478"], sequences_per_update=256, epochs=3)
+    source.write_text(json.dumps(sp))
+    recovery.write_text(json.dumps(rp))
+    report = g2_handoff.combined_report(scope, source, recovery, None)
+    assert report["status"] == "REDUCED_SCOPE_G2_PASS", report["requirements"]
     pristine_source, pristine_recovery = json.loads(json.dumps(sp)), json.loads(json.dumps(rp))
     for mutate in (lambda: sp.update(verify_release={"ok": True}), lambda: rp["training_input_identity"].update(batch_reference_hashes=["0"*64]), lambda: rp["training_input_identity"].update(base_schedule_content_hash="0"*64), lambda: rp.update(exact_resume_fields=sorted(g2_handoff.EXPECTED_RESUME_FIELDS)[:-1]), lambda: sp["scope_amendment"].update(sha256="0"*64), lambda: sp["environment"].update(report={"ok": True, "results": [{"status": "PASS"}], "tampered": True})):
-        sp, rp = json.loads(json.dumps(pristine_source)), json.loads(json.dumps(pristine_recovery)); mutate(); source.write_text(json.dumps(sp)); recovery.write_text(json.dumps(rp)); assert g2_handoff.combined_report(scope, source, recovery, None)["status"] != "REDUCED_SCOPE_G2_PASS"
+        sp, rp = json.loads(json.dumps(pristine_source)), json.loads(json.dumps(pristine_recovery))
+        mutate()
+        source.write_text(json.dumps(sp))
+        recovery.write_text(json.dumps(rp))
+        assert g2_handoff.combined_report(scope, source, recovery, None)["status"] != "REDUCED_SCOPE_G2_PASS"

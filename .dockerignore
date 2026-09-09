@@ -9,6 +9,9 @@ data/*
 runs
 __pycache__
 *.pyc
+build
+*.egg-info
+docs/RULES.md
 tmp_*.log
 
 !data/tokenizer_final/

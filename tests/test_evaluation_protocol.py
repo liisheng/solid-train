@@ -23,11 +23,9 @@ from evaluate import _serialize_results
 
 from tinybench_lm.data_protocols import ProtocolError, frozen_benchmark_task_ids, protocol_digest
 from tinybench_lm.evaluation_protocol import (
-    BLOCKED,
     EVALUATION_PROTOCOL_DIR,
     FAIL,
     FROZEN_EVALUATION_PROTOCOL_SHA256,
-    NOT_RUN,
     ORGANIZER_FINAL_PROTOCOL_ID,
     PASS,
     PROVISIONAL_PROTOCOL_ID,

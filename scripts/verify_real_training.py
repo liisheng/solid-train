@@ -70,9 +70,11 @@ def main():
     assert a.keys() == b.keys(), (sorted(a.keys()), sorted(b.keys()))
     for key in compared:
         if key == "training_args":
-            left = dict(a[key]); right = dict(b[key])
+            left = dict(a[key])
+            right = dict(b[key])
             for excluded in ("run_dir", "resume", "stop_after_updates", "stop_after_training_seconds"):
-                left.pop(excluded, None); right.pop(excluded, None)
+                left.pop(excluded, None)
+                right.pop(excluded, None)
             assert_equal(left, right, f"{key} (excluding run-location/resume controls)")
         else:
             assert_equal(a[key], b[key], key)

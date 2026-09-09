@@ -17,7 +17,6 @@ final asset. What the tests prove is that the submission surface cannot be quiet
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -56,7 +55,7 @@ from tinybench_lm.release import (
     template_violations,
     verify_release_matrix,
 )
-from tinybench_lm.shards import FAIL, NOT_RUN, PASS
+from tinybench_lm.shards import NOT_RUN, PASS
 
 #: Plan Section 16 has eighteen checklist lines.
 CONTRACT_ITEM_COUNT = 18

@@ -29,14 +29,12 @@ from .environment import CheckResult
 from .shards import (
     CLUSTER_CROSSES_BOUNDARY,
     CLUSTER_CROSSES_PROTECTED_SLICE,
-    DEGRADED_DECISION_RECORD_MISSING,
     EXPECTED_PROTECTED_SLICES,
     EXPECTED_SHARD_NAMESPACES,
     FAIL,
     MIXTURE_SHARE_OUT_OF_TOLERANCE,
     NOT_RUN,
     PASS,
-    PROFILE_BELOW_THRESHOLD,
     RESERVED,
     RESERVED_MARGIN_NOT_MET,
     SCALE_FINAL,
@@ -613,9 +611,8 @@ def _verify_shard(root: Path, shard: Mapping[str, Any], *, protocol: Mapping[str
     try:
         expected_namespace = namespace_for(source_id, boundary, protocol=protocol, registry=registry)
         namespace_ok = expected_namespace == str(shard.get("namespace", ""))
-        namespace_reason = "source and boundary resolve to the frozen namespace"
     except ShardContractError as exc:
-        expected_namespace, namespace_ok, namespace_reason = str(exc), False, str(exc)
+        expected_namespace, namespace_ok = str(exc), False
     results.append(_verdict(f"{prefix}.namespace", expected_namespace, shard.get("namespace"), namespace_ok, SHARD_NAMESPACE_UNREGISTERED))
     results.append(_verdict(f"{prefix}.source_tag", "non-empty source ID", source_id, bool(source_id), SHARD_MISSING_SOURCE_TAG))
     results.append(_verdict(f"{prefix}.path_under_namespace", f"{namespace}/...", relative, path_ok, SHARD_SOURCE_MIXED))

@@ -403,7 +403,8 @@ class BenchmarkIndex:
         )
 
     def summary(self) -> BenchmarkIndexSummary:
-        count = lambda table: int(self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+        def count(table):
+            return int(self.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
         complete = self.connection.execute("SELECT value FROM metadata WHERE key = 'complete'").fetchone()
         return BenchmarkIndexSummary(
             items=count("items"),

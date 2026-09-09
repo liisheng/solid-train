@@ -59,7 +59,6 @@ from tinybench_lm.operations import (  # noqa: E402
     MicrobatchProbe,
     ThroughputMeasurement,
     minimum_vram_headroom,
-    nearest_rank_percentile,
     safe_microbatch,
     throughput_violations,
 )

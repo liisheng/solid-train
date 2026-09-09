@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -25,7 +24,6 @@ from tinybench_lm.provenance import export_release, read_step_zero_provenance, v
 from tinybench_lm.schedule import load_schedule
 from tinybench_lm.shards import load_split_manifest
 from tinybench_lm.training_recipe import (
-    BatchPlan,
     RunSemantics,
     WSDSchedule,
     adamw_settings,
@@ -133,7 +131,6 @@ def build_identity(*, config: Mapping[str, Any], paths: Mapping[str, Path], envi
     expected_dev_content = config["schedule_inputs"]["development_schedule"]["content_hash"]
     if dev_schedule.content_hash() != expected_dev_content:
         raise RunnerError("development schedule content identity does not match the frozen contract")
-    expected_exposure = "6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3"
     if sha256(paths["exposure_plan"]) != "76f16bfc98620227e2070645e5e901d8a4a8811c3970509b92769ebd84f71f8f":
         raise RunnerError("exposure plan file identity does not match the verified baseline artifact")
     schedule = config["learning_rate"]
@@ -374,7 +371,8 @@ def main() -> None:
         run_dir=args.run_dir,
     )
     if args.command == "prepare":
-        print(json.dumps(identity, indent=2, sort_keys=True)); return
+        print(json.dumps(identity, indent=2, sort_keys=True))
+        return
     if args.command == "launch":
         command = launch_command(
             identity,
@@ -396,10 +394,13 @@ def main() -> None:
             if not identity_path.exists():
                 identity_path.write_bytes(identity_bytes)
         print(json.dumps({"run_id": identity["run_id"], "command": command}, indent=2))
-        if args.execute: raise SystemExit(subprocess.call(command, cwd=ROOT))
+        if args.execute:
+            raise SystemExit(subprocess.call(command, cwd=ROOT))
         return
     checkpoint = args.checkpoint or (args.run_dir / "completed.pt")
-    if args.command == "verify": print(json.dumps(verify_source(checkpoint, identity=identity, run_dir=args.run_dir), indent=2, sort_keys=True)); return
+    if args.command == "verify":
+        print(json.dumps(verify_source(checkpoint, identity=identity, run_dir=args.run_dir), indent=2, sort_keys=True))
+        return
     destination = args.destination or (args.run_dir / "baseline_export.pt")
     print(json.dumps(export_completed(checkpoint=checkpoint, destination=destination, identity=identity, run_dir=args.run_dir), indent=2, sort_keys=True))
 

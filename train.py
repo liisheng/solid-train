@@ -16,7 +16,6 @@ import torch
 from tinybench_lm import LOSS_IGNORE_INDEX, ModelConfig, TinyBenchLM
 from tinybench_lm.checkpointing import (
     ROLE_SELECTED_ENDPOINT,
-    ROLE_FALLBACK,
     BestValidationState,
     CheckpointCounters,
     CheckpointIntegrityError,
@@ -37,7 +36,7 @@ from tinybench_lm.data import PackedTokenDataset, TrainingSource, load_data_meta
 from tinybench_lm.exposure import CompositeTokenStream, load_exposure_plan, verify_exposure
 from tinybench_lm.metric_ledger import reconcile_metrics
 from tinybench_lm.shards import load_split_manifest
-from tinybench_lm.provenance import record_step_zero_provenance, verify_step_zero_provenance, write_step_zero_provenance
+from tinybench_lm.provenance import record_step_zero_provenance, write_step_zero_provenance
 from tinybench_lm.schedule import CURSOR_STATE_KEY, ScheduledTokenStream, open_scheduled_stream, training_order_hash
 from tinybench_lm.repeated_schedule import RepeatedScheduledStream
 from tinybench_lm.training_recipe import (
@@ -251,7 +250,8 @@ def open_batch_sources(args: argparse.Namespace) -> tuple[TrainingSource, Traini
         train_data = CompositeTokenStream(args.shard_root, manifest, exposure, validate_components=False)
         validation_data = open_scheduled_stream(args.shard_root, args.validation_manifest, args.validation_schedule, wrap=True)
         if validation_data.manifest.split_id != "validation_dev" or validation_data.schedule.split_id != "validation_dev":
-            train_data.close(); validation_data.close()
+            train_data.close()
+            validation_data.close()
             raise ValueError("training validation inputs must be the validation_dev manifest and schedule")
         facts = {
             "batch_source": "composite baseline exposure",
@@ -812,7 +812,8 @@ def main() -> None:
 
     log_path = args.run_dir / "metrics.jsonl"
     tokens_per_step = plan.loss_tokens_per_update
-    autocast_context = lambda: torch.autocast(device_type="cuda", dtype=amp_dtype)
+    def autocast_context():
+        return torch.autocast(device_type="cuda", dtype=amp_dtype)
 
     def write_checkpoint(path: Path, completed_update: int, pending_microbatches: int) -> None:
         """Write one durable checkpoint at an accumulation boundary (Plan Section 7.2).

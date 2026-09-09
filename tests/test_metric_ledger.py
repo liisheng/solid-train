@@ -60,22 +60,35 @@ def test_checkpoint100_log120_preserves_replayed_compute_and_seeds_continuity(le
 @pytest.mark.parametrize("problem", ["gap", "duplicate", "run", "hash", "cursor", "precision", "tokens", "step", "malformed", "partial", "missing", "nan", "fractional"])
 def test_bad_ledger_fails_without_modifying_evidence(ledger, problem):
     kwargs, rows = ledger
-    if problem == "gap": del rows[50]
-    elif problem == "duplicate": rows.insert(50, rows[50])
-    elif problem == "run": rows[0]["run_id"] = "wrong"
-    elif problem == "hash": rows[0]["schedule_content_hash"] = "wrong"
-    elif problem == "cursor": rows[99]["schedule_cursor"] = 399
-    elif problem == "precision": rows[0]["precision_dtype"] = "float16"
-    elif problem == "tokens": rows[0]["tokens"] = 0
-    elif problem == "step": rows[0]["step"] = 1
-    elif problem == "missing": rows = rows[:99]
-    elif problem == "nan": rows[100]["step_seconds"] = float("nan")
-    elif problem == "fractional": rows[99]["update_index"] = 99.1
+    if problem == "gap":
+        del rows[50]
+    elif problem == "duplicate":
+        rows.insert(50, rows[50])
+    elif problem == "run":
+        rows[0]["run_id"] = "wrong"
+    elif problem == "hash":
+        rows[0]["schedule_content_hash"] = "wrong"
+    elif problem == "cursor":
+        rows[99]["schedule_cursor"] = 399
+    elif problem == "precision":
+        rows[0]["precision_dtype"] = "float16"
+    elif problem == "tokens":
+        rows[0]["tokens"] = 0
+    elif problem == "step":
+        rows[0]["step"] = 1
+    elif problem == "missing":
+        rows = rows[:99]
+    elif problem == "nan":
+        rows[100]["step_seconds"] = float("nan")
+    elif problem == "fractional":
+        rows[99]["update_index"] = 99.1
     path = write_rows(kwargs, rows)
     if problem in ("malformed", "partial"):
-        with path.open("a") as output: output.write('{"update_index":' if problem == "partial" else "\n")
+        with path.open("a") as output:
+            output.write('{"update_index":' if problem == "partial" else "\n")
     original = path.read_bytes()
-    with pytest.raises(TrainingIntegrityError): metric_ledger.reconcile_metrics(**kwargs)
+    with pytest.raises(TrainingIntegrityError):
+        metric_ledger.reconcile_metrics(**kwargs)
     assert path.read_bytes() == original
     assert not (kwargs["run_dir"] / "superseded_metrics").exists()
 
@@ -86,11 +99,13 @@ def test_archive_before_atomic_truncation_is_idempotent_after_failure(ledger, mo
     original = path.read_bytes()
     real_write = metric_ledger._atomic_write
     def fail_replace(target, content):
-        if target == path: raise OSError("simulated crash before canonical replacement")
+        if target == path:
+            raise OSError("simulated crash before canonical replacement")
         real_write(target, content)
     with monkeypatch.context() as patch:
         patch.setattr(metric_ledger, "_atomic_write", fail_replace)
-        with pytest.raises(OSError): metric_ledger.reconcile_metrics(**kwargs)
+        with pytest.raises(OSError):
+            metric_ledger.reconcile_metrics(**kwargs)
     assert path.read_bytes() == original
     with pytest.raises(TrainingIntegrityError, match="previously archived rollback"):
         metric_ledger.reconcile_metrics(**{**kwargs, "completed_updates": 90, "checkpoint_cursor": 360})

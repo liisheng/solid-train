@@ -51,7 +51,7 @@ from .data_protocols import (
     load_protocol,
 )
 from .environment import CheckResult
-from .shards import EXPECTED_PROTECTED_SLICES, FAIL, NOT_RUN, PASS
+from .shards import EXPECTED_PROTECTED_SLICES, FAIL, PASS
 
 ANALYSIS_PROTOCOL_DIR = REPOSITORY_ROOT / "configs" / "analysis"
 ANALYSIS_PROTOCOL_PATH = ANALYSIS_PROTOCOL_DIR / "paired_analysis_v1.yaml"

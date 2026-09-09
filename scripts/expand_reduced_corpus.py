@@ -605,7 +605,8 @@ def _profile_checks(
     runtime_schedule_hash = _runtime_schedule_identity(schedule_hashes.get("stable_train", ""), epochs) if epochs >= 1 else ""
     semantic = identity.get("semantics", {})
     recipe = load_training_recipe()
-    same_path = lambda value, expected: (ROOT / str(value)).resolve() == expected.resolve()
+    def same_path(value, expected):
+        return (ROOT / str(value)).resolve() == expected.resolve()
     inputs_ok = (
         same_path(training_args.get("shard_root", ""), shard_root)
         and same_path(training_args.get("train_manifest", ""), shard_root / "stable_train.manifest.json")
@@ -639,7 +640,8 @@ def _recovery_configs_bind_inputs(
     run_configs: list[Mapping[str, Any]], *, shard_root: Path,
     schedule_hashes: Mapping[str, str], recipe_digest: str,
 ) -> bool:
-    same_path = lambda value, expected_path: (ROOT / str(value)).resolve() == expected_path.resolve()
+    def same_path(value, expected_path):
+        return (ROOT / str(value)).resolve() == expected_path.resolve()
     try:
         for config in run_configs:
             metadata = config.get("data_metadata", {})

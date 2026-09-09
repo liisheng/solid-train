@@ -61,7 +61,8 @@ def peak_rss() -> int:
     psapi = ctypes.windll.psapi
     psapi.GetProcessMemoryInfo.argtypes = [ctypes.c_void_p, ctypes.POINTER(C), ctypes.c_ulong]
     psapi.GetProcessMemoryInfo.restype = ctypes.c_int
-    c = C(); c.cb = ctypes.sizeof(C)
+    c = C()
+    c.cb = ctypes.sizeof(C)
     if not psapi.GetProcessMemoryInfo(k32.GetCurrentProcess(), ctypes.byref(c), c.cb):
         raise OSError("GetProcessMemoryInfo failed; refusing to report a peak RSS of 0")
     return int(c.PeakWorkingSetSize)
@@ -117,14 +118,18 @@ print(f"      rejected {rejected:,} documents at the filter")
 
 # ------------------------------------------------------------------ 2. exact + mirror dedup
 t0 = time.perf_counter()
-seen_full: set[str] = set(); seen_mirror: set[str] = set(); kept = []
+seen_full: set[str] = set()
+seen_mirror: set[str] = set()
+kept = []
 for sid, text in docs:
     norm = normalize(text)
     full = hashlib.sha256(norm.encode("utf-8")).hexdigest()
     mirror = hashlib.sha256(norm[:512].encode("utf-8")).hexdigest()
     if full in seen_full or mirror in seen_mirror:
         continue
-    seen_full.add(full); seen_mirror.add(mirror); kept.append((sid, text))
+    seen_full.add(full)
+    seen_mirror.add(mirror)
+    kept.append((sid, text))
 removed_exact = len(docs) - len(kept)
 docs = kept
 record("exact_and_mirror_dedup", len(docs), accepted_bytes,
@@ -143,7 +148,8 @@ for i, (_, text) in enumerate(docs):
     words = normalize(text).split()
     shingles = {" ".join(words[j:j + 5]) for j in range(max(len(words) - 4, 1))}
     if not shingles:
-        sigs[i] = 0; continue
+        sigs[i] = 0
+        continue
     h = np.fromiter(
         (int.from_bytes(hashlib.sha1(s.encode("utf-8")).digest()[:8], "big") % MOD for s in shingles),
         dtype=np.int64, count=len(shingles))

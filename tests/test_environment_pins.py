@@ -280,19 +280,27 @@ def test_check_command_runs_and_reports_pass() -> None:
     assert "backend_promotion" in payload["facts"]
 
 
-def test_recorded_environment_facts_match_the_installed_environment() -> None:
-    """Documented versions must be observed facts, not transcription."""
+def test_recorded_environment_facts_match_constraints_and_installed_pins() -> None:
+    """Keep historical Windows facts intact while accepting pinned CPU builds."""
     assert ENVIRONMENT_DOC.is_file()
     content = ENVIRONMENT_DOC.read_text(encoding="utf-8")
     assert "scripts\\check_environment.py" in content
     installed = installed_versions()
+    constraint_text = CONSTRAINTS_PATH.read_text(encoding="utf-8")
+    constraints = {pin.normalized_name: pin.version for pin in parse_constraints(constraint_text)}
     documented = re.findall(r"^\| ([a-z0-9_.\-]+) \| ([0-9][^|]*) \| ([0-9][^|]*) \|$", content, flags=re.MULTILINE)
     assert documented, "the verified-facts table must record at least one dependency"
     for name, pin, observed in documented:
         normalized = normalize_distribution_name(name)
         assert normalized in installed, name
         assert version_satisfies_pin(pin.strip(), installed[normalized]), name
-        assert observed.strip() == installed[normalized], name
+        assert version_satisfies_pin(pin.strip(), observed.strip()), name
+        assert version_satisfies_pin(constraints[normalized], observed.strip()), name
+        if "+" in observed:
+            # The table describes the recorded CUDA lane, not every supported runtime.
+            assert f"verified local build: {name}=={observed.strip()}" in constraint_text, name
+        else:
+            assert observed.strip() == constraints[normalized], name
 
 
 def test_readme_documents_the_dependency_check_command() -> None:

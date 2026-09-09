@@ -1,5 +1,16 @@
 # G4 handoff from reduced G3
 
+For new work, use the [seven-section G4 guide](../g4/README.md) and
+[current G4 handoff](../g4/CURRENT_HANDOFF.md). Section 1 is complete; section 2
+prepares the profiler before section 3 executes it. The details below retain the G3 history.
+
+**2026-09-09 update:** Part-1 verification prerequisites now pass. Docker and Ruff
+are available; final container and Windows suites each pass 715 tests. Source/input
+custody, environment and process/space checks are in [G4 verification](../g4/VERIFICATION.md).
+Use its successor source identity on `codex/g4-verification`. The section-6 status
+and source/branch statements below are historical; sustained profiling, applicable
+recovery/takeover, budgeting and teammate freeze approval remain outstanding.
+
 Current disposition: local correctness passed; recipe readiness is
 `REDUCED_BASELINE_RECIPE_BLOCKED_FOR_G4` because Docker verification and lint could not run.
 

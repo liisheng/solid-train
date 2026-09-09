@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import json
 
-from tinybench_lm.exposure import CompositeCursor, CompositeExposure, CompositeTokenStream, load_exposure_plan, write_exposure_artifacts
+from tinybench_lm.exposure import CompositeExposure, CompositeTokenStream, load_exposure_plan, write_exposure_artifacts
 from tinybench_lm.schedule import MaterializedSchedule, ScheduleContractError, ScheduleEntry, ScheduleResumeError
 from tinybench_lm.shards import NamespaceManifest, ShardRecord, SplitManifest, STABLE_TRAIN
 
@@ -88,7 +88,8 @@ def test_stream_crosses_boundary_and_resumes(tmp_path):
     final.close()
     with pytest.raises(ScheduleContractError):
         resumed.get_batch(2, 8, torch.device("cpu"))
-    stream.close(); resumed.close()
+    stream.close()
+    resumed.close()
 
 
 def test_plan_tampering_fails_closed(tmp_path):

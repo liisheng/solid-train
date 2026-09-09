@@ -1,5 +1,7 @@
 [PLANS]
 
+- 2026-09-09T14:59:35+08:00 [USER] Remove hard experiment allowance/time limits; display estimates and let operator choose. Root implementing advisory estimates + affirmative prompt/no training timeout or calendarcutoff; Luna-medium runtime ledger, Sol-medium review. Preserve actual/unknown duration reporting and concurrency, old source-bound artifacts. New bundle runs/pre_campaign/v2-advisory; execution policy experiment_execution_v1 supersedes old budget fields. No change to C0 dependency in this request, no GPU jobs or commit/push.
+
 - 2026-09-09T13:36:44+08:00 [USER] Approved Astra replacement:3 initial final49M runs + conditional2 seed confirmation, ~100M each,12aggregateGPUh,Sep18submission target. Supersedes paused/proposal status below. Implementation ONLY; no production training/scoring/commit/push. Spec docs/experiments/IMPLEMENTATION_SPEC.md; Luna-medium runner and validation authors; Sol/Terra-medium independent final review; root integration/docs. Active codex/pre-campaign-experiments HEAD4e27266, preserve prior G4/unrelated residue.
 
 - 2026-09-09T13:09:49+08:00 [USER] Experiment implementation paused pending Astra replanning and user approval. Luna writes and Sol/Terra review at medium only after approval; earlier agents interrupted. Priority strong model plus scored training efficiency; finish ahead of 2026-09-21. Root reviewing bounded direct-final-model screen as PROPOSAL, not accepted scope. Preserve partial experiment scripts/configs/docs on codex/pre-campaign-experiments as unapproved drafts; do not launch them. G4 sections1–2 evidence remains historical verified checkpoint.
@@ -19,6 +21,8 @@
 - 2026-09-08T23:46:43.5226610+08:00 [TOOL] Continue codex/g3-baseline-recipe, HEAD f643e9f09c0700686222712eb58d90e4a0fe1de2; G3 changes uncommitted. Final source/test manifest (103 files): runs/verification/g3-section6-root/final-source-manifest.json, SHA 8ebf3d6ec5f863c94a0807bd1967d86841d9d25f4c5c7b28928a8153bba5dbdd. Read docs/STATUS.md and docs/g3/CURRENT_HANDOFF.md first. Preserve unrelated build/egg-info changes and user RULES; ignored data/runs need transfer/reproduction.
 
 [DECISIONS]
+
+- 2026-09-09T15:19:30+08:00 [USER] Authorizes commit/push of verified advisory runtime amendment on codex/g3.5-pre-campaign-experiments. Supersedes prior no-publication restriction for this amendment only. Include source/tests/policy/coordination docs; exclude unrelated build/egg-info/RULES and ignored data/runs. Teammate transfer must use v2-advisory, not screenshot's historical v2; remaining input destinations unchanged. No GPU execution authorized.
 
 - 2026-09-09T14:28:00+08:00 [USER] Authorizes commit/push of verified experiment package to a G3.5 branch. Active milestone codex/g3.5-pre-campaign-experiments from4e27266; include required previously verified G4 section2 tooling/tests and handoff. Exclude unrelated build/, egg-info, user docs/RULES.md and ignored corpus/run/checkpoint artifacts. Supersedes prior no-commit/push scope for this publication only; no GPU jobs or model publication.
 
@@ -46,6 +50,8 @@
 
 [DISCOVERIES]
 
+- 2026-09-09T14:39:17+08:00 [TOOL] Minimal teammate transfer rehearsal PASS: isolated Git HEAD archive plus only stable/validation_dev shard folders, their2manifests, validation_dev schedule and runs/pre_campaign/v2. Production bundle/input integrity and actual scheduled-reader opening passed97792train/753devrefs with isolated source imports. Evidence runs/teammate-transfer-eymvy11o/result.txt; shard files hard-linked for read-only checks, noGPU. Tokenizer/configs/scripts come fromGit; recipient still needs own verified CUDA environment and later complete screen results beforeC0/C1. This confirms input sufficiency, not recipient hardware readiness.
+
 - 2026-09-09T11:31:00+08:00 [TOOL] Section2 initial custody refresh matches all148 section1 source files and133 stable/dev payloads; environment check exit0. Evidence runs/verification/g4/section-02/20260909-1127/custody-refresh.json. GPU0 RTX4070SUPER driver591.86 telemetry works; Windows actual pagefile usage obtainable via Win32_PageFileUsage (GlobalMemoryStatusEx reports commit, not swap). No training launched. Optional trainer timing instrumentation still under review.
 
 - 2026-09-08T23:46:43.5226610+08:00 [CODE] Runner baseline-1b5417107e64091d and training run-5bbb7042d376832e are separate identity namespaces. Checkpoints bind own runner manifest raw hashes; copied JSON may differ only in line endings. Exact durable comparison must include optimizer tensors/RNG/scaler/best state, not abbreviated repr hashes. The final postverifier re-derives evidence instead of trusting raw PASS.
@@ -55,6 +61,8 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-09T15:14:52+08:00 [TOOL] Advisory runtime amendment verified locally: no experiment timeout/allowance/calendar cutoff; same-job smoke estimate plus affirmative operator prompt, actual/unknown duration ledger. Luna-medium authored ledger; Sol-medium final review approved. Frozen image821pass/99.06s; focused41pass; build/Ruff/compile/pip PASS; image source/tests and37installed modules match. Evidence runs/advisory-runtime-verification.json and advisory-runtime-tests-frozen.log. Real-input new bundle runs/pre_campaign/v2-advisory validated, SHA15a3e7405f21fca4ee22cacaf4225eed757813de90f5196ad807ec35124df9fe. Original bundle preserved; updated source+bundle required for teammate, corpus unchanged. First mutable suite source-drift failure superseded by frozen run. Docs updated. No GPU job, commit or push; C0 dependency unchanged. Branch codex/g3.5-pre-campaign-experiments HEAD3517e59 remains published historical checkpoint.
 
 - 2026-09-09T14:30:00+08:00 [TOOL] User-authorized G3.5 implementation committed21a0eccffb39db2254a42719960aa95d3634171a (29files) and pushed to origin/codex/g3.5-pre-campaign-experiments after successful dry-run; remote hash equals local. Full verified source fingerprint and7review hashes unchanged; prior795tests remain applicable. Includes G4section2 dependencies and historical v1 draft marked retired. Excluded build/, egg-info, userRULES and ignored inputs/runs/checkpoints. No GPU jobs, merge or PR creation. Publication-status documentation follows separately without source changes.
 

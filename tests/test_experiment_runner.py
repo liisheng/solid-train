@@ -17,6 +17,7 @@ def isolated_launch_inputs(monkeypatch):
 
     monkeypatch.setattr(runner, "datetime", FixedDatetime)
     monkeypatch.setattr(runner, "check_bundle", lambda *a, **k: {})
+    monkeypatch.setattr("builtins.input", lambda prompt: "yes")
 
 
 def identity(tmp_path: Path, job="S0"):
@@ -88,14 +89,13 @@ class FakeLedger:
     def __init__(self, *args, **kwargs):
         self.settled = None
         self.path = Path(kwargs.get("root", ".")) / "fake-ledger.json"
-    def remaining_seconds(self): return 6 * 3600
-    def reserve(self, *args, **kwargs): return "token"
-    def settle(self, token, **kwargs): self.settled = kwargs
+    def start(self, *args, **kwargs): return "token"
+    def finish(self, token, **kwargs): self.settled = kwargs
 
 
 def _hardware(monkeypatch):
     monkeypatch.setattr(runner, "inspect_hardware", lambda: {"name": "RTX 4070", "uuid": "u", "total_vram_bytes": 10**9, "free_vram_bytes": 10**9, "host_ram_bytes": 1, "bf16": True})
-    monkeypatch.setattr(runner, "BudgetLedger", FakeLedger)
+    monkeypatch.setattr(runner, "ExecutionLedger", FakeLedger)
 
 
 def test_failed_child_writes_exit_and_settles(tmp_path, monkeypatch):
@@ -108,19 +108,28 @@ def test_failed_child_writes_exit_and_settles(tmp_path, monkeypatch):
     assert exits and json.loads(exits[0].read_text())["exit_code"] == 3
 
 
-def test_timeout_terminates_child_and_settles(tmp_path, monkeypatch):
+def test_execution_has_no_timeout_even_after_old_deadline(tmp_path, monkeypatch):
     _hardware(monkeypatch)
-    child = FakeChild(timeout=True)
+    from datetime import datetime, timezone
+    class Later(datetime):
+        @classmethod
+        def now(cls, tz=None): return datetime(2026, 10, 1, tzinfo=timezone.utc)
+    monkeypatch.setattr(runner, "datetime", Later)
+    class UnboundedChild(FakeChild):
+        def wait(self, *args, **kwargs):
+            assert not args and not kwargs, "must not pass a time limit"
+            return 0
+    child = UnboundedChild(code=0)
     monkeypatch.setattr(runner.subprocess, "Popen", lambda *a, **k: child)
-    with pytest.raises(ValueError, match="exceeded"):
-        runner.launch(tmp_path, "S0", identity(tmp_path), lane="rtx_4070", execute=True, smoke=True, resume=False)
-    assert child.terminated
+    monkeypatch.setattr(runner, "verify_run", lambda *a, **k: {"peak_allocated_vram_bytes":1,"peak_reserved_vram_bytes":1})
+    runner.launch(tmp_path, "S0", identity(tmp_path), lane="rtx_4070", execute=True, smoke=True, resume=False)
+    assert not child.terminated
 
 
 def test_smoke_rejects_reserved_memory_near_capacity(tmp_path, monkeypatch):
     _hardware(monkeypatch)
     ledger = FakeLedger()
-    monkeypatch.setattr(runner, "BudgetLedger", lambda *a, **k: ledger)
+    monkeypatch.setattr(runner, "ExecutionLedger", lambda *a, **k: ledger)
     monkeypatch.setattr(runner.subprocess, "Popen", lambda *a, **k: FakeChild(code=0))
     monkeypatch.setattr(runner, "verify_run", lambda *a, **k: {
         "peak_allocated_vram_bytes": 500_000_000,
@@ -191,3 +200,74 @@ def test_estimate_full_seconds_uses_two_steps_and_overhead(tmp_path):
     (tmp_path / "metrics.jsonl").write_text("{\"step_seconds\": 2}\n{\"step_seconds\": 3}\n", encoding="utf-8")
     expected = (3 * 382 + (20 - 5) * 10 + 300) * 1.5
     assert runner.estimate_full_seconds({"outer_wall_seconds": 20}, tmp_path) == expected
+
+
+@pytest.mark.parametrize("answer", ["", "no"])
+def test_declining_does_not_create_run_or_ledger(tmp_path, monkeypatch, answer, capsys):
+    _hardware(monkeypatch)
+    monkeypatch.setattr("builtins.input", lambda prompt: answer)
+    monkeypatch.setattr(runner, "ExecutionLedger", lambda *a, **k: pytest.fail("ledger created before decision"))
+    monkeypatch.setattr(runner.subprocess, "Popen", lambda *a, **k: pytest.fail("child started"))
+    result=runner.launch(tmp_path,"S0",identity(tmp_path),lane="rtx_4070",execute=True,smoke=True,resume=False)
+    assert result["status"] == "DECLINED_NOT_STARTED"
+    assert not (tmp_path/'smoke').exists()
+    assert "Estimated runtime" in capsys.readouterr().out
+
+
+def test_no_stdin_does_not_approve(monkeypatch):
+    def closed(prompt): raise EOFError
+    monkeypatch.setattr("builtins.input", closed)
+    assert not runner.confirm_execution({"estimated_seconds":99999,"basis":"fixture"})
+
+
+def test_setup_error_finishes_runtime_entry(tmp_path, monkeypatch):
+    _hardware(monkeypatch)
+    ledger = FakeLedger()
+    monkeypatch.setattr(runner, "ExecutionLedger", lambda *a, **k: ledger)
+    def broken(*a, **k): raise OSError("disk full")
+    monkeypatch.setattr(runner, "write_once", broken)
+    with pytest.raises(OSError, match="disk full"):
+        runner.launch(tmp_path,"S0",identity(tmp_path),lane="rtx_4070",execute=True,smoke=True,resume=False)
+    assert ledger.settled is not None
+    assert ledger.settled["exit_code"] != 0
+
+
+def test_resume_forecast_preserves_fixed_overhead(tmp_path):
+    (tmp_path/"metrics.jsonl").write_text('{"step_seconds":2}\n{"step_seconds":3}\n')
+    result=runner.estimate_full_seconds({"outer_wall_seconds":20},tmp_path,remaining_updates=1)
+    assert result == (3 + 150 + 300)*1.5
+
+
+def test_estimate_ignores_receipt_from_other_identity(tmp_path, monkeypatch):
+    root=tmp_path/"smoke"/"S0"
+    (root/"invocations"/"a").mkdir(parents=True)
+    (root/"invocations"/"z").mkdir()
+    (root/"metrics.jsonl").write_text('{"step_seconds":2}\n{"step_seconds":3}\n')
+    report={"run_id":"r","checkpoint_sha256":"c","metric_sha256":"m","runner_identity_sha256":"i"}
+    monkeypatch.setattr(runner,"verify_run",lambda *a,**k:report)
+    (root/"invocations"/"a"/"verification.json").write_text(json.dumps({**report,"outer_wall_seconds":20}))
+    (root/"invocations"/"z"/"verification.json").write_text(json.dumps({**report,"run_id":"wrong","outer_wall_seconds":99999}))
+    result=runner.estimate_for_job(tmp_path,"S0",smoke=False)
+    assert result["estimated_seconds"] == (3*382+150+300)*1.5
+
+
+def test_operator_can_accept_estimate_above_six_hours(tmp_path, monkeypatch):
+    _hardware(monkeypatch)
+    monkeypatch.setattr(runner,"smoke_receipt",lambda *a,**k:{})
+    monkeypatch.setattr(runner,"estimate_for_job",lambda *a,**k:{"estimated_seconds":86400,"basis":"fixture"})
+    monkeypatch.setattr(runner,"verify_run",lambda *a,**k:{})
+    child=FakeChild(code=0)
+    monkeypatch.setattr(runner.subprocess,"Popen",lambda *a,**k:child)
+    runner.launch(tmp_path,"S0",identity(tmp_path),lane="rtx_4070",execute=True,smoke=False,resume=False)
+    assert not child.terminated
+
+
+def test_resume_plan_prints_resume_command_and_estimate(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(runner,"ROOT",tmp_path)
+    monkeypatch.setattr(runner,"identity_for",lambda *a,**k:identity(tmp_path))
+    monkeypatch.setattr(runner,"estimate_for_job",lambda *a,**k:{"resume":k["resume"]})
+    monkeypatch.setattr(runner.sys,"argv",["runner","plan","--job","S0","--resume","--bundle",str(tmp_path/"runs/pre_campaign/fixture")])
+    assert runner.main()==0
+    result=json.loads(capsys.readouterr().out)
+    assert "--resume" in result["command"]
+    assert result["estimate"]["resume"]

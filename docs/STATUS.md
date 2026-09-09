@@ -1,12 +1,22 @@
 # Project status
 
+Runtime amendment verified locally on `codex/g3.5-pre-campaign-experiments`: user removed
+hard experiment limits in favor of advisory estimates and an operator yes/no choice.
+Policy `configs/campaign/experiment_execution_v1.json` supersedes old budget/cutoff
+controls. All 821 frozen-image CPU tests and lint/build checks pass; independent
+Sol-medium review approved. Use the verified `runs/pre_campaign/v2-advisory` bundle;
+old identities remain historical. Jobs/dependencies and GPU NOT_RUN status unchanged.
+See [runtime amendment](experiments/ADVISORY_RUNTIME.md). Publication of this verified
+amendment to the current branch was authorized on 2026-09-09.
+
 Coordination override 2026-09-09T14:28:00+08:00: active publication milestone is
 `codex/g3.5-pre-campaign-experiments`, based on `4e27266`. User authorized committing
 and pushing the verified package plus its existing G4 tooling dependencies.
 Verified implementation commit `21a0eccffb39db2254a42719960aa95d3634171a` is
 pushed to origin on that branch; the remote hash was checked after publication.
 User approved Astra's replacement:
-three final49M screen jobs plus conditional two-run confirmation,12 aggregate GPUh,
+three final49M screen jobs plus conditional two-run confirmation (the original
+12 aggregate GPUh limit is superseded by the runtime amendment above),
 Sep18 submission target. **Experiment package verified, experiments NOT_RUN**:
 795 container tests, lint/compile/build/dependencies, real-input CPU prepare and
 six parsed trainer identity checks pass; final image source/tests and36 installed

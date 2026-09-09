@@ -1,5 +1,12 @@
 # Approved bounded experiment package — implementation specification
 
+Execution amendment: the user subsequently removed hard time limits. The runtime
+and budget requirements below are historical where they conflict with
+`configs/campaign/experiment_execution_v1.json` and the current OPERATOR_GUIDE.md.
+Estimates are advisory, launch requires an affirmative operator response, and
+elapsed time/calendar targets never terminate a job. Experiment recipes and
+screen/confirmation dependencies remain unchanged.
+
 Recorded 2026-09-09T13:36:44+08:00. User approved the Astra proposal in this task.
 This document specifies implementation and later operation; this task does not
 authorize production training, scoring, publication, or a G4/G5 pass.

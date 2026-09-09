@@ -2,7 +2,9 @@
 
 Approved 2026-09-09. This is the active experiment plan; the earlier seven-run
 P1–P8/F1–F2 draft is retired. [Package verification passed](VERIFICATION.md):
-795 tests, CPU preparation, and independent Sol/Terra review. No
+795 tests, CPU preparation, and independent Sol/Terra review for the original package.
+The later [advisory-runtime amendment](ADVISORY_RUNTIME.md) removes hard time limits;
+use its updated source and operator guide. No
 production experiment result, recipe winner, or G4 pass exists yet.
 
 ## What this stage accomplishes
@@ -62,25 +64,25 @@ freeze. Earlier G4 sections1–2 tools are reusable; evidence is reused only whe
 its bound source/settings are unaffected. These scripts do not launch G5 or
 automatically mark the original full-scale G3/G4 gates passed.
 
-## Compute and calendar limits
+## Estimated time and operator choice
 
-The approved ceiling is12 aggregate GPU-hours, allocated as6h per lane so offline
-computers cannot independently spend the whole cap. Allowances are not transferable.
-GPU readiness/smoke, training, validation/checkpoint overhead, failures, and repeats
-all consume the lane allowance. Outer process duration is conservatively charged;
-optimizer seconds and CPU preparation/analysis are reported separately. A charged
-allowance is not a measured hardware-normalized efficiency score.
+The user removed hard time limits. The current execution policy is
+`configs/campaign/experiment_execution_v1.json`, superseding the historical budget
+section in pre_campaign_v2. There is no six-hour lane allowance, twelve-hour cap,
+five-minute smoke timeout, forecast-based rejection or automatic calendar cutoff.
 
-Use one canonical checkout/ledger per physical lane. Never reset the allowance by
-creating another bundle/checkout, copying another lane's ledger, deleting a failed
-run, or replacing receipts. Retain uncertain reservations and investigate them.
-User/system crash costs cannot be inferred as zero. Logs and receipts are evidence.
+Before launching, the wrapper prints a same-job smoke-based runtime forecast and
+asks `Start this job? [y/N]`. Only yes starts it; --execute alone does not answer
+the prompt. Estimates include a conservative margin and are not guarantees.
+Before the first smoke there is no measured estimate; this is stated explicitly.
+Once started, a job may exceed its estimate and will not be killed for elapsed time.
 
-Experiments stop by2026-09-12T23:59:59+08:00. Preflight must establish that remaining
-jobs, checks, and overhead fit the allowance; a historical short speed probe is
-insufficient for a finish guarantee. If the plan does not fit, retain control and
-record the optional experiment stage as incomplete instead of spending release
-reserve or silently shortening one arm.
+Actual elapsed time, failures and unknown interrupted durations remain recorded
+in each machine's runtime ledger for efficiency reporting. Preserve old ledgers;
+unresolved active executions still block concurrent work. September 12 remains
+a planning target, and September 18 the intended submission date; calendar targets
+do not terminate processes. The operator decides whether each job fits the schedule.
+Use the new `runs/pre_campaign/v2-advisory` bundle so old evidence is preserved.
 
 | Dates (UTC+8) | Reserved work |
 |---|---|

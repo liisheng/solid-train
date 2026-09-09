@@ -15,6 +15,7 @@ preserves:
   - No restoration of original later A/B/C campaign or original full-scale data thresholds
   - No holdout or submission-benchmark selection; no model publication authorization
 experiment_contract: configs/campaign/pre_campaign_v2.json
+execution_policy: configs/campaign/experiment_execution_v1.json
 experiment_status: APPROVED_NOT_RUN
 deadline: '2026-09-12T23:59:59+08:00'
 baseline_status: Existing baseline_reduced_v1 remains historical fixed control. Selected recipe requires successor contract/run identity and integration before G4 final recipe verification.

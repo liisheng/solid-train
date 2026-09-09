@@ -12,7 +12,6 @@ from pathlib import Path
 from tinybench_lm.experiments import (
     ROOT,
     CONTRACT_SHA256,
-    DEADLINE,
     check_bundle,
     contract,
     digest,
@@ -22,7 +21,7 @@ from tinybench_lm.experiments import (
     source_identity,
     verify_run,
 )
-from tinybench_lm.experiment_budget import BudgetLedger
+from tinybench_lm.experiment_runtime import ExecutionLedger
 from tinybench_lm.schedule import (
     assert_schedule_valid,
     build_materialized_schedule,
@@ -32,7 +31,7 @@ from tinybench_lm.schedule import (
 from tinybench_lm.shards import load_split_manifest, verify_shard_files
 from tinybench_lm.training_recipe import model_config_hash
 
-DEFAULT_BUNDLE = ROOT / "runs/pre_campaign/v2"
+DEFAULT_BUNDLE = ROOT / "runs/pre_campaign/v2-advisory"
 SHARDS = ROOT / "data/shards/reduced_5pct_v1"
 
 
@@ -342,7 +341,9 @@ def stop_child(child) -> None:
         child.wait(timeout=5)
 
 
-def estimate_full_seconds(receipt: dict, root: Path) -> float:
+def estimate_full_seconds(
+    receipt: dict, root: Path, *, remaining_updates: int = 382
+) -> float:
     rows = [
         json.loads(line)
         for line in (root / "metrics.jsonl").read_text(encoding="utf-8").splitlines()
@@ -356,8 +357,82 @@ def estimate_full_seconds(receipt: dict, root: Path) -> float:
     if not math.isfinite(outer) or outer < sum(steps):
         raise ValueError("smoke outer timing does not reconcile")
     # Repeat the entire non-optimizer overhead ten times, then add startup
-    # allowance and 50% margin. This is admission control, not a speed claim.
-    return (max(steps) * 382 + (outer - sum(steps)) * 10 + 300) * 1.5
+    # allowance and 50% margin. This is an advisory forecast, never a timeout.
+    if not 0 <= remaining_updates <= 382:
+        raise ValueError("remaining updates are outside the declared horizon")
+    return (max(steps) * remaining_updates + (outer - sum(steps)) * 10 + 300) * 1.5
+
+
+def estimate_for_job(
+    bundle: Path,
+    job: str,
+    *,
+    smoke: bool,
+    resume: bool = False,
+    receipt: dict | None = None,
+) -> dict:
+    result = {
+        "advisory_only": True,
+        "estimated_seconds": None,
+        "remaining_updates": 2 if smoke else 382,
+        "basis": "No measured estimate available before this job's smoke.",
+        "automatic_time_limit": None,
+    }
+    if smoke:
+        return result
+    root = bundle / "smoke" / job
+    if not root.exists():
+        return result
+    report = verify_run(root, smoke=True)
+    keys = ("run_id", "checkpoint_sha256", "metric_sha256", "runner_identity_sha256")
+    if receipt is None:
+        for path in sorted(
+            (root / "invocations").glob("*/verification.json"), reverse=True
+        ):
+            candidate = json.loads(path.read_text(encoding="utf-8"))
+            if all(candidate.get(key) == report.get(key) for key in keys):
+                receipt = candidate
+                break
+    if receipt is None:
+        raise ValueError("missing verified smoke timing receipt")
+    if any(receipt.get(key) != report.get(key) for key in keys):
+        raise ValueError("smoke timing receipt identity mismatch")
+    remaining = 382
+    if resume:
+        import torch
+        from tinybench_lm.checkpointing import verify_checkpoint
+
+        checkpoint = bundle / "jobs" / job / "latest.pt"
+        if not verify_checkpoint(checkpoint).ok:
+            raise ValueError("resume checkpoint is invalid")
+        remaining -= int(
+            torch.load(checkpoint, map_location="cpu", weights_only=False)["counters"][
+                "updates_completed"
+            ]
+        )
+    result.update(
+        estimated_seconds=estimate_full_seconds(
+            receipt, root, remaining_updates=remaining
+        ),
+        remaining_updates=max(0, remaining),
+        basis="Same-job two-update smoke; extrapolated optimizer/overhead with 50% margin. Not a guarantee.",
+    )
+    return result
+
+
+def confirm_execution(estimate: dict) -> bool:
+    seconds = estimate["estimated_seconds"]
+    duration = (
+        "unavailable until a smoke has been measured"
+        if seconds is None
+        else f"about {seconds / 3600:.2f} hours ({seconds / 60:.0f} minutes)"
+    )
+    print(f"Estimated runtime: {duration}. {estimate['basis']}", flush=True)
+    print("No automatic time cutoff. Actual elapsed time will be recorded.", flush=True)
+    try:
+        return input("Start this job? [y/N] ").strip().lower() in {"y", "yes"}
+    except (EOFError, OSError):
+        return False
 
 
 def launch(
@@ -372,9 +447,6 @@ def launch(
 ) -> dict:
     if not execute:
         raise ValueError("GPU action is PLAN_ONLY unless --execute is supplied")
-    now = datetime.now().astimezone()
-    if now > datetime.fromisoformat(DEADLINE):
-        raise ValueError("campaign deadline has passed")
     check_bundle(bundle, production=True)
     check_dependencies(bundle, job)
     hardware = inspect_hardware()
@@ -392,6 +464,7 @@ def launch(
         if not checkpoint.is_file() or not verify_checkpoint(checkpoint).ok:
             raise ValueError("resume checkpoint is missing or invalid")
         import torch
+
         payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
         target_updates = 2 if smoke else identity["spec"]["updates"]
         if payload["counters"]["updates_completed"] >= target_updates:
@@ -401,68 +474,49 @@ def launch(
         )
         if existing != identity:
             raise ValueError("resume identity differs from frozen job")
-    receipt = None
-    if not smoke:
-        receipt = smoke_receipt(bundle, job, identity, hardware)
-    ledger = BudgetLedger(ROOT / "runs/pre_campaign", lane)
-    available = (
-        min(
-            ledger.remaining_seconds(),
-            (_parse_deadline() - datetime.now().astimezone()).total_seconds(),
-        )
-        - 15.0
+    receipt = smoke_receipt(bundle, job, identity, hardware) if not smoke else None
+    estimate = estimate_for_job(
+        bundle, job, smoke=smoke, resume=resume, receipt=receipt
     )
-    reservation_seconds = 300.0 if smoke else available
-    if available < reservation_seconds or available <= 0:
-        raise ValueError("insufficient remaining lane budget/deadline")
-    if receipt:
-        forecast = estimate_full_seconds(receipt, bundle / "smoke" / job)
-        remaining_jobs = {"S0": 3, "SLR": 2, "SMIX": 1, "C0": 2, "C1": 1}[job]
-        if forecast * remaining_jobs + 310 * (remaining_jobs - 1) > available:
-            raise ValueError(
-                "conservative remaining-job forecast exceeds lane budget/deadline; close incomplete"
-            )
-        reservation_seconds = min(available, forecast)
-    token = ledger.reserve(
+    if not confirm_execution(estimate):
+        return {"status": "DECLINED_NOT_STARTED", "estimate": estimate}
+    ledger = ExecutionLedger(ROOT / "runs/pre_campaign", lane)
+    token = ledger.start(
         identity["run_id"],
-        reservation_seconds + 10.0,
-        hardware=str(hardware.get("uuid") or hardware["name"]),
-    )
-    root.mkdir(parents=True, exist_ok=True)
-    write_once(root / "runner_identity.json", identity)
-    attempt = (
-        root
-        / "invocations"
-        / f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex}"
-    )
-    attempt.mkdir(parents=True, exist_ok=False)
-    command = command_for(bundle, job, root, identity, resume=resume, smoke=smoke)
-    write_once(
-        attempt / "launch.json",
-        {
-            "command": command,
-            "identity": identity,
-            "hardware": hardware,
-            "reservation_seconds": reservation_seconds,
-            "reservation_token": token,
-            "ledger": str(ledger.path),
-        },
+        hardware=str(hardware["uuid"]),
+        estimate_seconds=estimate["estimated_seconds"],
     )
     started = time.monotonic()
+    attempt = None
     child = None
     exit_code = None
     uncertain = False
     try:
+        root.mkdir(parents=True, exist_ok=True)
+        write_once(root / "runner_identity.json", identity)
+        attempt = (
+            root
+            / "invocations"
+            / f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex}"
+        )
+        attempt.mkdir(parents=True, exist_ok=False)
+        command = command_for(bundle, job, root, identity, resume=resume, smoke=smoke)
+        write_once(
+            attempt / "launch.json",
+            {
+                "command": command,
+                "identity": identity,
+                "hardware": hardware,
+                "estimate": estimate,
+                "reservation_token": token,
+                "ledger": str(ledger.path),
+            },
+        )
         with (attempt / "console.log").open("x", encoding="utf-8") as output:
             child = subprocess.Popen(
                 command, cwd=ROOT, stdout=output, stderr=subprocess.STDOUT
             )
-            try:
-                exit_code = child.wait(timeout=reservation_seconds)
-            except subprocess.TimeoutExpired:
-                stop_child(child)
-                exit_code = -15
-                raise ValueError("training exceeded reserved budget")
+            exit_code = child.wait()
         write_once(
             attempt / "exit.json",
             {"exit_code": exit_code, "outer_wall_seconds": time.monotonic() - started},
@@ -474,7 +528,10 @@ def launch(
         result["outer_wall_seconds"] = time.monotonic() - started
         if (
             smoke
-            and max(float(result["peak_allocated_vram_bytes"]), float(result["peak_reserved_vram_bytes"]))
+            and max(
+                float(result["peak_allocated_vram_bytes"]),
+                float(result["peak_reserved_vram_bytes"]),
+            )
             + hardware["total_vram_bytes"]
             - hardware["free_vram_bytes"]
             > hardware["total_vram_bytes"] * 0.9
@@ -486,10 +543,18 @@ def launch(
         if child is not None and child.poll() is None:
             uncertain = True
             stop_child(child)
-        write_once(attempt / "failure.json", {"error": str(error), "child_exit_code": exit_code})
+        if attempt is not None and attempt.is_dir():
+            write_once(
+                attempt / "failure.json",
+                {"error": str(error), "child_exit_code": exit_code},
+            )
         if exit_code == 0:
             exit_code = -1
-        if not (attempt / "exit.json").exists():
+        if (
+            attempt is not None
+            and attempt.is_dir()
+            and not (attempt / "exit.json").exists()
+        ):
             write_once(
                 attempt / "exit.json",
                 {
@@ -500,18 +565,12 @@ def launch(
             )
         raise
     finally:
-        ledger.settle(
+        ledger.finish(
             token,
             elapsed_seconds=time.monotonic() - started,
             exit_code=exit_code,
             uncertain=uncertain,
         )
-
-
-def _parse_deadline():
-    from datetime import datetime
-
-    return datetime.fromisoformat(DEADLINE)
 
 
 def main() -> int:
@@ -526,6 +585,7 @@ def main() -> int:
             "run",
             "verify",
             "budget",
+            "usage",
             "recover",
         ),
     )
@@ -543,21 +603,21 @@ def main() -> int:
     bundle = args.bundle.resolve()
     if not bundle.is_relative_to((ROOT / "runs/pre_campaign").resolve()):
         raise ValueError("bundle must stay under runs/pre_campaign")
-    if args.action in {"budget", "recover"}:
+    if args.action in {"budget", "usage", "recover"}:
         if not args.lane:
             p.error("--lane is required")
-        ledger = BudgetLedger(ROOT / "runs/pre_campaign", args.lane)
+        ledger = ExecutionLedger(ROOT / "runs/pre_campaign", args.lane)
         if args.action == "recover":
             if not args.reservation_token or not args.confirm_process_dead:
                 p.error(
                     "recover requires --reservation-token and --confirm-process-dead after inspection"
                 )
-            result = ledger.recover_uncertain(args.reservation_token, process_dead=True)
+            result = ledger.recover(args.reservation_token, process_dead=True)
         else:
             result = {
                 "lane": args.lane,
                 "ledger": str(ledger.path),
-                "remaining_seconds": ledger.remaining_seconds(),
+                "usage": ledger.summary(),
             }
     elif args.action == "prepare":
         result = prepare(bundle)
@@ -579,7 +639,10 @@ def main() -> int:
                 result = {
                     "status": "PLAN_ONLY",
                     "identity": identity,
-                    "command": command_for(bundle, args.job, run, identity),
+                    "command": command_for(bundle, args.job, run, identity, resume=args.resume),
+                    "estimate": estimate_for_job(
+                        bundle, args.job, smoke=False, resume=args.resume
+                    ),
                 }
             elif args.action == "verify":
                 result = verify_run(run)

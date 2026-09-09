@@ -1,0 +1,12 @@
+{
+  "version": "experiment_execution_v1",
+  "supersedes": "pre_campaign_v2.budget and automatic time-based launch/termination controls",
+  "authorization": "User requested removal of hard experiment limits in favor of estimated time and operator choice.",
+  "runtime_limit_seconds": null,
+  "aggregate_limit_seconds": null,
+  "automatic_calendar_cutoff": null,
+  "estimates": "Advisory, based on the same job's verified smoke when available; uncertainty must be visible.",
+  "launch": "Display estimate, then require an affirmative operator response. --execute alone does not answer the prompt.",
+  "accounting": "Record observed elapsed time and unknown interrupted durations without substituting estimates.",
+  "recipe": "Unchanged pre_campaign_v2 jobs, horizons, mixtures, selection and dependencies."
+}

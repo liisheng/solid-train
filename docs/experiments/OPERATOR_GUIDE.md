@@ -1,75 +1,109 @@
-# Pre-campaign v2 operator guide
+# Experiment operator guide
 
-This guide operates the approved bounded package in `configs/campaign/pre_campaign_v2.json`. It does not authorize a main baseline, holdout/submission scoring, publication, or G4/G5 completion. The package contains at most three screen jobs and two conditional confirmation jobs, each full run being 382 updates and 100139008 loss tokens, plus one two-update smoke per job. The aggregate ceiling is 12 GPU-hours, split into non-transferable six-hour `rtx_4070` and `rtx_3070` allowances. The hard stop is `2026-09-12T23:59:59+08:00`.
+The current execution policy is `configs/campaign/experiment_execution_v1.json`.
+The user removed automatic time limits. There is no six-hour allowance, aggregate
+cap, five-minute smoke timeout, or automatic calendar cutoff. The five-job recipe,
+two-update smokes, integrity checks, memory checks and dependencies are unchanged.
 
-Before operating, read `AGENTS.md`, `docs/STATUS.md`, `.agent/CONTINUITY.md`, `docs/ENVIRONMENT.md`, and `docs/experiments/IMPLEMENTATION_SPEC.md`. Use the reviewed source checkout and the repository `.venv`; do not install host packages or use CPU training as a production shortcut. Confirm that the same reviewed source, tokenizer, manifests, schedules, and configuration hashes are available on every participating machine. Historical hardware records include a 4070 SUPER 12GB and a 3070 Ti around 8GB; detect the actual device and do not infer readiness from those records.
+The wrapper prints an estimated duration, then asks `Start this job? [y/N]`.
+Only `y` or `yes` starts the process. Empty input, no, or unavailable stdin starts
+nothing. `--execute` enables this decision step; it does not answer it. A running
+job can exceed its estimate without being terminated for elapsed time. Normal
+completion remains 382 updates / 100,139,008 loss tokens, or two updates for smoke.
 
-From the repository root, prepare and inspect the package:
+## Setup and transfer
 
-```powershell
-.\.venv\Scripts\python.exe -m scripts.run_experiment prepare --bundle runs/pre_campaign/v2
-.\.venv\Scripts\python.exe -m scripts.run_experiment check --bundle runs/pre_campaign/v2
-.\.venv\Scripts\python.exe -m scripts.run_experiment plan --bundle runs/pre_campaign/v2 --job S0 --lane rtx_4070
-```
+Read AGENTS.md, docs/STATUS.md, .agent/CONTINUITY.md, docs/ENVIRONMENT.md and
+IMPLEMENTATION_SPEC.md with its execution amendment. Use the updated reviewed
+checkout on both machines and each machine's own verified CUDA environment.
+Do not copy `.venv` or install/change host packages without authorization.
+The CPU Docker image is a test environment, not the production GPU environment.
 
-Preparation verifies trusted production pins and shard integrity, copies the trusted final model configuration, and deterministically materializes both mixtures' schedules. On a receiving checkout, repeat `check`. Transfer the complete bundle, including schedules, identities, metrics, invocation receipts and checkpoints with their sidecars. Also transfer production inputs at the paths listed below. Each machine keeps its own parent `runs/pre_campaign` lane ledger; do not replace it with the other machine's ledger.
+Source and tokenizer come from Git. Transfer these ignored inputs at matching
+relative paths: `data/shards/reduced_5pct_v1/stable/`, `validation_dev/` under the
+same root, `stable_train.manifest.json`, `validation_dev.manifest.json` under that
+root, and `data/schedules/reduced_5pct_v1/validation_dev.json`.
 
-On the 4070, run S0 smoke and then S0 full run:
+The new source invalidates old prepared identities. Prepare a separate bundle at
+`runs/pre_campaign/v2-advisory`; keep `runs/pre_campaign/v2` unchanged. Do not edit
+old source hashes or resume old-identity runs under the new code. No GPU runs had
+started when this amendment was requested. Transfer the new bundle to the teammate.
 
-```powershell
-.\.venv\Scripts\python.exe -m scripts.run_experiment smoke --bundle runs/pre_campaign/v2 --job S0 --lane rtx_4070 --execute
-.\.venv\Scripts\python.exe -m scripts.run_experiment run --bundle runs/pre_campaign/v2 --job S0 --lane rtx_4070 --execute
-```
-
-After a verified S0 endpoint, run SLR and then SMIX, each with its own smoke before its full run. The runner checks predecessor completion, actual GPU family, BF16 support, memory headroom, exact identity, and the persistent lane reservation before starting a child. A smoke is a readiness measurement, not a sustained throughput or fit claim.
-
-Screen selection must be recomputed from verified endpoint evidence:
-
-```powershell
-.\.venv\Scripts\python.exe -m scripts.analyze_experiments --stage screen --bundle runs/pre_campaign/v2 --output runs/pre_campaign/v2/selection.screen.json
-```
-
-If a candidate is selected, the 3070 operator rechecks custody, transfers the complete screen bundle and evidence, then runs C0 smoke/full. C1 is conditional on C0 and derives its single treatment from the screen analyzer; operators never pass a manual treatment JSON. Run the final analyzer with a unique output path:
-
-```powershell
-.\.venv\Scripts\python.exe -m scripts.analyze_experiments --stage final --bundle runs/pre_campaign/v2 --output runs/pre_campaign/v2/selection.final.json
-```
-
-An explicit close action is available for budget, deadline, hardware, or failed evidence:
+From the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m scripts.analyze_experiments --stage final --bundle runs/pre_campaign/v2 --close-incomplete failed --output runs/pre_campaign/v2/selection.final.incomplete.json
+.\.venv\Scripts\python.exe -m scripts.run_experiment prepare
+.\.venv\Scripts\python.exe -m scripts.run_experiment check
+.\.venv\Scripts\python.exe -m scripts.run_experiment plan --job S0
 ```
 
-That result is `INCOMPLETE_CONTROL`; it is never a fully passed experiment gate. Selection requires the completed endpoint, exact full-dev coverage, four reconciled protected slices, verified checkpoint/metric/input/source hashes, and the frozen 0.003 global improvement and 0.01 per-slice limits. No validation-final or submission benchmark input is permitted.
+These commands default to the new bundle. The full-run estimate becomes available
+after a verified smoke for that same job. Before smoke, the tool explicitly reports
+that a measured estimate is unavailable. Do not substitute a guessed runtime.
 
-Inspect the lane ledger before and after each reservation. Never delete or reset a stale lock or ledger. If a process is independently confirmed dead, recover an uncertain reservation only with the explicit dead-process confirmation and expect the full reservation to remain charged. An interrupted job may resume only with the same job identity and latest durable checkpoint:
+## Your RTX4070 lane
+
+Run each command separately, inspect its result, and decide whether to proceed at
+each prompt. The full-run forecast comes from its own smoke, including a conservative
+overhead allowance and 50% margin. It is not a sustained profile or a guarantee.
 
 ```powershell
-.\.venv\Scripts\python.exe -m scripts.run_experiment run --bundle runs/pre_campaign/v2 --job S0 --lane rtx_4070 --resume --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment smoke --job S0 --lane rtx_4070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment run --job S0 --lane rtx_4070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment smoke --job SLR --lane rtx_4070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment run --job SLR --lane rtx_4070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment smoke --job SMIX --lane rtx_4070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment run --job SMIX --lane rtx_4070 --execute
+.\.venv\Scripts\python.exe -m scripts.analyze_experiments --stage screen --bundle runs/pre_campaign/v2-advisory --output runs/pre_campaign/v2-advisory/selection.screen.json
 ```
 
-Preserve failed directories, logs, checkpoints, and invocation timing. Do not delete evidence to resolve a conflict. If budget or deadline cannot fit the remaining work, close conservatively to control. Smoke memory and timing observations do not satisfy the later G4 sustained-profile requirement. Integrate the selected settings into a successor baseline recipe and identity, complete G4 sections 3–7, then train the fresh 1B baseline at G5. Experiment weights never initialize it.
+## Teammate's RTX3070 lane
 
-Exact follow-on commands:
+The current implementation still waits for all screening results before C0/C1.
+Allowing concurrent C0 was discussed but is not part of this runtime amendment.
+If the screen retains control, neither confirmation job is needed. Otherwise
+transfer the complete updated bundle including screen checkpoints, sidecars,
+metrics and invocation receipts. Re-run `check` on her machine.
 
-    .\.venv\Scripts\python.exe -m scripts.run_experiment smoke --bundle runs/pre_campaign/v2 --job SLR --lane rtx_4070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment run --bundle runs/pre_campaign/v2 --job SLR --lane rtx_4070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment smoke --bundle runs/pre_campaign/v2 --job SMIX --lane rtx_4070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment run --bundle runs/pre_campaign/v2 --job SMIX --lane rtx_4070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment smoke --bundle runs/pre_campaign/v2 --job C0 --lane rtx_3070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment run --bundle runs/pre_campaign/v2 --job C0 --lane rtx_3070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment smoke --bundle runs/pre_campaign/v2 --job C1 --lane rtx_3070 --execute
-    .\.venv\Scripts\python.exe -m scripts.run_experiment run --bundle runs/pre_campaign/v2 --job C1 --lane rtx_3070 --execute
+```powershell
+.\.venv\Scripts\python.exe -m scripts.run_experiment smoke --job C0 --lane rtx_3070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment run --job C0 --lane rtx_3070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment smoke --job C1 --lane rtx_3070 --execute
+.\.venv\Scripts\python.exe -m scripts.run_experiment run --job C1 --lane rtx_3070 --execute
+.\.venv\Scripts\python.exe -m scripts.analyze_experiments --stage final --bundle runs/pre_campaign/v2-advisory --output runs/pre_campaign/v2-advisory/selection.final.json
+```
 
-Ledger inspection and explicit recovery after independent process inspection:
+C1's treatment is recomputed from verified screening evidence. Both machines must
+detect their actual GPU/VRAM; historical 3070 Ti evidence records about 8GB.
 
-    .\.venv\Scripts\python.exe -m scripts.run_experiment budget --lane rtx_4070
-    .\.venv\Scripts\python.exe -m scripts.run_experiment recover --lane rtx_4070 --reservation-token TOKEN --confirm-process-dead
+## Accounting and interruption
 
-The bundle does not contain all production inputs. Transfer it together with the trusted paths under
-`data/shards/reduced_5pct_v1`, `data/schedules/reduced_5pct_v1`, `data/tokenizer_final/tokenizer.json`, and model/config paths recorded by
-the trusted baseline configuration. Obtain the reviewed source from branch
-`codex/g3.5-pre-campaign-experiments`; Git does not include the ignored inputs or bundles.
-Integrate the successor baseline recipe and run identity before G4 sections 3–7;
-create the fresh 1B baseline after those G4 sections for G5.
+`usage --lane rtx_4070` (or `rtx_3070`) reports observed elapsed time and unknown
+duration attempts. `budget` remains a compatibility alias for this report; it has
+no allowance. Each lane keeps its own `runs/pre_campaign/<lane>.runtime.json`.
+Do not replace it with the other machine's ledger. Old `.ledger.json` files remain
+historical evidence and are not converted into new measured costs.
+
+One job per GPU remains enforced. Failed work still counts in observed elapsed
+time. A crash with an unknown duration is explicitly marked unknown, not charged
+the estimate and not claimed to cost zero. Preserve all logs and checkpoints.
+After independently confirming an interrupted process is dead, use:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.run_experiment recover --lane rtx_4070 --reservation-token TOKEN --confirm-process-dead
+.\.venv\Scripts\python.exe -m scripts.run_experiment run --job S0 --lane rtx_4070 --resume --execute
+```
+
+The token is in the invocation's `launch.json` and runtime ledger. Resume preserves
+the identity and horizon; it shows an estimate for remaining updates and asks again.
+Already complete checkpoints cannot resume. Unresolved old budget reservations or
+operation locks require investigation before any new process; never delete history
+to bypass a concurrent execution. Explicit interruption can lose progress since the
+last checkpoint; removal of time limits does not add a graceful-stop protocol.
+
+September 12 is an experiment planning target, and September 18 the intended early
+submission date. The operator decides whether estimates leave sufficient time for
+G4, the main campaign and submission. If stopping the optional experiment stage,
+the analyzer's `--close-incomplete budget|deadline|hardware|failed` records a control
+fallback with reasons; these are operator decisions, not automatic shutdowns.
+Integrate the selected recipe, finish G4 sections 3–7, then train G5 from fresh weights.

@@ -1,5 +1,9 @@
 # Implementation verification — 2026-09-09
 
+Historical verification of commit21a0ecc. The later advisory-runtime amendment
+changes runner source and identities; use ADVISORY_RUNTIME.md for its verification
+and new bundle instructions. The hashes below apply to the original hard-limit package.
+
 Status: **package verified; GPU experiments not run**. This is preparation evidence,
 not a winning recipe, measured GPU readiness, or a G3/G4 gate pass.
 Verification was performed on `codex/pre-campaign-experiments`, based on `4e27266`.

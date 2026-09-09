@@ -1,12 +1,12 @@
 # Project status
 
-Updated 2026-09-09T11:14:00+08:00. This is a coordination snapshot; artifact checks and
+Updated 2026-09-09T11:25:00+08:00. This is a coordination snapshot; artifact checks and
 immutable scope contracts determine gate outcomes.
 
 | Snapshot | Value |
 |---|---|
 | Current milestone | G4 part 1 PASS: Docker/container tests, lint, source/input/environment preflight complete |
-| Branch | `codex/g4-verification` from committed G3 repair `d5016f0`; current changes uncommitted |
+| Branch / verified implementation commit | `codex/g4-verification`; `201bf38f7a1507f9bc139d9ef41c10e9d16c3302` (part 1 and guide) |
 | Current verified source identity | 148-file manifest `0b20afde26466900ad23ae78345f16e8873f1e281d149f003269fe89fc9f6da1` |
 | Next task | G4 section 2: prepare/test the production profiler; one chat per section |
 | Guide and evidence | [Seven-section guide](g4/README.md) / [current handoff](g4/CURRENT_HANDOFF.md) / [verification](g4/VERIFICATION.md) |
@@ -39,7 +39,8 @@ Frozen configs and the user's RULES are unchanged.
   reads pass. No training detected; about 214 GB free C: and 1.37 TB D: at preflight.
 - Lint and two test portability repairs change source identities. Frozen configs,
   constraints, production inputs and unrelated user files are preserved. Evidence in
-  `runs/verification/g4-part1-20260909/`; agents finished, changes uncommitted.
+  `runs/verification/g4-part1-20260909/`; agents finished, implementation committed
+  as `201bf38`. User authorized pushing the G4 branch; no later section has started.
 
 ## Historical G3 review repair verification
 

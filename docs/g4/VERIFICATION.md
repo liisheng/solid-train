@@ -1,7 +1,8 @@
 # G4 part 1: verification environment and input readiness
 
 Recorded 2026-09-09 on `codex/g4-verification`, based on G3 repair commit
-`d5016f00739708687261875d15cbbf8a03b67904`. Changes are uncommitted.
+`d5016f00739708687261875d15cbbf8a03b67904`. Verified implementation and the chat guide
+were committed as `201bf38f7a1507f9bc139d9ef41c10e9d16c3302` on the user's later request.
 Disposition: **G4 part 1 PASS**. This report does not pass G4 or authorize a baseline launch.
 
 ## Verification
@@ -81,6 +82,7 @@ non-training application/database containers; recheck competing load before prof
 Run the sustained 30–60 minute production profile, account for full runtime costs,
 complete applicable recovery/takeover evidence, confirm the dated baseline budget,
 and obtain teammate freeze approval. No production training, sustained profile,
-full benchmark scoring, publication, commit, or push was performed by this task.
+full benchmark scoring or model publication was performed. The verification run itself
+made no commit/push; the later user request authorized Git publication of these changes.
 Historical G3 blocked reports are preserved; this successor report resolves only
 the verification prerequisites actually measured here.

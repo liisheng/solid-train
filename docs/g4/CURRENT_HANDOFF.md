@@ -4,8 +4,10 @@ Updated 2026-09-09. Section 1 PASS; sections 2–7 have not started. The user re
 one chat per section and authorized committing/pushing the completed verification
 work plus this guide. No later section is launched by that request.
 
-Branch: `codex/g4-verification`, based on `d5016f0`. Use the branch's current commit
-and inspect local changes. Source/config/tooling proof is the 148-file manifest
+Branch: `codex/g4-verification`; verified implementation and guide commit
+`201bf38f7a1507f9bc139d9ef41c10e9d16c3302` (after G3 `d5016f0`). Later coordination-only
+commits do not change that implementation. Inspect branch HEAD and local changes.
+Source/config/tooling proof is the 148-file manifest
 `runs/verification/g4-part1-20260909/final-v2/source-manifest.json`, SHA-256
 `0b20afde26466900ad23ae78345f16e8873f1e281d149f003269fe89fc9f6da1`.
 The guide changes documentation only after that tested snapshot.

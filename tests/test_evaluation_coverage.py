@@ -14,6 +14,32 @@ from tinybench_lm.evaluation_protocol import load_evaluation_protocol, write_run
 TASKS = ["hellaswag", "arc_easy", "piqa", "winogrande", "wikitext103"]
 
 
+@pytest.mark.parametrize("flags,expected", [(["--full"], True), (["--smoke", "--limit", "1"], False)])
+def test_cli_retains_document_records_required_by_full_verifier(monkeypatch, flags, expected):
+    import evaluate
+    import tinybench_lm.evaluation_binding as binding
+    import tinybench_lm.evaluation_coverage as coverage
+
+    class Model:
+        def policy_identity(self):
+            return {"device": "cpu"}
+
+    class ScoringReached(Exception):
+        pass
+
+    def score(**kwargs):
+        assert kwargs["log_samples"] is expected
+        raise ScoringReached
+
+    monkeypatch.setattr(sys, "argv", ["evaluate.py", "--checkpoint", "fixture.pt", "--tokenizer", "fixture.json", *flags])
+    monkeypatch.setattr(evaluate, "TinyBenchHarnessLM", lambda **kwargs: Model())
+    monkeypatch.setattr(binding, "resolve_effective_binding", lambda *args: (TASKS, {}))
+    monkeypatch.setattr(coverage, "prepare_full_tasks", lambda *args: (TASKS, coverage.FULL_SPLITS_V2))
+    monkeypatch.setattr(evaluate.lm_eval, "simple_evaluate", score)
+    with pytest.raises(ScoringReached):
+        evaluate.main()
+
+
 @pytest.mark.parametrize("flags", [
     ["--full", "--smoke", "--limit", "1"],
     ["--full", "--limit", "1"],

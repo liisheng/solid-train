@@ -19,7 +19,7 @@ $env:PYTHONPATH='src'
 .\.venv\Scripts\python.exe scripts/run_reduced_baseline.py prepare > runs/verification/g3-section4-prepare.json
 ```
 
-The final output is [g3-section4-prepare.json](../../../runs/verification/g3-section4-prepare.json),
+The final output is [g3-section4-prepare.json](../../runs/verification/g3-section4-prepare.json),
 SHA-256 `d47954310e3ba793e44007368d89f22bb1dd8641c87cebb5bf1416a1d18230`.
 It records run identity `baseline-543f61c057466dc0`, the complete 44-argument command, exposure content hash
 `6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3`, exposure plan file

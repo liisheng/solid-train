@@ -13,23 +13,36 @@ distillation. The eligibility scan (`src\tinybench_lm\eligibility.py`) fails clo
 and `src\tinybench_lm\provenance.py` records a step-zero weight hash before the first
 optimizer step.
 
-**What it is not.** A general assistant. A 49.66M-parameter model trained on a bounded
-public corpus is a research artifact for a parameter-capped track, not a source of facts or
-advice.
+The model is a base language model that continues text. Generation diagnostics show
+repetition and factual errors; conversational usefulness has not been established.
 
 ## Status
 
-No final training run has happened. Submission benchmark scores and baseline training
-costs are not yet available. Measured engineering throughput, memory, and recovery results
-are recorded separately in [G3 integration evidence](docs/g3/INTEGRATION_EVIDENCE.md)
-and the earlier evidence it links; they are not submission results. The frozen release
-matrix `configs/release/evidence_matrix_v1.yaml` retains the original release requirements.
-Current reduced-scope reports supply their own artifact identities and verified outcomes;
-they do not promote the original gates or the release matrix automatically.
+The reduced baseline finished training on **1,000,079,360 loss tokens** and passed
+G5 verification under the amended scope. Full provisional evaluation is complete;
+G6 release remains blocked on official evaluation settings, harness provenance,
+public artifacts and human approvals.
+
+| Benchmark | Accuracy | Normalized accuracy |
+| --- | ---: | ---: |
+| HellaSwag | 27.30% | 27.52% |
+| ARC-Easy | 41.33% | 37.50% |
+| PIQA | 58.65% | 58.11% |
+| WinoGrande | 49.96% | Not emitted |
+
+WikiText-103 word perplexity: **235.16**. All scores are **PROVISIONAL_NOT_OFFICIAL**.
+Training took **4 h 22 min 47 s**; full evaluation took **192.305 s** on the
+RTX 4070 SUPER. These are separate process durations, not total project compute.
+See [G5 completion](docs/g5/COMPLETION.md) and [G6 results](docs/g6/RESULTS.md)
+for coverage, hashes, environment and full timing boundaries.
 
 For the current milestone, branch, owners, blockers, and next work, see
-[`docs/STATUS.md`](docs/STATUS.md). It is a coordination snapshot; the frozen gate config and
-machine-readable evidence remain authoritative.
+[project status](docs/STATUS.md). Start at the [documentation index](docs/README.md)
+for current guidance, draft plans and historical evidence. Frozen gate definitions and
+machine-readable evidence remain authoritative within their recorded scope.
+
+For the proposed fresh 3B candidate, start with the [next-run handoff](docs/next_run/README.md).
+It specifies preparation and launch requirements; the candidate is not yet executable.
 
 This repository currently provides:
 
@@ -39,7 +52,7 @@ This repository currently provides:
 - a custom byte-level BPE tokenizer;
 - document-level train/validation splitting and packed `uint16` token shards;
 - BF16 training, gradient accumulation, validation, logs, and resumable checkpoints;
-- local text generation and a hardware throughput profiler.
+- local text generation and a hardware throughput profiler;
 - an `lm-evaluation-harness` adapter for the competition benchmarks.
 
 `docs/PILOT_REPORT.md` and `docs/RESEARCH_PLAN.md` are **historical**. Their measurements
@@ -81,6 +94,18 @@ pilot nor rejected config is a final model candidate.
 
 ## Local environment
 
+Use the container workflow for CPU verification:
+
+```powershell
+docker build -t tinybench-lm:verify .
+docker run --rm tinybench-lm:verify
+docker run --rm tinybench-lm:verify python -m ruff check src scripts tests train.py generate.py evaluate.py
+```
+
+CUDA work uses the separately verified Windows environment described below. G6's
+fresh environment measured Python 3.12.6; historical Python 3.11 observations in
+[the environment record](docs/ENVIRONMENT.md) describe earlier runs.
+
 The pilot environment and caches live on `D:\SWE\benchmark-50m-lm` to avoid filling
 the Windows system drive. Runtime dependencies are pinned exactly and bounded by a
 constraints file that was generated from a working install, so a fresh checkout cannot
@@ -101,6 +126,27 @@ non-zero on any unpinned, missing, or divergent dependency. Test tooling (`pytes
 GPU/backend choices stay optional and documented; the check reports backend facts as
 information only and never changes model semantics. Verified versions, platform facts,
 and the CUDA wheel option are recorded in `docs/ENVIRONMENT.md`.
+
+## Generate with the completed baseline
+
+From the repository root, using the existing Windows CUDA environment:
+
+```powershell
+.\.venv\Scripts\python.exe generate.py `
+  --checkpoint runs\reduced_campaign\reduced_baseline_v2\run\baseline_export.pt `
+  --tokenizer data\tokenizer_final\tokenizer.json `
+  --prompt "Software engineering is the practice of" `
+  --max-new-tokens 80
+```
+
+The export and tokenizer are local artifacts; a Git clone alone does not supply them.
+The model continues the prompt rather than maintaining a conversation. See the
+[generation diagnostic](docs/g5/GENERATION_DIAGNOSTIC.md) for observed limitations.
+
+## Historical pilot examples
+
+These commands reproduce the small pilot workflow, not the completed G5 baseline.
+Keep their output directories separate from the verified baseline artifacts.
 
 Prepare a small public pilot corpus:
 
@@ -129,7 +175,7 @@ Run a short pilot:
   --steps 1000
 ```
 
-Generate text from the best checkpoint:
+Generate text from the pilot checkpoint:
 
 ```powershell
 .\.venv\Scripts\python.exe generate.py `
@@ -141,8 +187,9 @@ Generate text from the best checkpoint:
 Evaluation uses a pinned provisional five-task bundle: HellaSwag, ARC-Easy, PIQA,
 WinoGrande, and explicit WikiText-103. The runtime checks dataset revisions and task
 implementation identities against the active decontamination inputs. See
-[section 5 evaluation evidence](docs/g3/EVALUATION_EVIDENCE.md) for the bounded engineering
-rehearsal command, artifact verification, and the full-evaluation command reserved for G6.
+[G6 results](docs/g6/RESULTS.md) for the completed baseline evaluation and
+[section 5 evaluation evidence](docs/g3/EVALUATION_EVIDENCE.md) for the historical
+bounded engineering rehearsal.
 
 The engineering rehearsal is not a baseline quality result. Organizer-dependent scoring
 settings remain provisional; benchmark outcomes must not guide training decisions.
@@ -160,9 +207,9 @@ closed on pretrained weights, distillation, or a teacher dependency; and the cam
 decision thresholds were frozen in `configs/campaign/preregistration_v1.yaml` before any
 outcome exists. The reduced data preparation and engineering train/resume checks now have
 measured evidence; the reduced aggregate contains 550,094,903 distinct stable tokens.
-The main baseline and its full evaluation remain unrun. See
-[the accepted reduced scope](docs/REDUCED_CAMPAIGN.md) and
-[the G4 handoff](docs/g3/G4_HANDOFF.md) for the current preparation and remaining checks.
+The baseline and its full provisional evaluation are complete. The
+[reduced-scope record](docs/REDUCED_CAMPAIGN.md) and earlier G4 handoffs preserve
+historical decisions; [current status](docs/STATUS.md) identifies remaining release work.
 
 ## Credits
 

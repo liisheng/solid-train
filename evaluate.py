@@ -238,7 +238,9 @@ def main() -> None:
         "num_fewshot": num_fewshot,
         "limit": args.limit,
         "bootstrap_iters": bootstrap_iters,
-        "log_samples": bool(runtime["log_samples"]),
+        # Full coverage verification needs one document record per scored example.
+        # Retain these audit records even when the protocol's optional logging is off.
+        "log_samples": args.full or bool(runtime["log_samples"]),
         "random_seed": seed,
         "numpy_random_seed": seed,
         "torch_random_seed": seed,

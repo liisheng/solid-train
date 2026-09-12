@@ -1,5 +1,32 @@
 # Project status
 
+2026-09-12T13:44+08:00: **G4 section 4 PASS — local recovery**. Exact CUDA BF16
+8 versus4+resume and checkpoint4/log8 rollback match; replay archive and retry,
+corruption and early-export rejection pass. Review20checksPASS,90artifact hashes
+and172source hashes match. No training remains. [Evidence](g4/RECOVERY_EVIDENCE.md).
+Branch `codex/g4-selected-recipe`, HEAD `1cd448e`; documentation uncommitted,
+production source unchanged. Section3 checkpoint/timing and826-test verification
+remain applicable. **Next section5 takeover**; G4 itself, budget and approvals remain.
+Supersedes section4 running state below; no later execution or publication.
+
+2026-09-12T13:30+08:00: **G4 section 4 IN PROGRESS**, controller PID16416,
+`runs/verification/g4/section-04/20260912-primary-02`. Selected v2 bounded exact
+recovery and rollback rehearsal; source unchanged on `codex/g4-selected-recipe`
+HEAD `1cd448e`. Attempt01 failed before training on sandbox corpus access and is
+preserved. User observes with `section-04/observe-recovery.ps1` and reports completion.
+Inspect active_process.json before any relaunch. [Coverage](g4/RECOVERY_EVIDENCE.md).
+No section4/G4 PASS yet; no later section or publication.
+
+2026-09-12T13:24+08:00: Section-3 commit `1cd448e` successfully pushed to
+`origin/codex/g4-selected-recipe`; remote SHA matches. User explicitly approved
+the payload/destination after the review block. Supersedes blocked-publication
+status below. This local status update remains uncommitted. Next: section 4.
+
+2026-09-12T13:21+08:00: Section-3 documentation committed locally as `1cd448e`
+(five files). Push dry-run passed; actual push was blocked by automatic approval
+review pending explicit approval of this payload and GitHub destination. No push
+success claimed. This publication-status update is local and uncommitted.
+
 2026-09-12T13:19+08:00: User authorized publication of the verified section-3
 documentation to `origin/codex/g4-selected-recipe`. This checkpoint contains five
 coordination/evidence documents; raw runs/checkpoints remain local ignored evidence.

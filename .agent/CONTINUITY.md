@@ -1,5 +1,7 @@
 [PLANS]
 
+- 2026-09-12T13:30+08:00 [USER] Execute G4 section4; launch and return observer, user reports completion. [TOOL] V2 adapter runs existing 8 versus4+resume harness/postverify, isolated checkpoint4/log8 rollback/replay and archive retry test. Production172files unchanged. Attempt01 failed before training on sandbox corpus access; attempt02 launched with corpus read access, controllerPID16416/launcher43944. Inspect runs/verification/g4/section-04/20260912-primary-02/active_process.json before relaunch. Observer section-04/observe-recovery.ps1. Section4 pending review; coverage docs/g4/RECOVERY_EVIDENCE.md. No latersection/commit/push.
+
 - 2026-09-12T12:22+08:00 [USER] Execute G4 section3 only. Root owns one bounded selected-v2 production profile on codex/g4-selected-recipe HEAD6293354814a619c7b318b9d15b694c83d871083c. 172 tested source files unchanged; environment98PASS; regenerated plan PLAN_ONLY. Target2400optimizer seconds/cap800/watchdog3600, exclude38 and require1800valid seconds. No G5/full scoring/tuning/latersection/commit/push. Evidence runs/verification/g4/section-03/20260912-{preflight,plan,primary-01}; inspect active_process.json before any relaunch. Supersedes prior no-profile scope for section3 only.
 
 - 2026-09-12T12:09+08:00 [USER] Organize returned files and integrate selected recipe first. Active branch codex/g4-selected-recipe from7f85c872; root implements without delegation. No training/profile/scoring/commit/push. CONTROL LR0.0006/base requires successor contract and exposure identity; preserve all historical evidence and unrelated residue.
@@ -27,6 +29,8 @@
 - 2026-09-08T23:46:43.5226610+08:00 [TOOL] Continue codex/g3-baseline-recipe, HEAD f643e9f09c0700686222712eb58d90e4a0fe1de2; G3 changes uncommitted. Final source/test manifest (103 files): runs/verification/g3-section6-root/final-source-manifest.json, SHA 8ebf3d6ec5f863c94a0807bd1967d86841d9d25f4c5c7b28928a8153bba5dbdd. Read docs/STATUS.md and docs/g3/CURRENT_HANDOFF.md first. Preserve unrelated build/egg-info changes and user RULES; ignored data/runs need transfer/reproduction.
 
 [DECISIONS]
+
+- 2026-09-12T13:45+08:00 [USER] Authorizes commit/push of completed G4section4 evidence and coordination docs to origin/codex/g4-selected-recipe. Five documentation files only; exclude unrelated build/egg-info/RULES/ZIP and ignored raw evidence. Supersedes section4 no-publication boundary for this checkpoint.
 
 - 2026-09-12T13:19+08:00 [USER] Authorizes commit/push of completed G4section3 documentation to existing origin/codex/g4-selected-recipe (github.com/liisheng/solid-train). Include five coordination/evidence docs only; exclude unrelated build/egg-info/RULES/ZIP and ignored corpus/checkpoints/raw runs. Supersedes section3 no-publication restriction for this checkpoint; next section remains unlaunched.
 
@@ -87,6 +91,12 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-12T13:44+08:00 [TOOL] G4section4 local recovery PASS. Attempt02 finished13:38; review20checksPASS,90artifact/172sourcehashes match, exact8vs4+resume and separatecheckpoint4/log8rollback equality; archive4rows/1048576tokens/15.969optimizerseconds, retry/corruption/earlyexportPASS. Training389.783outerseconds,controller543.071s; attempt01pretrainingfailure3.036s retained. Evidence section-04/20260912-primary-02/review.json SHAda9e09c3f0452602b809f4d216d5ec90194536966c1bf4caff116d2229a70e78; manifest1fcd493d237dac5d880c011c700d36a6b7c210a9744d33055f99bb13430301cb. Section3checkpointSHAunchanged; no training remains. Source/configunchanged,826tests/build/lint/profile reused. Docs RECOVERY_EVIDENCE/CURRENT_HANDOFF/STATUS/README updated, uncommitted. Nextsection5; no takeover/G5/commit/push. Supersedes section4IN_PROGRESS.
+
+- 2026-09-12T13:24+08:00 [USER] Explicitly approves exact section3 commit/destination push after clarification. [TOOL] Push1cd448ec6754ff1fe06598b324c0a341c8c42276 toorigin/codex/g4-selected-recipe succeeded; remote SHA matches. Supersedes blockedpublication below. Publication-status updates remain local/uncommitted; unrelated residue excluded. Nextsection4, no training.
+
+- 2026-09-12T13:21+08:00 [TOOL] Section3 docs committed locally1cd448e (five intendedfiles); pushdry-runPASS. Actualpush to github.com/liisheng/solid-train codex/g4-selected-recipe blocked by automatic approval review requiring explicit payload/destination approval for nonpublic documentation/measurements. No workaround attempted. Ask user to approve this exact commit/destination; no successful push claimed. Publication status updates remain local/uncommitted.
 
 - 2026-09-12T13:09+08:00 [TOOL] G4section3 source-lanePASS; one profile exit0 at13:05:04,590updates/154664960tokens/cursor151040;2243.512validsec/64498.66weightedtps,p10/median/p9060735.30/65441.63/67322.89;31.827%deviceheadroom. Postverify17PASS incl bothcheckpoints,133payloads,172sourcefiles unchanged. latestSHAefcfdd3045d097474a69299e69711e3bd4e2dd776010dada84bad2a41f7562dc;43-filemanifestSHA883d04403fda6560175294788fc66bedf278ea6fd8de162ef9ea21dd7cdcb0fc. Evidence runs/verification/g4/section-03; docs/g4/PROFILE_EVIDENCE.md. RAMfree minimum98.574MiB/pagefilepeak6.489GiB; noOOM/telemetrygap/thermal slowdown; occupied-desktop attribution and historical51k cause unresolved. No training remains; supersedes running/observerhandoff. Nextsection4 only on request; noG4gate/G5/scoring/commit/push. Source unchanged; prior826Docker/826Windows/lint/build reusable; docs uncommitted on6293354.
 

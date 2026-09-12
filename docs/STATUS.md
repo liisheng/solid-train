@@ -1,5 +1,102 @@
 # Project status
 
+Publication authorized 2026-09-12T12:16+08:00 for the verified selected-recipe
+integration on `codex/g4-selected-recipe`. All 172 tested source/input files were
+rechecked without drift. The uncommitted/no-publication wording below describes
+the earlier verification checkpoint; G4 section 3 remains next.
+
+2026-09-12T12:13+08:00: **selected CONTROL integration verified** on
+`codex/g4-selected-recipe` (base `7f85c872`, changes uncommitted). Canonical C0/C1
+placement and original-source final analysis are complete. V2 contract/exposure,
+production preparation and CPU start/boundary/end reads pass. **826 tests pass in
+Docker; 826 pass in isolated Windows**, plus Ruff/compile/build/dependencies.
+172 container source/input files and 38 installed modules match. Docker startup
+was repaired by preserving stale socket directories; no images/data were reset.
+See [integration](g4/SELECTED_RECIPE.md) and [handoff](g4/CURRENT_HANDOFF.md).
+**Next: G4 section 3**, fresh profiler plan and sustained measurement. G4 sections
+3–7 remain; no gate pass, production training, commit or push. Earlier integration,
+branch and next-step notes below are historical. The root return ZIP remains locked
+by another process; extracted return is archived and all required files are placed.
+
+Deadline check 2026-09-12: the official Devpost rules page header shows October 1,
+but its rules body still specifies September 21 at 23:45 UTC+8. Extension is
+unconfirmed; retain September 21 for planning until organizer clarification.
+
+C0/C1 return reviewed 2026-09-12T10:22:06+08:00: final analysis independently reproduces the returned
+report exactly; outcome CONTROL (LR0.0006, base70/20/7/3). C1 global improvement
+0.2891% misses0.3%; broad-general/narrative regressions1.3608%/2.1181% exceed1%.
+Both completed382updates/100139008tokens with verified endpoints. Initial C0
+headroom failure and successful retry are preserved/accounted. Experiment selection
+is complete; supersedes screening-only/pending-confirmation notes below. Next:
+selected-settings integration, then remaining G4sections3–7. No G4/G5 pass or launch.
+Review: [C0/C1 return](experiments/C0C1_RETURN_REVIEW.md). Evidence:
+`runs/verification/g3.5-c0c1-return-20260912/selection.reverified.json`.
+
+RTX4070 SCREEN COMPLETE, verified2026-09-10T06:52+08:00. All three jobs
+completed382updates/100,139,008tokens and passed endpoint verification. SMIX
+finished2026-09-09T17:40:56+08:00, invocation1724.047s including verification.
+Fresh screening analysis selects SMIX (LR0.0006, edu mixture); NLL4.971697876
+versus S0 5.118348216 and SLR5.410160987. SMIX improves global loss ~2.87%
+and all four protected slices; SLR does not qualify.
+Evidence: `runs/pre_campaign/v2-advisory/selection.screen.json` (all endpoints
+reverified by analyzer). No training processes remain. Your4070 lane is done.
+Next: transfer complete updated bundle to teammate; C0/C1 confirmation at seed1002
+on her verified GPU, then final analysis. No final recipe selection or G3.5 gate
+PASS yet. Historical pending/active notes below are superseded by this checkpoint.
+
+SMIX smoke PASS, 2026-09-09T17:06+08:00: user authorized two-update smoke;
+524,288tokens/full-dev771,072targets/all4slices, VRAM headroom PASS,
+peak reserved6.006GiB, exit0. Child28.266s; invocation38.485s including
+verification. Full SMIX estimate3973.404s (~66min), advisory with50%margin;
+awaiting full-run decision. Evidence `runs/pre_campaign/v2-advisory/smoke/SMIX/`;
+plan `runs/verification/g3.5-s0-20260909/smix-plan-after-smoke.json`.
+Supersedes SMIX-smoke NOT_RUN below; full SMIX NOT_RUN, selection pending.
+
+SLR COMPLETE, checked2026-09-09T17:01+08:00: finished16:45:45+08:00,
+exit0/runner endpoint verification TRAINING_COMPLETE_NOT_SELECTED;
+382updates/100,139,008tokens, full-dev771,072targets, finalNLL5.410160987.
+Invocation1606.235s including verification (~26m46s); no Python training remains.
+Evidence `runs/pre_campaign/v2-advisory/jobs/SLR/invocations/*/verification.json`.
+S0 NLL5.118348216 is lower; no final selection until screen is complete.
+Next SMIX smoke requires operator decision. Supersedes full-SLR pending/active
+notes below; SMIX NOT_RUN and no selection/gate PASS.
+
+SLR smoke PASS, 2026-09-09T16:17+08:00: user authorized two-update smoke;
+524,288 loss tokens, full-dev771,072 targets/all4 slices, VRAM headroom PASS
+(peak reserved6.006GiB), exit0. Child30.610s; invocation39.641s including
+verification. Full SLR estimate4196.735s (~70min), advisory with50%margin;
+awaiting full-run decision. Evidence `runs/pre_campaign/v2-advisory/smoke/SLR/`;
+plan `runs/verification/g3.5-s0-20260909/slr-plan-after-smoke.json`.
+Lane idle, no unknown attempts. Supersedes SLR-smoke NOT_RUN below;
+full SLR/SMIX NOT_RUN and no selection/gate PASS.
+
+S0 COMPLETE, checked 2026-09-09T16:11+08:00: finished16:09:29+08:00;
+runner endpoint verification `TRAINING_COMPLETE_NOT_SELECTED`, exit0,
+382 updates /100,139,008 loss tokens. Final full-dev NLL5.118348216,
+771,072 scored targets/all4 protected slices. Full invocation1596.407s including
+verification (child1585.719s), versus advisory4557.817s. No training process remains.
+Evidence: `runs/pre_campaign/v2-advisory/jobs/S0/invocations/*/verification.json`.
+Fresh endpoint recheck PASS: `runs/verification/g3.5-s0-20260909/endpoint-recheck.json`.
+Next: SLR two-update smoke after operator decision; SLR/SMIX NOT_RUN.
+No recipe selection or G3.5 gate PASS. Prior S0 pending/active notes below are historical.
+
+S0 smoke PASS, 2026-09-09T15:41+08:00: user authorized launch; two BF16 updates /
+524,288 loss tokens verified on RTX4070SUPER, full-dev771,072 targets/all4 slices,
+VRAM headroom PASS (peak reserved6.006GiB). Child36.75s; runtime ledger47.407s
+including verification, no active/unknown attempts. Evidence under
+`runs/pre_campaign/v2-advisory/smoke/S0/invocations/` (verification.json).
+Full S0 forecast4557.82s (~76min), advisory with50% margin; awaiting operator
+full-run decision. This supersedes smoke-pending state below; full S0 NOT_RUN.
+
+S0 operator preflight, 2026-09-09T15:37+08:00: root verified the requested
+`codex/g3.5-pre-campaign-experiments` checkout at `7f85c87`. Windows environment
+98 checks PASS; actual RTX 4070 SUPER 12GB; existing `v2-advisory` production
+input/source check PASS and documented bundle SHA matches. S0 plan PASS, no
+measured runtime estimate yet. No active/unknown lane attempts or Python training
+processes observed. Only ~1.4GiB host RAM free; close unused apps before smoke.
+Awaiting operator's two-update smoke decision under LLM_HANDOFF launch policy;
+no GPU training launched. Evidence: `runs/verification/g3.5-s0-20260909/`.
+
 Teammate ZIP placement instructions added to `docs/experiments/LLM_HANDOFF.md`:
 six transfer items, exact destinations, post-copy check and later screening update.
 Documentation publication on the current branch authorized 2026-09-09;

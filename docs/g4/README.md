@@ -1,9 +1,10 @@
 # G4: one chat per section
 
-The approved [pre-campaign experiment stage](../experiments/README.md) now comes
-before section 3. Complete or explicitly close that stage, integrate its settings
-into a successor baseline recipe, then use the section guide below. Earlier
-sections 1–2 remain historical evidence; recheck anything affected by the changes.
+The [pre-campaign experiment stage](../experiments/C0C1_RETURN_REVIEW.md) is complete:
+CONTROL (LR 0.0006, base 70/20/7/3). The successor is
+`configs/training/baseline_reduced_v2.yaml`; see [selected-recipe integration](SELECTED_RECIPE.md)
+for evidence, reproduction and current verification status. Earlier sections 1–2
+remain historical evidence; recheck anything affected by the integration.
 
 Prepared 2026-09-09. This is a workflow guide, not a new gate contract or permission
 to execute all sections at once. Sections 1–2 are complete; start the next chat at section 3.
@@ -38,16 +39,17 @@ only. Read `AGENTS.md`, `.agent/CONTINUITY.md`, `docs/STATUS.md`, this index,
 relevant tests, using symbol searches for large modules. Do not read all seven briefs,
 all of G3, the continuity archive, or entire raw logs as a routine starting step.
 
-The governing documents are `configs/campaign/submission_scope_v1.yaml` (accepted reduced
+The governing documents are `configs/campaign/submission_scope_v2.yaml` (inherits the accepted reduced
 scope), `configs/operations/measurement_v1.yaml` (canonical gates/measurements), and
-`configs/training/baseline_reduced_v1.yaml` (fixed recipe). The original campaign's
+`configs/training/baseline_reduced_v2.yaml` (selected recipe). The original campaign's
 `freeze_bundle` section supplies its component/approval requirements. Treat this guide
 as a paraphrase and implementation plan; resolve conflicts against the contracts.
 Do not reinstate the superseded mandatory proxy/three-arm campaign.
 
 ## Shared execution rules
 
-1. Use the G4 milestone branch `codex/g4-verification`, checking its HEAD and local changes
+1. Use the active G4 milestone branch in `CURRENT_HANDOFF.md` (`codex/g4-selected-recipe`
+   for the successor integration), checking its HEAD and local changes
    first. Do not create another branch for every chat. Preserve unrelated `build/`,
    `src/tinybench_lm.egg-info/`, and the user's `docs/RULES.md`.
 2. Complete only the selected section. GPU work is limited to the rehearsals specified

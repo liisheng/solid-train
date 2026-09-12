@@ -26,7 +26,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 import torch  # noqa: E402
-from scripts.run_reduced_baseline import CONFIG, ROOT, launch_command, prepare  # noqa: E402
+from scripts.run_reduced_baseline import SELECTED_CONFIG as CONFIG, ROOT, launch_command, prepare  # noqa: E402
 from scripts.profile_telemetry import sample_telemetry, summarize_telemetry  # noqa: E402
 from tinybench_lm.operations import ThroughputMeasurement, throughput_violations  # noqa: E402
 
@@ -205,7 +205,7 @@ def _write_json(path: Path, value: Any) -> None:
 
 def snapshot_inputs(identity: Mapping[str, Any]) -> dict[str, str]:
     paths = set(identity["paths"].values())
-    paths.add("configs/training/baseline_reduced_v1.yaml")
+    paths.add(identity["paths"].get("baseline_contract", "configs/training/baseline_reduced_v1.yaml"))
     paths.add("data/shards/reduced_5pct_v1/stable_train.manifest.json")
     return {str(path): sha256(ROOT / path) for path in sorted(paths)}
 

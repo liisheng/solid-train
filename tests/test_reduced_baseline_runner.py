@@ -186,14 +186,16 @@ def test_production_runner_rejects_an_engineering_contract(tmp_path: Path) -> No
         prepare(config_path=engineering)
 
 
-def test_production_prepare_binds_the_resolved_evaluation_loader_identity(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("selected", [False, True])
+def test_production_prepare_binds_the_resolved_evaluation_loader_identity(monkeypatch: pytest.MonkeyPatch, selected: bool) -> None:
     """The runner must carry the semantic v3 loader binding, never a sentinel."""
     from scripts import run_reduced_baseline as runner
 
     # This unit test exercises real config validation and loader-binding resolution.
     # Corpus artifacts are deliberately absent from the CPU verification image;
     # their integrity is checked separately by the production-input preflight.
-    config = runner._verified_baseline_config()
+    config_path = runner.SELECTED_CONFIG if selected else runner.CONFIG
+    config = runner._verified_baseline_config(config_path=config_path)
     paths = runner._required_paths(config)
     artifact_names = {"base_schedule", "dev_manifest", "dev_schedule", "exposure_plan", "component_1", "component_2"}
     artifact_paths = {paths[name] for name in artifact_names}
@@ -204,6 +206,8 @@ def test_production_prepare_binds_the_resolved_evaluation_loader_identity(monkey
         paths["dev_schedule"]: config["schedule_inputs"]["development_schedule"]["file_sha256"],
         paths["exposure_plan"]: "76f16bfc98620227e2070645e5e901d8a4a8811c3970509b92769ebd84f71f8f",
     }
+    if selected:
+        artifact_hashes.update({paths[name]: digest for name, digest in config["schedule_inputs"]["baseline_exposure_artifacts"]["component_file_sha256"].items()})
 
     def fixture_is_file(path):
         return path in artifact_paths or real_is_file(path)
@@ -213,7 +217,9 @@ def test_production_prepare_binds_the_resolved_evaluation_loader_identity(monkey
 
     exposure = SimpleNamespace(
         content_hash="fixture-exposure",
-        components=(),
+        components=tuple(SimpleNamespace(content_hash=lambda digest=digest: digest) for digest in config["schedule_inputs"]["baseline_exposure_artifacts"].get("component_content_hashes", [])),
+        recipe_sha256_normalized_lf=runner.SELECTED_BASELINE_SHA256,
+        contract_hash=runner.SELECTED_BASELINE_SHA256,
         to_dict=lambda: {"sequence_count": config["horizon"]["consumed_sequences"]},
     )
     stable_manifest = SimpleNamespace(split_id="stable_train")
@@ -248,7 +254,17 @@ def test_production_prepare_binds_the_resolved_evaluation_loader_identity(monkey
     monkeypatch.setattr(runner, "load_split_manifest", fixture_load_manifest)
     monkeypatch.setattr(runner, "load_schedule", fixture_load_schedule)
     monkeypatch.setattr(runner, "verify_exposure", fixture_verify_exposure)
-    prepared = prepare()
+    prepared = prepare(config_path=config_path)
+    if selected:
+        from tinybench_lm.baseline_contract import validate_selected_identity
+        validate_selected_identity(prepared)
+        assert prepared["scope"] == "baseline_reduced_v2"
+        assert "--resume" not in prepared["command"]
+        assert "reduced_baseline_v2" in prepared["paths"]["exposure_plan"]
+        assert str(runner.SELECTED_RUN_DIR) in prepared["command"]
+        changed = dict(prepared, peak_lr=0.001)
+        with pytest.raises(ValueError, match="peak_lr"):
+            validate_selected_identity(changed)
     facts = prepared["evaluation_binding_facts"]
     assert prepared["evaluation_binding"] == facts["binding_digest"]
     assert prepared["evaluation_binding"] != "PENDING_SECTION_5"

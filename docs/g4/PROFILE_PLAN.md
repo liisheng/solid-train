@@ -1,3 +1,13 @@
+# Successor recipe notice — 2026-09-12
+
+The historical plan below binds v1. The profiler now defaults to
+`configs/training/baseline_reduced_v2.yaml`, selected CONTROL with unchanged LR,
+mixture, horizon and batch. Its exposure has a new contract/content identity while
+both component files remain identical. See [integration](SELECTED_RECIPE.md).
+Use a new section-3 directory and regenerate preparation/source/input/telemetry
+receipts before execution. The old runner ID and timing receipts are historical;
+the 800-update / 2400 optimizer-second / 3600 outer-second bounds are unchanged.
+
 # G4 section 2: bounded production profiler
 
 **Section 2 PASS**, verified 2026-09-09, branch `codex/g4-verification`, base HEAD

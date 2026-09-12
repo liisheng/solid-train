@@ -395,6 +395,9 @@ def assert_runner_identity(args, *, config, plan, lr_schedule, precision, data_f
         raise ValueError("obsolete pre_campaign_runner_v1 identity; use pre_campaign_runner_v2")
     elif identity.get("identity_schema") != "reduced_baseline_runner_v1":
         raise ValueError("unknown runner identity schema")
+    if identity.get("scope") == "baseline_reduced_v2":
+        from tinybench_lm.baseline_contract import validate_selected_identity
+        validate_selected_identity(identity)
     expected = {
         "validation_mode": args.validation_mode,
         "eval_interval": int(args.eval_interval), "save_interval": int(args.save_interval),

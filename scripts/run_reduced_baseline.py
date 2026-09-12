@@ -18,6 +18,7 @@ import torch
 import yaml
 
 from tinybench_lm.checkpointing import frozen_config_hashes, verify_checkpoint
+from tinybench_lm.baseline_contract import SELECTED_BASELINE_SHA256
 from tinybench_lm.exposure import BASELINE_RECIPE_SHA256, load_exposure_plan, verify_exposure
 from tinybench_lm.evaluation_protocol import load_evaluation_protocol
 from tinybench_lm.provenance import export_release, read_step_zero_provenance, verify_release_export, verify_step_zero_provenance
@@ -34,6 +35,8 @@ from tinybench_lm.training_recipe import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "configs/training/baseline_reduced_v1.yaml"
+SELECTED_CONFIG = ROOT / "configs/training/baseline_reduced_v2.yaml"
+SELECTED_RUN_DIR = ROOT / "runs/reduced_campaign/reduced_baseline_v2/run"
 EXPOSURE_ROOT = ROOT / "runs/reduced_campaign/reduced_baseline_v1"
 DEV_MANIFEST = ROOT / "data/shards/reduced_5pct_v1/validation_dev.manifest.json"
 DEV_SCHEDULE = ROOT / "data/schedules/reduced_5pct_v1/validation_dev.json"
@@ -56,14 +59,23 @@ def _norm_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
-def _verified_baseline_config(config: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def _verified_baseline_config(config: Mapping[str, Any] | None = None, *, config_path: Path | None = None) -> dict[str, Any]:
     """Trust the registered bytes, then reject substitutions of their parsed semantics."""
-    content = CONFIG.read_bytes().replace(b"\r\n", b"\n")
-    if hashlib.sha256(content).hexdigest() != BASELINE_RECIPE_SHA256:
+    selected = (config is not None and config.get("version") == "v2") or config_path == SELECTED_CONFIG
+    path = SELECTED_CONFIG if selected else CONFIG
+    digest = SELECTED_BASELINE_SHA256 if selected else BASELINE_RECIPE_SHA256
+    content = path.read_bytes().replace(b"\r\n", b"\n")
+    if hashlib.sha256(content).hexdigest() != digest:
         raise RunnerError("baseline_reduced_v1 does not match its trusted frozen digest; publish a successor")
     frozen = yaml.safe_load(content.decode("utf-8"))
     if config is not None and dict(config) != frozen:
         raise RunnerError("baseline config differs from trusted frozen semantics; publish a successor")
+    if selected:
+        selection = frozen["selection"]
+        if _norm_hash(ROOT / selection["path"]) != selection["sha256_normalized_lf"]:
+            raise RunnerError("selected settings do not match the trusted baseline contract")
+        if _norm_hash(ROOT / frozen["scope"]["accepted_scope_path"]) != frozen["scope"]["accepted_scope_sha256"]:
+            raise RunnerError("selected baseline scope digest mismatch")
     return frozen
 
 
@@ -78,6 +90,7 @@ def _baseline_evaluation_protocol(config: Mapping[str, Any]) -> dict[str, Any]:
 def _required_paths(config: Mapping[str, Any]) -> dict[str, Path]:
     data = config["data"]
     schedules = config["schedule_inputs"]
+    exposure_root = ROOT / schedules["baseline_exposure_artifacts"]["root"] if config["version"] == "v2" else EXPOSURE_ROOT
     return {
         "model_config": ROOT / config["model"]["config_path"],
         "tokenizer_protocol": ROOT / config["tokenizer"]["protocol_path"],
@@ -88,9 +101,9 @@ def _required_paths(config: Mapping[str, Any]) -> dict[str, Path]:
         "base_schedule": ROOT / schedules["base_schedule"]["path"],
         "dev_manifest": DEV_MANIFEST,
         "dev_schedule": DEV_SCHEDULE,
-        "exposure_plan": EXPOSURE_ROOT / "exposure_plan.json",
-        "component_1": EXPOSURE_ROOT / "component_1.json",
-        "component_2": EXPOSURE_ROOT / "component_2.json",
+        "exposure_plan": exposure_root / "exposure_plan.json",
+        "component_1": exposure_root / "component_1.json",
+        "component_2": exposure_root / "component_2.json",
     }
 
 
@@ -131,13 +144,24 @@ def build_identity(*, config: Mapping[str, Any], paths: Mapping[str, Path], envi
     expected_dev_content = config["schedule_inputs"]["development_schedule"]["content_hash"]
     if dev_schedule.content_hash() != expected_dev_content:
         raise RunnerError("development schedule content identity does not match the frozen contract")
-    if sha256(paths["exposure_plan"]) != "76f16bfc98620227e2070645e5e901d8a4a8811c3970509b92769ebd84f71f8f":
+    selected = config["version"] == "v2"
+    contract_digest = SELECTED_BASELINE_SHA256 if selected else BASELINE_RECIPE_SHA256
+    if selected:
+        if exposure.recipe_sha256_normalized_lf != contract_digest or exposure.contract_hash != contract_digest:
+            raise RunnerError("exposure is not bound to the selected baseline contract")
+        artifacts = config["schedule_inputs"]["baseline_exposure_artifacts"]
+        for name, digest in artifacts["component_file_sha256"].items():
+            if sha256(paths[name]) != digest:
+                raise RunnerError("selected baseline exposure component identity mismatch")
+        if [component.content_hash() for component in exposure.components] != artifacts["component_content_hashes"]:
+            raise RunnerError("selected baseline exposure order mismatch")
+    elif sha256(paths["exposure_plan"]) != "76f16bfc98620227e2070645e5e901d8a4a8811c3970509b92769ebd84f71f8f":
         raise RunnerError("exposure plan file identity does not match the verified baseline artifact")
     schedule = config["learning_rate"]
     identity = {
         "identity_schema": "reduced_baseline_runner_v1",
-        "scope": "baseline_reduced_v1",
-        "baseline_contract_sha256_normalized_lf": BASELINE_RECIPE_SHA256,
+        "scope": "baseline_reduced_v2" if selected else "baseline_reduced_v1",
+        "baseline_contract_sha256_normalized_lf": contract_digest,
         "evaluation_protocol_sha256_normalized_lf": evaluation_protocol["_digest"],
         "recipe_sha256_normalized_lf": config["optimizer"]["recipe_sha256_normalized_lf"],
         "model_config_sha256": _norm_hash(paths["model_config"]),
@@ -176,6 +200,8 @@ def build_identity(*, config: Mapping[str, Any], paths: Mapping[str, Path], envi
         "evaluation_binding_facts": evaluation_facts,
         "environment": dict(environment or {}),
     }
+    if selected:
+        identity["selection"] = dict(config["selection"])
     identity["run_id"] = "baseline-" + hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:16]
     identity["exposure"] = exposure.to_dict()
     return identity
@@ -185,11 +211,14 @@ def prepare(
     *,
     config_path: Path = CONFIG,
     environment: Mapping[str, Any] | None = None,
-    run_dir: Path = DEFAULT_RUN_DIR,
+    run_dir: Path | None = None,
 ) -> dict[str, Any]:
-    if config_path.resolve() != CONFIG.resolve():
-        raise RunnerError("production baseline runner is bound to baseline_reduced_v1.yaml")
-    config = _verified_baseline_config()
+    resolved = config_path.resolve()
+    if resolved not in {CONFIG.resolve(), SELECTED_CONFIG.resolve()}:
+        raise RunnerError("production baseline runner is bound to baseline_reduced_v1.yaml or baseline_reduced_v2.yaml")
+    config = _verified_baseline_config(config_path=SELECTED_CONFIG if resolved == SELECTED_CONFIG.resolve() else CONFIG)
+    if run_dir is None:
+        run_dir = SELECTED_RUN_DIR if config["version"] == "v2" else DEFAULT_RUN_DIR
     paths = _required_paths(config)
     identity = build_identity(config=config, paths=paths, environment=environment)
     needed = int(config["horizon"]["consumed_sequences"])
@@ -197,6 +226,9 @@ def prepare(
     if actual < needed:
         raise RunnerError(f"exposure supplies {actual} sequences, needs {needed}")
     identity["paths"] = {key: str(path.relative_to(ROOT)) for key, path in paths.items()}
+    if config["version"] == "v2":
+        identity["paths"]["baseline_contract"] = SELECTED_CONFIG.relative_to(ROOT).as_posix()
+        identity["paths"]["selected_settings"] = config["selection"]["path"]
     identity["command"] = launch_command(identity, run_dir=run_dir)
     return identity
 
@@ -356,8 +388,8 @@ def export_completed(*, checkpoint: Path, destination: Path, identity: Mapping[s
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("command", choices=("prepare", "launch", "verify", "export"))
-    parser.add_argument("--config", type=Path, default=CONFIG)
-    parser.add_argument("--run-dir", type=Path, default=DEFAULT_RUN_DIR)
+    parser.add_argument("--config", type=Path, default=SELECTED_CONFIG)
+    parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--resume", type=Path, help="verified durable checkpoint to resume for launch")
     parser.add_argument("--stop-after-updates", type=int, help="bounded rehearsal stop at an update boundary")
@@ -365,6 +397,8 @@ def main() -> None:
     parser.add_argument("--destination", type=Path)
     parser.add_argument("--execute", action="store_true", help="launch training after printing the exact command")
     args = parser.parse_args()
+    if args.run_dir is None:
+        args.run_dir = SELECTED_RUN_DIR if args.config.resolve() == SELECTED_CONFIG.resolve() else DEFAULT_RUN_DIR
     identity = prepare(
         config_path=args.config,
         environment={"python": sys.version.split()[0], "torch": torch.__version__, "cuda": torch.version.cuda},

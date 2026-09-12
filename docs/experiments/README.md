@@ -1,3 +1,12 @@
+# Completed selection — 2026-09-12
+
+Final C0/C1 confirmation retains CONTROL: LR 0.0006, base 70/20/7/3.
+All five jobs and the failed-smoke history are consolidated in
+`runs/pre_campaign/v2-advisory`; the 3070 runtime ledger remains separate.
+See [return review](C0C1_RETURN_REVIEW.md) and
+[successor baseline integration](../g4/SELECTED_RECIPE.md). The experiment
+commands below are historical/operator reference; no additional selection job is pending.
+
 # Bounded pre-campaign experiments
 
 Approved 2026-09-09. This is the active experiment plan; the earlier seven-run

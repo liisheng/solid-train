@@ -1,0 +1,66 @@
+{
+  "confirmation_losses": {
+    "C0": 5.0516607270614395,
+    "C1": 5.037056187709489
+  },
+  "confirmation_passed": false,
+  "endpoints": {
+    "C0": {
+      "checkpoint_sha256": "215f19e951357da4010d135d367069d07489190b92d0dfa4be20c35e222031f3",
+      "loss_tokens": 100139008,
+      "metric_sha256": "97f26792d2459549cce32eea3ffb7f7e53b15f95cb8d0297de120b933ffa44d5",
+      "run_id": "experiment-4c7e55a6ef763b5b",
+      "runner_identity_sha256": "680ef76e656e552bb0d1ca59fc6c926dc0d8a39138dd948965412e4c59aba8ee",
+      "updates": 382
+    },
+    "C1": {
+      "checkpoint_sha256": "8c130a7ee01a6974654675ea760215b8d42505c55a620451dd155ef9341ae877",
+      "loss_tokens": 100139008,
+      "metric_sha256": "1e035871d6721af8fc8c34ea293312011d24e52ceabedf3fea9894a35a899824",
+      "run_id": "experiment-823303b43651f090",
+      "runner_identity_sha256": "a0f54ed1445771cf43415134884a6613eab90f83d68620f2738e32238be63f58",
+      "updates": 382
+    },
+    "S0": {
+      "checkpoint_sha256": "31bf5711e5a14da97f7923ebee23e1af51762bdfc7ddfe351039e0929e10dc89",
+      "loss_tokens": 100139008,
+      "metric_sha256": "2dd36e880999a04a422217431010b0d3d4d091ff62505317cb71b39f2d739144",
+      "run_id": "experiment-dda18e2800f5ff89",
+      "runner_identity_sha256": "f0e0146ec2a75d84cb333427cb4cf5220ac18839d710693247feacdaab7bcc33",
+      "updates": 382
+    },
+    "SLR": {
+      "checkpoint_sha256": "dd6da720653f2e931a36d8801836867ca1d9c362307b1879888f5117ad77e32e",
+      "loss_tokens": 100139008,
+      "metric_sha256": "733e823baf7897c687a4e0e547f47793e2b621179d2e1f49f4a85efac9051bfa",
+      "run_id": "experiment-52222d10760d89ec",
+      "runner_identity_sha256": "c4a4eba0e21f66bbb3aab945283bb69e302cdea2d2dafa62e48152627ffac237",
+      "updates": 382
+    },
+    "SMIX": {
+      "checkpoint_sha256": "374142d5c670f6b92c7fed466bd67a37cb2c4869333451b992000bf45f8a13e1",
+      "loss_tokens": 100139008,
+      "metric_sha256": "c27b535e375b7093c339c4569fc3146a10ecddd3b696a968f3b1e813f7d0f70c",
+      "run_id": "experiment-b2936ab5948822eb",
+      "runner_identity_sha256": "6a3154fb093b14148ab46ebd130c13aa06638e2e53f76a3aa70971331fffec94",
+      "updates": 382
+    }
+  },
+  "initialization": "fresh_seeded_random",
+  "losses": {
+    "S0": 5.1183482159972975,
+    "SLR": 5.410160986709088,
+    "SMIX": 4.971697876336248
+  },
+  "schema": "selected_baseline_settings_v2",
+  "seed": 1337,
+  "selected_job": "C0",
+  "selected_treatment": {
+    "lr": 0.0006,
+    "mixture": "base"
+  },
+  "source_report": "runs/pre_campaign/v2-advisory/selection.final.json",
+  "source_report_canonical_sha256": "0abfb0b57d24bc40acf38b3ed296f09639fd48751a1ed2aaf652c47babd4aeed",
+  "stage": "final",
+  "status": "CONTROL"
+}

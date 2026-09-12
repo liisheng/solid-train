@@ -14,6 +14,8 @@ from typing import Any, Mapping
 
 import torch
 
+from .baseline_contract import SELECTED_BASELINE_SHA256
+
 from .schedule import (
     CURSOR_STATE_KEY,
     MaterializedSchedule,
@@ -72,7 +74,7 @@ class CompositeExposure:
                 seen.add(entry.reference)
         if not self.contract_hash:
             raise ScheduleContractError("exposure requires a contract identity")
-        if self.recipe_sha256_normalized_lf != BASELINE_RECIPE_SHA256:
+        if self.recipe_sha256_normalized_lf not in {BASELINE_RECIPE_SHA256, SELECTED_BASELINE_SHA256}:
             raise ScheduleContractError("exposure recipe identity does not match the frozen baseline recipe")
         first, second = self.components
         if (first.manifest_content_hash, first.protocol_digest, first.boundary) != (

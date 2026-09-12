@@ -11,6 +11,9 @@ evidence, `docs/g3/REVIEW_FIXES.md`, and the recovery portions of
 Historical G3 eight-update versus four-plus-resume evidence is useful background, but it
 predates later repairs. Section-1 CPU tests and input reads are not successor CUDA proof.
 Reuse evidence only after explicitly comparing source, inputs, environment and scenario.
+The selected recipe is now `baseline_reduced_v2.yaml`; old integration harness defaults
+still target v1. Bind the section-4 scenarios explicitly to v2 and its exposure before
+claiming successor recovery. See [selected integration](SELECTED_RECIPE.md).
 
 ## Work
 

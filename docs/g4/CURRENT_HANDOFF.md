@@ -1,45 +1,41 @@
 # Current G4 handoff
 
-Current coordination amendment: the approved pre-campaign experiment stage now
-precedes section 3. Follow [the experiment handoff](../experiments/README.md),
-record its outcome and integrate the successor baseline recipe before resuming
-G4 sections 3–7. The section 1–2 evidence below is historical and may be reused
-only where its source, inputs and settings remain applicable. Current branch is
-`codex/g3.5-pre-campaign-experiments`; no experiment or main training has started.
+Publication authorized 2026-09-12T12:16+08:00 on `codex/g4-selected-recipe`;
+172 tested source/input files rechecked unchanged. Earlier uncommitted/no-push
+statements below describe the verification checkpoint before publication.
 
-Updated 2026-09-09. **Sections 1–2 PASS; section 3 NEXT.** No sustained profile,
-baseline, full scoring or later-section execution occurred. G4 itself is not passed.
+Updated 2026-09-12T12:13+08:00. Selected CONTROL integration is verified. Sections
+1–2 remain historical PASS; section 3 is next. G4 itself is not passed.
 
-Branch `codex/g4-verification`, HEAD `4e27266e5afafd50ddc3bb7c840e358bde3c74ec`;
-section-2 changes are **uncommitted**. Previous verified implementation was `201bf38`.
-Current 151-file working-tree identity:
-`63e83aaac746a7752208d27fbd964e8202193192c22eaeca29a6857f917da656`.
+Active branch `codex/g4-selected-recipe`, base HEAD
+`7f85c87246c511471a2009ad3cba0d4ffecf1029`; integration changes are uncommitted.
+No training/profile/full scoring, commit or push occurred.
 
-Changed: new `scripts/profile_baseline_training.py`, `scripts/profile_telemetry.py`
-and matching test files; lightweight timers in `train.py`, CPU assertions in
-`tests/test_metric_ledger.py`; profile plan and coordination docs. Model/optimizer,
-reader, frozen inputs and unrelated build/egg-info/RULES are preserved. Section-1
-input-opening proof is reusable; historical timing is not current-source evidence.
+Selected recipe: `configs/training/baseline_reduced_v2.yaml`, LR 0.0006,
+base 70/20/7/3, fresh seed 1337, 3815 updates/1,000,079,360 tokens. Normalized SHA:
+`dcd4d623a8f826f5e007ed33eea4bf2b653414c2088f4354a9b7e6e69a8a3f12`.
+V1 stays immutable. Both exposure component files match v1 byte-for-byte; the new
+contract binding changes exposure/training identity. Experiment weights cannot initialize G5.
 
-Evidence root: `runs/verification/g4/section-02/20260909-1127/`.
-`report.json` SHA-256:
-`2f24bafcb22962a0505062857bd1f66be7e401fcc1c400e2cfa006e3beccc226`.
-The source manifest is `dry-run/source_manifest.json`; input manifest SHA-256:
-`dfefb12cdd17aba1779f9c99d919926c130ae908d6cb1133a0bd4f963deebc44`.
-See [PROFILE_PLAN.md](PROFILE_PLAN.md) for exact commands and remaining hashes.
+Changed: successor contract/selection receipt, exposure digest registration, runner
+and profiler selection, trainer startup guard, integration utility, tests and guides.
+See [integration](SELECTED_RECIPE.md) for exact reproduction commands and custody.
+The runner CLI/profiler default to v2; old Python harness defaults still use v1.
 
-Verified: Docker build, **756 tests/zero skips**, Ruff, compile, dependencies;
-Windows profiler tests **41 passed**; environments 98/97 checks. All 149 copied
-image files and 34 installed modules match. Rechecked 133 payloads and metadata;
-real dry-run retains runner `baseline-9d50a02e9d741daf`, captures telemetry, launches
-nothing. Sol/Terra approve; root checked final hashes. All agents finished.
+Evidence: `runs/verification/g4/selected-recipe-20260912/verification.json`,
+`source-custody.json`, `integration.json`, `prepare.json`, `input-reads.json`.
+The 247-file frozen verification manifest SHA is
+`0c5d28389175ceaf76489f522be654030956bda84d1b42a45f2ac7639019065d`.
+Docker 826 tests/97.05s and isolated Windows 826/194.52s PASS; Ruff, compile, builds
+and dependencies PASS. 172 image source/input files and 38 installed modules match.
+Production preparation identifies `baseline-f23398e32dc3100e`; CPU start/boundary/end
+reads pass. No baseline run directory exists.
 
-Next safe command: `Get-Content docs/g4/03-sustained-profile.md`. A separately
-requested section 3 uses the reviewed 2400 optimizer-second / 800-update / 3600
-wall-second bounds, excluding 38 updates and requiring ≥1800 valid seconds. Full
-3815-update recipe remains intact. No automatic launch, retry, commit or push.
+C0/C1 and failed-smoke files are consolidated. Teammate ledger is separate.
+Extracted return is archived under `runs/handoff`; the root ZIP remains locked.
+Docker is repaired; failed attempts and preserved runtime directories remain.
 
-No collector blocker remains. Refresh load/space/custody before launch: Docker-build
-telemetry showed memory pressure and competing GPU use. Final check found no Python
-processes. Sustained rate gap, recovery/takeover, budget and human approval remain.
-Ignored `data/` and evidence require separate transfer; Git alone is insufficient.
+Next safe command: `Get-Content docs/g4/03-sustained-profile.md`. Refresh live
+load/space/environment and regenerate the v2 profile plan in a fresh section-3
+engineering directory before execution. Reuse only unaffected input proof. Sustained
+profile, current-source recovery, target takeover, budget and two-person approval remain.

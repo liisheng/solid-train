@@ -1,5 +1,51 @@
 # Project status
 
+2026-09-12T22:52+08:00: User requested G5 commit/push and a branch name without
+the prior prefix. Active milestone branch is now `g5-baseline`; publication targets
+`origin/g5-baseline`. Payload: G5 completion report and coordination records only.
+Model/checkpoint/raw evidence remain local; G5 verification outcome is unchanged.
+Earlier branch names below are historical. G6 remains not started.
+
+2026-09-12T22:49+08:00: **G5_PASS_UNDER_AMENDED_SCOPE**. [Completion](g5/COMPLETION.md):
+3815updates/1,000,079,360tokens; fresh initialization, checkpoints,40dev events,
+counter/timing reconciliation and frozen custody PASS. Export reload/recount PASS;
+versioned same-disk completion backup verified. Root rechecked49lineage/backup hashes.
+No replay; training4h22m47s, completion controller113.254s. G6 evaluation/release NEXT,
+not started. Current branch `codex/g5-baseline`; no commit/push in this completion task.
+This supersedes all G5 pending/running snapshots below; canonical full campaign unchanged.
+
+2026-09-12T22:47+08:00: **G5 completion checks launched** with user authorization.
+Evidence `runs/verification/g5/20260912-completion-01`; observer
+`runs/verification/g5/observe-completion.ps1`. Six phases verify frozen custody,
+endpoints, fresh provenance/counters, export, versioned completion backup and inventory.
+User owns observation; inspect final receipt before claiming G5PASS. No G6 evaluation.
+Branch `codex/g5-baseline`, current HEAD `56b93aa`; production source unchanged.
+
+2026-09-12T22:43+08:00: **G5 training finished**, exit0 at19:14:30 SGT;
+training invocation4h22m47s. Final metrics:3815updates,1,000,079,360tokens,
+cursor976640,LR0; full-dev loss3.28715/perplexity26.7664. `completed.pt` exists.
+Endpoint verification, export, counter reconciliation and completion backup remain
+pending; G5PASS is not yet claimed. Supersedes TRAINING_RUNNING below.
+
+2026-09-12T14:51:52+08:00: User-provided observer reports **TRAINING_RUNNING**;
+environment and launch plan both exited0. This supersedes the preflight phase below.
+No training metrics or endpoint verification yet; user retains observation.
+
+2026-09-12T14:51+08:00: **G5 launch workflow started**, branch `codex/g5-baseline`
+from `b9b638f`. Root prepared the launcher; user owns observation and will report progress.
+Controller PID51212 (venv launcher33204), started14:50:32; frozen hashes pass,
+environment refresh is the last observed phase. Successful checks lead to a fresh
+3815-update /1,000,079,360-token baseline. Training completion is unverified.
+Inspect `runs/verification/g5/20260912-launch-01/active_process.json` and final
+`receipt.json` before any further launch. Observer: `runs/verification/g5/observe-g5.ps1`.
+Production source unchanged; prior826tests/build/lint apply. No commit/push or G5PASS.
+This supersedes historical G5-not-started statements below; G6 remains separate.
+
+2026-09-12T14:50:23+08:00: Approved G4 readiness commit `56b93aa` pushed to
+origin/codex/g4-selected-recipe; exact remote SHA verified. Current checkout observed
+on codex/g5-baseline at the same commit and left unchanged. Publication adds no G5
+launch authorization; this coordination update is local/uncommitted.
+
 2026-09-12T14:46:34+08:00: **G4_PASS_UNDER_AMENDED_SCOPE.** Sole owner explicitly
 approved successor digest `b6b33eadfd543d7c58b91eed89684890968f195ce7da2476132af15148f5261b`,
 including single-owner G4 approval, same-disk backup policy and provisional evaluation

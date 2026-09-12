@@ -1,5 +1,25 @@
 # Current G4 handoff
 
+2026-09-12T14:46:34+08:00: **G4_PASS_UNDER_AMENDED_SCOPE** after actual sole-owner
+approval of readiness bundle b6b33eadfd543d7c58b91eed89684890968f195ce7da2476132af15148f5261b.
+Receipt: approvals/owner-20260912-readiness.json. It activates single-owner G4 approval
+and accepts the same-disk backup policy and explicitly provisional evaluation budget.
+Approved payload remains byte-identical; this receipt supersedes its pending fields.
+G5 launch is not authorized by this approval; refresh resources when separately requested.
+Original canonical gates and G6 release policy remain unchanged. Earlier blocked notes
+below are historical and superseded only within this approved reduced scope.
+
+
+Publication update2026-09-12T14:42+08:00: explicit user authorization resolved
+the push blocker. Package `b9b638fd26c636d936a164e7c731746392665427` successfully
+pushed to origin/codex/g4-selected-recipe; remote SHA verified equal. Supersedes
+the failed-push note below. These publication notes remain local; no G5 launch.
+
+Publication update2026-09-12T14:41+08:00: package committed `b9b638f` (17files).
+Dry-run succeeds; actual push rejected by automatic approval review for unconfirmed
+payload/destination authorization to github.com/liisheng/solid-train. Remote branch
+still `d108057`; explicit user confirmation required. This note is uncommitted.
+
 Updated2026-09-12T14:35+08:00. **Section7 package complete; amended G4 BLOCKED.**
 Sections1–4 pass in recorded scope;5 is NOT_APPLICABLE_UNDER_AMENDED_SCOPE;
 6 is a conditional budget. G5/G6 and original canonical G4 remain unpassed.

@@ -1,0 +1,22 @@
+{
+  "schema": "g4_owner_approval_v1",
+  "recorded_at": "2026-09-12T14:46:34+08:00",
+  "timestamp_basis": "Receipt recording time; exact user-message timestamp unavailable",
+  "human_identity": "Current user, self-declared sole project custodian",
+  "provenance": "Direct user reply in this task to the final readiness-package approval question",
+  "original_statement": "I approve.",
+  "decision": "APPROVE",
+  "scope": "selected_control_reduced_baseline_v2_single_machine",
+  "bundle": "docs/g4/READINESS_BUNDLE_20260912.json",
+  "bundle_sha256": "b6b33eadfd543d7c58b91eed89684890968f195ce7da2476132af15148f5261b",
+  "accepted": [
+    "Single-owner G4 approval replaces the two-person G4 requirement for this active scope",
+    "Same-disk backup destination, verified byte restoration, limitations and planned-pause/completion cadence",
+    "Explicitly provisional 24-hour evaluation allowance; no measured-p90 or measured-fit claim"
+  ],
+  "assessment": "G4_PASS_UNDER_AMENDED_SCOPE",
+  "original_canonical_g4": "NOT_RUN",
+  "g6_release_policy_changed": false,
+  "g5_launch_authorized": false,
+  "payload_policy": "Receipt is external to approved immutable bundle; pending fields in that historical payload are superseded by this receipt"
+}

@@ -1,5 +1,39 @@
 # Project status
 
+2026-09-12T14:46:34+08:00: **G4_PASS_UNDER_AMENDED_SCOPE.** Sole owner explicitly
+approved successor digest `b6b33eadfd543d7c58b91eed89684890968f195ce7da2476132af15148f5261b`,
+including single-owner G4 approval, same-disk backup policy and provisional evaluation
+budget. [Actual approval receipt](g4/approvals/owner-20260912-readiness.json) supersedes
+pending approval fields below and in the immutable bundle. Bound evidence reverified.
+Original canonical G4 remains NOT_RUN; measured evaluation fit remains unproven.
+G5 has not started; next is a separately instructed launch with fresh resource checks.
+
+
+2026-09-12T14:47+08:00: **Readiness/preflight verified; G4 awaiting final owner approval.**
+494 freeze hashes and98 environment checks pass; fresh launch plan exits0, no baseline
+directory or training process. User is sole custodian and accepts provisional24h
+evaluation allowance. Same-D-disk backup plus isolated byte restoration:496files,
+7.311GB, all hashes match. No disk-failure recovery or restored-copy training claimed.
+[Readiness review](g4/READINESS_20260912.md) proposes single-owner G4 approval, pending
+explicit acceptance; [successor bundle](g4/READINESS_BUNDLE_20260912.json) SHA256
+`b6b33eadfd543d7c58b91eed89684890968f195ce7da2476132af15148f5261b`.
+Branch codex/g4-selected-recipe, HEAD b9b638fd26c636d936a164e7c731746392665427;
+new readiness docs uncommitted, production source unchanged. No G5 launch.
+The following section7 snapshot is historical; latest custody/budget facts above supersede it.
+
+2026-09-12T14:42+08:00: **G4 package pushed successfully.** User explicitly
+authorized the stated payload and GitHub destination. Remote
+`origin/codex/g4-selected-recipe` equals local commit
+`b9b638fd26c636d936a164e7c731746392665427`. Supersedes the push blocker below.
+Freeze disposition is unchanged; no G5 launch. Publication notes remain local.
+
+2026-09-12T14:41+08:00: G4 package committed as `b9b638f` (17 files), push BLOCKED
+by automatic approval review pending explicit authorization of documentation,
+configuration and corpus/evidence metadata to https://github.com/liisheng/solid-train.
+Dry-run passed; read-only remote check still shows `d108057`. All494 bundle files
+match; byte-preserving CRLF-aware diff check passes. No corpus/checkpoint binaries,
+ZIP, build, egg-info or RULES included. This publication-status note is uncommitted.
+
 2026-09-12T14:39+08:00: User states intent to proceed and requests publication of
 the G4 scope/budget/freeze package to `origin/codex/g4-selected-recipe`.
 All494 bound files and bundle digest reverified unchanged. Publication does not

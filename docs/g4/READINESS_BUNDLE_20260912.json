@@ -1,0 +1,24 @@
+{
+  "approval_policy": "PROPOSED single owner G4 approval; pending explicit acceptance of exact digest",
+  "backup": "VERIFIED_SAME_DISK_BYTE_COPY_AND_RESTORE",
+  "custodian": "current user, sole project custodian",
+  "evaluation_budget": "USER_ACCEPTED_EXPLICITLY_PROVISIONAL_24H",
+  "files_sha256": {
+    "docs/g4/FREEZE_BUNDLE.json": "e5d5e32c08547692d94a5e30463cd76d633558ebb6bd363a8a90984994a17462",
+    "docs/g4/FREEZE_BUNDLE.json.sha256": "b061d92ee462ce9cdf8ff857994dc043f9a144070fca211ad5c2fa8a75f497ae",
+    "docs/g4/READINESS_20260912.md": "ab639b010539fb9ae112ed6ac343f500b7a2b02e1b1d5d30ebc908d8fafaabe9",
+    "runs/verification/g4/readiness-20260912/backup-check.json": "97f0a5132924eeeada8679aa33da0090eeca2959cd4e2df4e1e391866757f6e1",
+    "runs/verification/g4/readiness-20260912/backup_check.py": "957f8c3894d2555d92d766b07db9c25b373847998dfa77af41b01ce77c920eaf",
+    "runs/verification/g4/readiness-20260912/environment.json": "d15f878094063b736b5bdb1b99bb7c34d7d8f81964c81a1a4b7abb69feb9c2b9",
+    "runs/verification/g4/readiness-20260912/freeze-check-access.json": "e6f565fbede0fa6009e8cb28a24e1498e204e271aae6b1b942778b726d2c7eda",
+    "runs/verification/g4/readiness-20260912/launch-plan.json": "f70f9e73bdfd4586e7be17ff02d3cacbb4345d012ad44ffc951f5a2ec5b10773",
+    "runs/verification/g4/readiness-20260912/launch-plan.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/verification/g4/readiness-20260912/resources-access.json": "304e7c1e898450cb0c785d4985e74da2a28019753f7bfab5c35b32aa089ac602"
+  },
+  "parent_bundle_sha256": "e5d5e32c08547692d94a5e30463cd76d633558ebb6bd363a8a90984994a17462",
+  "recorded_at": "2026-09-12T06:44:59.752644+00:00",
+  "schema": "g4_readiness_successor_v1",
+  "scope": "selected_control_reduced_baseline_v2_single_machine",
+  "status": "BLOCKED_PENDING_OWNER_APPROVAL",
+  "training_authorized": false
+}

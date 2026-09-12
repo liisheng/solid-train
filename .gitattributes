@@ -14,3 +14,6 @@ docs/g4/G5_HANDOFF.md -text
 docs/g4/BASELINE_BUDGET.json -text
 docs/g4/BASELINE_BUDGET.md -text
 docs/g4/SINGLE_MACHINE_SCOPE.md -text
+docs/g4/READINESS_20260912.md -text
+docs/g4/READINESS_BUNDLE_20260912.json -text whitespace=cr-at-eol
+docs/g4/READINESS_BUNDLE_20260912.json.sha256 -text whitespace=cr-at-eol

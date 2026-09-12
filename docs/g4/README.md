@@ -6,8 +6,9 @@ CONTROL (LR 0.0006, base 70/20/7/3). The successor is
 for evidence, reproduction and current verification status. Earlier sections 1–2
 remain historical evidence; recheck anything affected by the integration.
 
-Prepared 2026-09-09. This is a workflow guide, not a new gate contract or permission
-to execute all sections at once. Sections 1–2 are complete; start the next chat at section 3.
+Updated 2026-09-12. This is a workflow guide, not a new gate contract or permission
+to execute all sections at once. Sections 1–3 are complete on the source lane;
+start the next chat at section 4. See [profile evidence](PROFILE_EVIDENCE.md).
 
 G4 establishes a reproducible, measured, recoverable setup for the fresh 1B baseline.
 G5 runs that baseline; G6 performs its full evaluation and release. These seven chat
@@ -20,8 +21,8 @@ external-machine coordination do not compete for one context window.
 |---|---|---|---|
 | 1 — complete | [Verification](01-verification.md) | Working container/lint and verified source/inputs/environment | Reduced G3 |
 | 2 — complete | [Profile preparation](02-profile-preparation.md) | Tested bounded profiler, timing/telemetry plan, exact dry-run command; [evidence](PROFILE_PLAN.md) | 1 |
-| 3 — next | [Sustained production profile](03-sustained-profile.md) | One valid 30–60 minute profile and explained throughput/costs | 2 |
-| 4 | [Local recovery](04-local-recovery.md) | Current-source exact resume and crash-ledger evidence | 2; normally after 3 |
+| 3 — complete | [Sustained production profile](03-sustained-profile.md) | 37.4 valid minutes, 64,499 weighted tokens/s; [evidence](PROFILE_EVIDENCE.md) | 2 |
+| 4 — next | [Local recovery](04-local-recovery.md) | Current-source exact resume and crash-ledger evidence | 2; normally after 3 |
 | 5 | [Target-machine takeover](05-takeover.md) | Verified source-to-target custody and resumed training | 4; target available |
 | 6 | [Baseline horizon and budget](06-budget.md) | Measured dated budget, explicit reserves and unresolved inputs | 3–5 |
 | 7 | [Freeze and G5 handoff](07-freeze.md) | One freeze-bundle digest, two-person review, evidence-backed disposition | 1–6 |

@@ -1,5 +1,41 @@
 # Project status
 
+2026-09-12T13:19+08:00: User authorized publication of the verified section-3
+documentation to `origin/codex/g4-selected-recipe`. This checkpoint contains five
+coordination/evidence documents; raw runs/checkpoints remain local ignored evidence.
+The uncommitted/no-publication wording below describes the verification checkpoint.
+
+2026-09-12T13:09+08:00: **G4 section 3 PASS (RTX 4070 SUPER source lane)**.
+Single profile exited 0 at 13:05:04, 590 updates / 154,664,960 tokens; 37.392 valid
+minutes, **64,498.66 weighted tokens/s**, 31.827% sampled device headroom.
+All 17 postverification checks pass, including checkpoint and 133 payload hashes;
+172 tested source files unchanged. Ending checkpoint SHA `efcfdd30…7562dc`, cursor
+151,040. No training remains. Whole-machine RAM briefly fell to 98.574 MiB free;
+the historical rate-gap cause remains unresolved. [Evidence](g4/PROFILE_EVIDENCE.md).
+**Next: section 4 local recovery**; G4 itself, target profile/takeover, budget and
+two-person approval remain incomplete. Branch `codex/g4-selected-recipe`, HEAD
+`6293354`; section-3 documentation uncommitted, no source edits or publication.
+Earlier running/next-section-3 entries below are historical and superseded.
+
+2026-09-12: User takes over observation of the running section-3 profile with
+`runs/verification/g4/section-03/observe-profile.ps1`; Codex monitoring stops.
+Training continues. User will report completion, then section-3 verification and
+final evidence/handoff remain to be completed. Do not launch another profile.
+
+2026-09-12T12:24+08:00: **G4 section 3 IN PROGRESS**, root owns the single
+bounded selected-v2 engineering profile on `codex/g4-selected-recipe`, HEAD
+`6293354`. Evidence: `runs/verification/g4/section-03/20260912-primary-01`;
+inspect `active_process.json` and logs before any relaunch. Preflight: 172 tested
+source files unchanged, 133 payload hashes PASS, environment 98 PASS, telemetry
+available. Bounds: 2400 optimizer seconds / 800 updates / 3600 outer seconds;
+exclude updates 1–38, require at least 1800 valid seconds. No G4 PASS or G5 launch.
+No source changes, later-section execution, commit or push authorized in this task.
+
+2026-09-12T12:19+08:00: integration commit `6293354` (20 files) is pushed to
+`origin/codex/g4-selected-recipe`; remote SHA matches local. User explicitly approved
+the destination/payload after the initial approval block. This local publication-status
+update is uncommitted. Implementation verification is unchanged; G4 section 3 is next.
+
 Publication authorized 2026-09-12T12:16+08:00 for the verified selected-recipe
 integration on `codex/g4-selected-recipe`. All 172 tested source/input files were
 rechecked without drift. The uncommitted/no-publication wording below describes

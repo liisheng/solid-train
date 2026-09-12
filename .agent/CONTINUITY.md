@@ -1,5 +1,7 @@
 [PLANS]
 
+- 2026-09-12T12:22+08:00 [USER] Execute G4 section3 only. Root owns one bounded selected-v2 production profile on codex/g4-selected-recipe HEAD6293354814a619c7b318b9d15b694c83d871083c. 172 tested source files unchanged; environment98PASS; regenerated plan PLAN_ONLY. Target2400optimizer seconds/cap800/watchdog3600, exclude38 and require1800valid seconds. No G5/full scoring/tuning/latersection/commit/push. Evidence runs/verification/g4/section-03/20260912-{preflight,plan,primary-01}; inspect active_process.json before any relaunch. Supersedes prior no-profile scope for section3 only.
+
 - 2026-09-12T12:09+08:00 [USER] Organize returned files and integrate selected recipe first. Active branch codex/g4-selected-recipe from7f85c872; root implements without delegation. No training/profile/scoring/commit/push. CONTROL LR0.0006/base requires successor contract and exposure identity; preserve all historical evidence and unrelated residue.
 
 - 2026-09-09T15:37+08:00 [USER] Run RTX4070 G3.5 lane, guide S0 first then progress observation. Requested branch codex/g3.5-pre-campaign-experiments at7f85c87 verified. LLM_HANDOFF requires explicit per-job decision after estimate disclosure; initial smoke estimate unavailable. No commit/push requested.
@@ -26,6 +28,8 @@
 
 [DECISIONS]
 
+- 2026-09-12T13:19+08:00 [USER] Authorizes commit/push of completed G4section3 documentation to existing origin/codex/g4-selected-recipe (github.com/liisheng/solid-train). Include five coordination/evidence docs only; exclude unrelated build/egg-info/RULES/ZIP and ignored corpus/checkpoints/raw runs. Supersedes section3 no-publication restriction for this checkpoint; next section remains unlaunched.
+
 - 2026-09-12T12:16+08:00 [USER] Authorizes commit and push of verified selected CONTROL integration on codex/g4-selected-recipe. [TOOL] All172 tested source/input files remain byte-identical; prior826 Docker/826 Windows and lint/build checks apply. Include successor code/config/tests and coordination/return-review docs; exclude unrelated build/, egg-info, RULES, ZIP and ignored data/runs. Supersedes no-commit/push restriction for this publication only.
 
 - 2026-09-09T15:30:04+08:00 [USER] Authorizes commit and push of teammate ZIP handoff documentation on codex/g3.5-pre-campaign-experiments. Include four coordination/guide files only; preserve unrelated build/egg-info/RULES. Documentation diff checked; no source changes or training.
@@ -47,6 +51,10 @@
 - 2026-09-05T00:26:00+08:00 [CODE] Default CPU container workflow is Dockerfile build/run; Windows CUDA exception is documented in docs/ENVIRONMENT.md. Never install host packages without instruction. No data/runs enter the image. No automatic commit/push from these briefs.
 
 [PROGRESS]
+
+- 2026-09-12T12:39+08:00 [USER] Stop active observation; provide user-run monitor and user will report completion. Training remains running, not interrupted. Read-only monitor runs/verification/g4/section-03/observe-profile.ps1; Ctrl+C stops observer only. Resume section3 postverification after user reports completion; inspect existing process/receipts first, never duplicate launch. Source/config unchanged; report remains IN_PROGRESS.
+
+- 2026-09-12T12:25+08:00 [TOOL] Section3 primary started04:23:49.772850Z, wrapperPID37720/childlauncher43368/toolsession48709; baseline-f23398e32dc3100e, trainingrun-146ddcb9c11da742. 13warmupupdates finite; first full-dev753refs/771072tokens/95batches. Source manifestfbd314e0702c413b0ff5bc5803d1bce0cb5ba004051e20df43357a86e36cb915. Do not relaunch; inspect runs/verification/g4/section-03/20260912-primary-01/active_process.json. Root remains monitoring; no measurementPASS yet.
 
 - 2026-09-12T12:09+08:00 [TOOL] 85 returned files copied/hash-verified into canonical experiment bundle including failedC0smoke and separate3070ledger; extracted return moved to runs/handoff/C0C1-return-20260912, ZIP root locked by another process. Final analysis passed using110 original source files reconstructed/hash-matched fromHEAD; changed source correctly rejects historical experiment identity. V2 contract/exposure/runner/trainer guard implemented; realprepare baseline-f23398e32dc3100e and CPUstart/boundary/end readsPASS;61focusedPASS. Full tests on isolated247-file source running; wheel/compile/pipPASS. FirstWindowsfull stopped because existing audit scans productionJSON; defaulttmp failedpermissions; retainedlogs. Docker restored by preserving both stale socketdirs together, noimages/datareset/install; frozen imagebuild running. Complete tests/lint and finalmanifest/docs before claiming verified integration.
 
@@ -79,6 +87,12 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-12T13:09+08:00 [TOOL] G4section3 source-lanePASS; one profile exit0 at13:05:04,590updates/154664960tokens/cursor151040;2243.512validsec/64498.66weightedtps,p10/median/p9060735.30/65441.63/67322.89;31.827%deviceheadroom. Postverify17PASS incl bothcheckpoints,133payloads,172sourcefiles unchanged. latestSHAefcfdd3045d097474a69299e69711e3bd4e2dd776010dada84bad2a41f7562dc;43-filemanifestSHA883d04403fda6560175294788fc66bedf278ea6fd8de162ef9ea21dd7cdcb0fc. Evidence runs/verification/g4/section-03; docs/g4/PROFILE_EVIDENCE.md. RAMfree minimum98.574MiB/pagefilepeak6.489GiB; noOOM/telemetrygap/thermal slowdown; occupied-desktop attribution and historical51k cause unresolved. No training remains; supersedes running/observerhandoff. Nextsection4 only on request; noG4gate/G5/scoring/commit/push. Source unchanged; prior826Docker/826Windows/lint/build reusable; docs uncommitted on6293354.
+
+- 2026-09-12T12:19+08:00 [USER] Explicitly approves exact commit/destination push after clarification. [TOOL] Push6293354814a619c7b318b9d15b694c83d871083c toorigin/codex/g4-selected-recipe succeeded; ls-remote matches and tracking established. Supersedes blockedpublication below. Local continuity/STATUS publication updates remain uncommitted; unrelatedresidue excluded. NextG4section3, no training.
+
+- 2026-09-12T12:17+08:00 [TOOL] Selected-recipe publication: local commit6293354814a619c7b318b9d15b694c83d871083c contains20 intendedfiles; pushdry-runPASS. Actualpush blocked by automatic approval review: source/config publication to github.com/liisheng/solid-train requires explicit payload/destination approval. No push executed. User clarification required for that exact commit/remote/branch. Unrelated egg-info/build/RULES/ZIP remain excluded; this status entry is uncommitted.
 
 - 2026-09-12T12:13+08:00 [TOOL] SelectedCONTROL integration verified oncodex/g4-selected-recipe/base7f85c872, uncommitted. V2contractSHA dcd4d623a8f826f5e007ed33eea4bf2b653414c2088f4354a9b7e6e69a8a3f12; bothcomponentfiles identicalv1, newexposure c41bc538d0f53ee6bb08ec8b50165afbe7132ada38f3f03a0c0d46c44b792101. Realprepare baseline-f23398e32dc3100e +CPUstart/boundary/endPASS; no rundir/training. Docker826pass/97.05s, isolatedWindows826pass/194.52s; Ruff/compile/build/pipPASS;172imagefiles/38installed/38wheelmodulesmatch. Evidence runs/verification/g4/selected-recipe-20260912/verification.json; docs/g4/SELECTED_RECIPE.md +CURRENT_HANDOFF. 85returnedfiles consolidated, finalselection reverified under110hash-matched originalsource; extractedreturn archived runs/handoff/C0C1-return-20260912, ZIProot locked. Docker restored preserving bothruntime socketdirs, noreset/install. Supersedes pendingchecks; preserve oldattempts/unrelatedresidue. NextG4section3; sections3–7 andhumanapprovals remain; noG4/G5PASS/commit/push.
 

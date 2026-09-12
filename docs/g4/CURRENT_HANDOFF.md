@@ -1,41 +1,42 @@
 # Current G4 handoff
 
-Publication authorized 2026-09-12T12:16+08:00 on `codex/g4-selected-recipe`;
-172 tested source/input files rechecked unchanged. Earlier uncommitted/no-push
-statements below describe the verification checkpoint before publication.
+Publication authorized 2026-09-12T13:19+08:00 to the existing
+`origin/codex/g4-selected-recipe`; five section-3 documentation files only.
+Earlier uncommitted/no-push statements below describe the verification checkpoint.
 
-Updated 2026-09-12T12:13+08:00. Selected CONTROL integration is verified. Sections
-1–2 remain historical PASS; section 3 is next. G4 itself is not passed.
+Updated 2026-09-12T13:09+08:00. **Section 3 PASS on the RTX 4070 SUPER source
+lane; section 4 is next. G4 itself remains incomplete.**
 
-Active branch `codex/g4-selected-recipe`, base HEAD
-`7f85c87246c511471a2009ad3cba0d4ffecf1029`; integration changes are uncommitted.
-No training/profile/full scoring, commit or push occurred.
+Branch `codex/g4-selected-recipe`, HEAD
+`6293354814a619c7b318b9d15b694c83d871083c` (published). Section-3 changes are
+uncommitted documentation: PROFILE_EVIDENCE, README, STATUS, this handoff and
+continuity. No project source/config changes; unrelated build/egg-info/RULES/ZIP
+residue preserved. No commit/push or later-section execution occurred.
 
-Selected recipe: `configs/training/baseline_reduced_v2.yaml`, LR 0.0006,
-base 70/20/7/3, fresh seed 1337, 3815 updates/1,000,079,360 tokens. Normalized SHA:
-`dcd4d623a8f826f5e007ed33eea4bf2b653414c2088f4354a9b7e6e69a8a3f12`.
-V1 stays immutable. Both exposure component files match v1 byte-for-byte; the new
-contract binding changes exposure/training identity. Experiment weights cannot initialize G5.
+The single profile exited 0 at 2026-09-12T13:05:04+08:00; no training remains.
+Evidence: `runs/verification/g4/section-03/20260912-primary-01`, with sibling
+preflight/plan directories, `postverification.json` and `evidence-manifest.json`.
+43-file manifest SHA:
+`883d04403fda6560175294788fc66bedf278ea6fd8de162ef9ea21dd7cdcb0fc`.
+17 postverification checks PASS; 133 payloads and 172 tested source files unchanged.
+Prior Docker826/Windows826 tests, lint/compile/build remain applicable.
 
-Changed: successor contract/selection receipt, exposure digest registration, runner
-and profiler selection, trainer startup guard, integration utility, tests and guides.
-See [integration](SELECTED_RECIPE.md) for exact reproduction commands and custody.
-The runner CLI/profiler default to v2; old Python harness defaults still use v1.
+Selected CONTROL v2, fresh seed1337, BF16, 49,658,368 parameters, LR0.0006,
+3815-update horizon unchanged. Runner `baseline-f23398e32dc3100e`, training
+`run-146ddcb9c11da742`. Completed590 updates/154,664,960 tokens/cursor151,040.
+Valid window2243.512s, weighted64,498.66tokens/s, deviceheadroom31.827%.
+RAM availability briefly98.574MiB; pagefilepeak6.489GiB. Desktop workloads
+remained; historical51k cause unresolved. See [evidence](PROFILE_EVIDENCE.md)
+for clock definitions, overhead, headroom/thermal limits and exact hashes.
 
-Evidence: `runs/verification/g4/selected-recipe-20260912/verification.json`,
-`source-custody.json`, `integration.json`, `prepare.json`, `input-reads.json`.
-The 247-file frozen verification manifest SHA is
-`0c5d28389175ceaf76489f522be654030956bda84d1b42a45f2ac7639019065d`.
-Docker 826 tests/97.05s and isolated Windows 826/194.52s PASS; Ruff, compile, builds
-and dependencies PASS. 172 image source/input files and 38 installed modules match.
-Production preparation identifies `baseline-f23398e32dc3100e`; CPU start/boundary/end
-reads pass. No baseline run directory exists.
+Section-4 checkpoint: `20260912-primary-01/train/latest.pt` under the evidence
+root above; SHA
+`efcfdd3045d097474a69299e69711e3bd4e2dd776010dada84bad2a41f7562dc`.
+Carry its sidecar, identities, provenance, configuration, metrics and phase history.
+This engineering checkpoint is not a completed-baseline export or G5 initializer.
+Ignored evidence requires separate transfer; Git alone is insufficient.
 
-C0/C1 and failed-smoke files are consolidated. Teammate ledger is separate.
-Extracted return is archived under `runs/handoff`; the root ZIP remains locked.
-Docker is repaired; failed attempts and preserved runtime directories remain.
-
-Next safe command: `Get-Content docs/g4/03-sustained-profile.md`. Refresh live
-load/space/environment and regenerate the v2 profile plan in a fresh section-3
-engineering directory before execution. Reuse only unaffected input proof. Sustained
-profile, current-source recovery, target takeover, budget and two-person approval remain.
+Next safe command: `Get-Content docs/g4/04-local-recovery.md`. Bind recovery
+scenarios explicitly to selected v2 (old Python harness defaults retain v1).
+Current-source resume/crash equality, target profile/takeover, measured budget and
+two-person approval remain. No automatic next-section launch.

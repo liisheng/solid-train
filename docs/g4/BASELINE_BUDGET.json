@@ -1,0 +1,144 @@
+{
+  "schema": "g4_section6_budget_v1",
+  "recorded_at": "2026-09-12T13:59:57.5443278+08:00",
+  "status": "CONDITIONAL",
+  "measured_campaign_fit": "BLOCKED",
+  "candidate_count": 1,
+  "units": {
+    "size": "bytes",
+    "rate": "loss tokens per second",
+    "time": "seconds unless suffix hours"
+  },
+  "recipe": {
+    "tokens": 1000079360,
+    "wsd": [
+      38,
+      3395,
+      382
+    ],
+    "best_write_allowance": 40,
+    "recovery_writes": 39,
+    "tokens_per_update": 262144,
+    "updates": 3815,
+    "dev_events": 40,
+    "seed": 1337
+  },
+  "source_hash_algorithm": "SHA256 raw file bytes",
+  "source_sha256": {
+    "configs/training/baseline_reduced_v2.yaml": "3fe98a6f969ece2248ca654032a7e05de7e4f7404a52751ae82fa3270b860f24",
+    "configs/operations/measurement_v1.yaml": "6a8488799e0e2e62a0d86bf2f2dd69dbe52f27f777c2be7d84fe4083ebb6705c",
+    "configs/operations/g4_scope_v2.yaml": "9a7ff182683379afb6f04ac1d8cfbce74cd9482dd5c20e2a023d4f3614866a1a",
+    "configs/campaign/submission_scope_v1.yaml": "87630f9dc2569fe4c57ab4426d9c083c8cbe550de28e2d8d58cc72da6891f24d",
+    "configs/campaign/submission_scope_v2.yaml": "0e3ba9607e1bcf6d78f488969c66af76b8bfd255c718f33ffeab67c8a66f6f57",
+    "configs/evaluation/evaluation_provisional_v2.yaml": "60eb9750bd70e74e2d5db868af068bf5cf2c578704cc1da2be12b9f2b536976b",
+    "runs/verification/g4/section-03/20260912-primary-01/measurement.json": "8801db95051a71658f13eec8c9016f6bb56fce753a293bb5f1ac717ea80e0382",
+    "runs/verification/g4/section-03/20260912-primary-01/wrapper_receipt.json": "2ff18e8e825880e1625f5856643f304df0d63896ebd7eef210b1db986773ad34",
+    "runs/verification/g4/section-03/20260912-primary-01/train/metrics.jsonl": "68d5f420a384c7aa55219e4fdbbd658af7babdee8c8ef7661f851940ceb441b9",
+    "runs/verification/g4/section-03/20260912-primary-01/source_manifest.json": "fbd314e0702c413b0ff5bc5803d1bce0cb5ba004051e20df43357a86e36cb915",
+    "runs/verification/g4/section-03/postverification.json": "6425fa719355e41c9d10b3cf6e0b4f029d12771c91dd964840972eda0f6a87cc",
+    "runs/verification/g4/section-04/20260912-primary-02/review.json": "da9e09c3f0452602b809f4d216d5ec90194536966c1bf4caff116d2229a70e78",
+    "docs/g4/RECOVERY_EVIDENCE.md": "5bfdd1050e40a5d46653ae804e5ccbc387e2e4fbfb5290c0fcc2966726f35be0",
+    "train.py": "6e91d8ed95265920521c1c2fd567b80f63f72884ac0bef123fd59804e747beb2"
+  },
+  "source_applicability": {
+    "files_checked": 172,
+    "drift_count": 0
+  },
+  "measured": {
+    "profile_checkpoint_seconds": 17.066286400004174,
+    "profile_dev_seconds": 20.648794100008672,
+    "profile_checkpoint_bytes": 596076206,
+    "profile_best_writes": 5,
+    "profile_recovery_writes": 6,
+    "profile_optimizer_seconds": 2401.249784399981,
+    "profile_metric_bytes": 489964
+  },
+  "formulas": {
+    "evaluation_required": "measured full-suite p90 seconds * exact candidate count(1) * 1.25",
+    "startup": "54.451 plan preparation + trainer residual * multiplier + child-minus-main * multiplier + 4 wrapper allowance",
+    "storage": "8*checkpoint_bytes + 2 GiB export + 1 GiB logs + 10 GiB evaluation cache/results",
+    "validation": "20.648794100008672 / 6 * 40 * overhead_multiplier",
+    "recovery": "100*262144/rate + 600 unmeasured restart allowance",
+    "total": "training + all discretionary reserves",
+    "warmup": "max(0, measured first38 optimizer seconds - 38*262144/rate)",
+    "optimizer": "1000079360 / scenario rate",
+    "checkpoint": "17.066286400004174 / (6 recovery + 5 best) * (39 recovery + 40 best allowance) * overhead_multiplier",
+    "evaluation_measured_seconds": null,
+    "training": "optimizer + warmup excess + full dev + checkpoint + startup"
+  },
+  "scenarios": {
+    "central": {
+      "rate_tokens_per_second": 64498.65883910483,
+      "overhead_multiplier": 1,
+      "optimizer_seconds": 15505.428763949165,
+      "warmup_excess_seconds": 3.2935666463748134,
+      "full_dev_seconds": 137.65862733339114,
+      "checkpoint_seconds": 122.56696596366635,
+      "startup_and_residual_seconds": 91.89911600000684,
+      "training_seconds": 15860.847039892602,
+      "discretionary_reserves": {
+        "completion_copy_seconds": 60,
+        "verification_export_seconds": 1800,
+        "backup_seconds": 1800,
+        "evaluation_provisional_seconds": 86400,
+        "local_recovery_seconds": 1006.4332572463738,
+        "downtime_seconds": 86400
+      },
+      "total_provisional_seconds": 193327.280297139,
+      "total_provisional_hours": 53.70202230476083
+    },
+    "conservative": {
+      "rate_tokens_per_second": 60735.301112467336,
+      "overhead_multiplier": 2,
+      "optimizer_seconds": 16466.195798520712,
+      "warmup_excess_seconds": 0.0,
+      "full_dev_seconds": 275.3172546667823,
+      "checkpoint_seconds": 245.1339319273327,
+      "startup_and_residual_seconds": 125.34723200001369,
+      "training_seconds": 17111.99421711484,
+      "discretionary_reserves": {
+        "completion_copy_seconds": 60,
+        "verification_export_seconds": 1800,
+        "backup_seconds": 1800,
+        "evaluation_provisional_seconds": 86400,
+        "local_recovery_seconds": 1031.617190000543,
+        "downtime_seconds": 86400
+      },
+      "total_provisional_seconds": 194603.6114071154,
+      "total_provisional_hours": 54.056558724198716
+    }
+  },
+  "storage": {
+    "D_free_bytes": 1215941656576,
+    "C_free_bytes": 197280485376,
+    "backup_destination": "UNCONFIRMED",
+    "additional_working_bytes": 18727253360.0,
+    "recommended_free_bytes": 32212254720.0,
+    "off_machine_backup_bytes": 5009454090.0,
+    "checkpoint_copies": 8,
+    "checkpoint_bytes": 596076206
+  },
+  "historical_accounting": {
+    "note": "Subset only; controller scopes exclude final hashing/imports/review; nested child and archived times are not added again. Earlier experiments and G0-G3 plus checks remain outside this subtotal.",
+    "complete_campaign_wall_seconds": null,
+    "section4_archived_tokens": 1048576,
+    "section4_archived_optimizer_seconds": 15.969,
+    "section4_failed_controller_seconds": 3.036,
+    "section4_success_controller_seconds": 543.071,
+    "section3_two_wrapper_commands_seconds": 2562.06,
+    "known_nonoverlapping_subset_seconds": 3108.167,
+    "active_gpu_hours": null
+  },
+  "calendar": {
+    "observed_header": "Oct 1 2026 11:45pm CST",
+    "organizer_deadline_status": "BLOCKED_CONFLICTING_OFFICIAL_DATES",
+    "planned_finish": "2026-09-15T16:00:00+08:00",
+    "status": "PROVISIONAL_MACHINE_AVAILABILITY_UNCONFIRMED",
+    "observed_body": "Sep 21 2026 11:45pm Taipei UTC+8",
+    "proposed_start": "2026-09-13T08:00:00+08:00",
+    "source_url": "https://gibc-v2.devpost.com/rules",
+    "submission_cutoff_provisional": "2026-09-21T23:45:00+08:00",
+    "internal_fit_boundary_assumed": "2026-09-17T00:00:00+08:00",
+    "timezone": "Asia/Singapore (UTC+08:00)"
+  }
+}

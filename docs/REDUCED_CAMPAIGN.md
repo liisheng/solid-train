@@ -1,5 +1,14 @@
 # Accepted submission scope — 2026-09-06
 
+**2026-09-12 active update:** The selected CONTROL baseline uses
+`configs/training/baseline_reduced_v2.yaml`. G4 sections 1–4 are complete;
+the user approved [single-machine execution](g4/SINGLE_MACHINE_SCOPE.md) under
+`configs/operations/g4_scope_v2.yaml`. Section 5 is not applicable and section 6
+delivered a conditional budget. Section7 delivered the [freeze package](g4/FREEZE_REVIEW.md);
+G4 remains BLOCKED on backup custody, budget disposition and two human approvals.
+Use [current G4 handoff](g4/CURRENT_HANDOFF.md); older readiness/tool-blocker
+and recipe-v1 statements below are retained historical context.
+
 The user accepted a 1B-token baseline, conditional 3–5B target, at most one optional
 comparison, and retention of existing sources. The immutable record is
 `configs/campaign/submission_scope_v1.yaml` with its digest sidecar. It reduces the

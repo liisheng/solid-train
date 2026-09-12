@@ -1,36 +1,37 @@
 # Current G4 handoff
 
-Updated 2026-09-12T13:44+08:00. **Section 4 PASS: local recovery. Section 5 next;
-G4 itself incomplete.** Branch `codex/g4-selected-recipe`, HEAD
-`1cd448ec6754ff1fe06598b324c0a341c8c42276`. Production source/config unchanged;
-section-4 evidence and coordination documentation remain uncommitted. Preserve
-unrelated build/egg-info/RULES/ZIP residue. No publication or later section started.
+Updated2026-09-12T14:35+08:00. **Section7 package complete; amended G4 BLOCKED.**
+Sections1–4 pass in recorded scope;5 is NOT_APPLICABLE_UNDER_AMENDED_SCOPE;
+6 is a conditional budget. G5/G6 and original canonical G4 remain unpassed.
 
-The v2 real-model BF16 eight-update versus four-plus-resume rehearsal and separate
-checkpoint4/log8 rollback replay pass exact durable comparison. One superseded
-archive preserves four replayed updates, 1,048,576 tokens and15.969 optimizer seconds.
-Corruption/early-export rejection and archive retry fault-injection checks pass.
-All90 evidence-file hashes and172 source hashes match;20 successor review checks pass.
-Prior826 Docker/Windows tests, lint/build and section3 timing remain applicable.
-No training remains. See [recovery evidence](RECOVERY_EVIDENCE.md) for scope and limits.
+Branch `codex/g4-selected-recipe`, HEAD `d1080576789794cb35f8839d6789f540223b7653`.
+User authorized publication of the scope/coordination package on2026-09-12T14:39+08:00;
+resolve its publication commit from this branch's Git log. Preserve build/egg-info/RULES/ZIP.
+New deliverables: FREEZE_REVIEW.md, FREEZE_BUNDLE.json and sidecar, G5_HANDOFF.md.
+Index/status/reduced-campaign/continuity updated. No source changes, training,
+scoring or backup in section7. Publication is separately authorized; no long-running script remains.
 
-Evidence `runs/verification/g4/section-04/20260912-primary-02`:
-`review.json` PASS supersedes original controller result AWAITING_REVIEW.
-Manifest SHA `1fcd493d237dac5d880c011c700d36a6b7c210a9744d33055f99bb13430301cb`;
-review SHA `da9e09c3f0452602b809f4d216d5ec90194536966c1bf4caff116d2229a70e78`.
-Attempt01 failed before training on corpus sandbox access and remains preserved.
-Four training commands consumed389.783 outer seconds; successful controller543.071s
-through result writing. Rollback paths retain execution-time clean-path identities;
-clean directories were restored, rollback evidence is now under `rollback/`.
+Bundle SHA256 `e5d5e32c08547692d94a5e30463cd76d633558ebb6bd363a8a90984994a17462`
+binds494 files plus component/requirement/policy records. Actual approval receipts
+stay outside its payload; none supplied. Changed payload requires new approvals.
 
-Takeover candidate remains section3's verified590-update checkpoint:
-`runs/verification/g4/section-03/20260912-primary-01/train/latest.pt`, cursor151040,
-SHA `efcfdd3045d097474a69299e69711e3bd4e2dd776010dada84bad2a41f7562dc`.
-Carry sidecar, metrics, phase history, provenance, configurations and identities.
-Its bytes are unchanged; section4 proved fresh bounded recovery, not a resume of
-this particular checkpoint. These engineering weights cannot initialize G5.
-Selected CONTROL v2, runner `baseline-f23398e32dc3100e`, training `run-146ddcb9c11da742`.
+Fresh section7 custody passes462 unique files: all172 measured source files,
+133 stable/dev payloads,15 production inputs and profile/recovery/integration/budget
+evidence. Prior826 Docker/826 Windows tests, lint/build, sustained profile and exact
+recovery remain applicable. Evidence/scripts:
+`runs/verification/g4/section-07/20260912-freeze-01`.
+Read-only launch plan exits0 with `baseline-f23398e32dc3100e`; initial sandbox-access
+failure preserved. Fresh `runs/reduced_campaign/reduced_baseline_v2/run` absent.
 
-Next safe command: `Get-Content docs/g4/05-takeover.md`. Target-machine custody,
-resume/profile, measured budget and two-person approval remain. No target access
-or teammate action is assumed; Git alone does not transfer ignored evidence.
+User confirms continuous machine availability: will keep computer on as long as
+needed. Supersedes prior availability-UNCONFIRMED only. Backup destination, human
+custodian/cadence and restore custody remain unresolved. Full CUDA/BF16 evaluation
+p90 remains NOT_RUN;24h allocation provisional, measured fit BLOCKED. Operator
+resolves eligible-artifact/calibration costs and budget disposition. Official
+evaluation settings and historical deadline conflict remain unresolved downstream.
+
+Next: operator closes material gaps; regenerate bundle and obtain two distinct
+human approvals of the exact digest, then separately request G5. No engineering
+checkpoint may initialize fresh seed1337 CONTROL v2/3815updates.
+
+Safe next command: `Get-Content docs/g4/FREEZE_REVIEW.md`.

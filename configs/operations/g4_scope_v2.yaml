@@ -1,0 +1,51 @@
+# Versioned amendment for the active reduced campaign; frozen originals stay intact.
+protocol: g4_scope
+version: v2
+recorded_at: '2026-09-12T13:54:00+08:00'
+authorization: User chose to perform remaining work on this machine and explicitly requested the plan update.
+scope: selected_control_reduced_baseline_v2_single_machine
+inherits:
+  - configs/campaign/submission_scope_v2.yaml
+  - configs/operations/measurement_v1.yaml
+supersedes_for_active_scope:
+  historical_requirement: takeover_rehearsal_passes
+  replacement_requirement: local_recovery_passes
+  section_5_disposition: NOT_APPLICABLE_UNDER_AMENDED_SCOPE
+  reason: Single-machine campaign; no second-machine fallback is planned or claimed.
+machine_policy:
+  machine_id: rtx_4070
+  measured_gpu: NVIDIA GeForce RTX 4070 SUPER
+  remaining_work: [training, evaluation, export]
+  scheduling: sequential_on_same_machine
+  second_machine_profile_required: false
+  cross_machine_takeover_claimed: false
+  hardware_failure_policy: Pause campaign until this machine is restored; reassess scope and verify compatibility before moving to another machine.
+requirements:
+  - two_person_freeze_bundle_approval
+  - real_shard_throughput_measured
+  - local_recovery_passes
+  - no_failed_correctness_gate_bypassed
+planning_and_freeze:
+  measured_budget_required: true
+  evaluation_runtime_must_be_measured_or_explicitly_provisional: true
+  include_local_recovery_and_downtime_reserve: true
+  backup_policy: Record checkpoint backup destination, custody hashes and restore procedure in the freeze bundle; prefer storage outside this machine.
+  backup_status: NOT_RUN
+evidence:
+  sustained_profile: docs/g4/PROFILE_EVIDENCE.md
+  local_recovery: docs/g4/RECOVERY_EVIDENCE.md
+reporting:
+  amended_pass_label: G4_PASS_UNDER_AMENDED_SCOPE
+  amended_gate_status: NOT_RUN
+  original_canonical_g4: NOT_RUN
+  original_takeover_rehearsal: NOT_RUN
+  preserve_historical_evidence: true
+  assessment: Section 7 must bind this amendment and evidence in its requirement matrix; the canonical operations validator continues to assess the unchanged original contract.
+preserves:
+  - Selected CONTROL recipe, fresh baseline initialization, fixed horizon and run identity rules
+  - Correctness, corruption rejection, checkpoint verification and failed-work accounting
+  - Two-person freeze approval and both-teammate release approval
+  - Full evaluation from a fresh environment, which may run on this machine
+  - Existing G0-G3 dispositions; no retroactive canonical gate pass
+next_section: 6
+execution_authorized_by_this_amendment: false

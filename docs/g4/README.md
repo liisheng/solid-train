@@ -8,7 +8,10 @@ remain historical evidence; recheck anything affected by the integration.
 
 Updated 2026-09-12. This is a workflow guide, not a new gate contract or permission
 to execute all sections at once. Sections 1–4 are complete on the source lane;
-start the next chat at section 5. See [recovery evidence](RECOVERY_EVIDENCE.md).
+section 5 is not applicable under the approved [single-machine scope](SINGLE_MACHINE_SCOPE.md).
+Section 6 is complete with a [conditional budget](BASELINE_BUDGET.md); section 7
+delivered the [freeze review](FREEZE_REVIEW.md) and [G5 handoff](G5_HANDOFF.md).
+G4 is BLOCKED on backup custody, budget disposition and two actual human approvals.
 
 G4 establishes a reproducible, measured, recoverable setup for the fresh 1B baseline.
 G5 runs that baseline; G6 performs its full evaluation and release. These seven chat
@@ -23,14 +26,13 @@ external-machine coordination do not compete for one context window.
 | 2 — complete | [Profile preparation](02-profile-preparation.md) | Tested bounded profiler, timing/telemetry plan, exact dry-run command; [evidence](PROFILE_PLAN.md) | 1 |
 | 3 — complete | [Sustained production profile](03-sustained-profile.md) | 37.4 valid minutes, 64,499 weighted tokens/s; [evidence](PROFILE_EVIDENCE.md) | 2 |
 | 4 — complete | [Local recovery](04-local-recovery.md) | Exact CUDA resume/rollback and archived replay costs; [evidence](RECOVERY_EVIDENCE.md) | 2; normally after 3 |
-| 5 | [Target-machine takeover](05-takeover.md) | Verified source-to-target custody and resumed training | 4; target available |
-| 6 | [Baseline horizon and budget](06-budget.md) | Measured dated budget, explicit reserves and unresolved inputs | 3–5 |
-| 7 | [Freeze and G5 handoff](07-freeze.md) | One freeze-bundle digest, two-person review, evidence-backed disposition | 1–6 |
+| 5 — not applicable | [Target-machine takeover](05-takeover.md) | Excluded by g4_scope_v2; local recovery retained | Single-machine decision |
+| 6 — complete, conditional | [Baseline horizon and budget](06-budget.md) | [Budget and calculation](BASELINE_BUDGET.md); measured fit BLOCKED | 3–4 and g4_scope_v2 |
+| 7 — package complete, BLOCKED | [Freeze and G5 handoff](FREEZE_REVIEW.md) | Hashed bundle and G5 instructions; approval/readiness gaps retained | 1–4, 6 and g4_scope_v2 |
 
-Default order is sequential. If target-machine availability blocks section 5, section 6
-may prepare a clearly provisional budget; section 7 cannot convert missing evidence into
-a pass. A section may end BLOCKED with useful deliverables and a named next action.
-Return to that same section in a new chat when its prerequisite is available.
+Active order is sections 1–4, then 6–7. Section 5 is excluded by the explicit amendment,
+not passed by local evidence. Missing applicable evidence still blocks readiness;
+a section may end BLOCKED with useful deliverables and a named next action.
 
 ## Start each chat
 
@@ -41,7 +43,8 @@ relevant tests, using symbol searches for large modules. Do not read all seven b
 all of G3, the continuity archive, or entire raw logs as a routine starting step.
 
 The governing documents are `configs/campaign/submission_scope_v2.yaml` (inherits the accepted reduced
-scope), `configs/operations/measurement_v1.yaml` (canonical gates/measurements), and
+scope), `configs/operations/measurement_v1.yaml` (canonical gates/measurements),
+`configs/operations/g4_scope_v2.yaml` (active single-machine G4 amendment), and
 `configs/training/baseline_reduced_v2.yaml` (selected recipe). The original campaign's
 `freeze_bundle` section supplies its component/approval requirements. Treat this guide
 as a paraphrase and implementation plan; resolve conflicts against the contracts.
@@ -76,7 +79,8 @@ Do not reinstate the superseded mandatory proxy/three-arm campaign.
    truthful measurement can pass; an unsupported speedup cannot.
 8. Missing evidence is NOT_RUN; an external blocker is BLOCKED with owner and next action;
    an observed failed check is FAIL. PASS needs inspected evidence. Agent review does not
-   satisfy two-person teammate approval. The G2 any-machine amendment does not amend G4.
+   satisfy two-person teammate approval. G4's single-machine exception comes from
+   g4_scope_v2, not the earlier G2 amendment; original canonical gates stay unpassed.
 
 ## Keep each chat's context bounded
 

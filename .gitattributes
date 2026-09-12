@@ -6,3 +6,11 @@ data/tokenizer_final/tokenizer.json -text
 # Frozen protocols are digest-pinned over bytes with CRLF normalized to LF. Keeping them
 # LF in the working tree removes the normalization step as a source of surprise.
 configs/**/*.yaml text eol=lf
+
+# Preserve the section-7 bundle and its newly published raw-byte-bound documents.
+docs/g4/FREEZE_BUNDLE.json -text
+docs/g4/FREEZE_BUNDLE.json.sha256 -text
+docs/g4/G5_HANDOFF.md -text
+docs/g4/BASELINE_BUDGET.json -text
+docs/g4/BASELINE_BUDGET.md -text
+docs/g4/SINGLE_MACHINE_SCOPE.md -text

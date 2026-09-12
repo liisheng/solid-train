@@ -1,5 +1,11 @@
 # Section 5 — Rehearse target-machine takeover
 
+**2026-09-12: NOT APPLICABLE UNDER AMENDED SCOPE.** The user chose a
+[single-machine campaign](SINGLE_MACHINE_SCOPE.md), recorded in
+`configs/operations/g4_scope_v2.yaml`. Skip this section and continue to
+[section 6](06-budget.md). The original brief below is retained for history and
+does not authorize execution or require another machine for the active scope.
+
 ## Goal and prerequisite
 
 Demonstrate the fallback path from the 4070 mainline lane to the 3070 target lane.

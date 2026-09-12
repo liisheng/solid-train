@@ -6,17 +6,22 @@ Assemble the exact setup and evidence for review, obtain real approval where ava
 and issue an honest G4 disposition. Read the common handoff/index and the six section
 summaries; inspect raw evidence only to validate their claims. Read the canonical G4
 requirements and `freeze_bundle` in `configs/campaign/preregistration_v1.yaml`, together
-with the reduced scope that supersedes the original experiment campaign.
+with the reduced scope that supersedes the original experiment campaign and
+`configs/operations/g4_scope_v2.yaml`. Section 5 is not applicable; use
+`SINGLE_MACHINE_SCOPE.md` as its disposition summary.
 
 ## Work
 
 1. Build a requirement-to-evidence matrix for two-person freeze approval, sustained real
-   throughput, applicable takeover and no bypassed correctness checks. Recheck hashes,
+   throughput, local recovery and no bypassed correctness checks. Record takeover as
+   NOT_APPLICABLE_UNDER_AMENDED_SCOPE and bind the exact g4_scope_v2 digest. Recheck hashes,
    source applicability, unresolved findings, failed-attempt accounting, and budget
    prerequisites. Distinguish reduced-scope readiness from an original canonical pass.
 2. Create a reviewable freeze manifest binding all applicable components: code,
    environment, model, tokenizer, corpus, mixture, optimizer, schedule, evaluation,
-   parent-selection rule, branch calendar, recovery policy and fallback. Map superseded
+   parent-selection rule, branch calendar, local recovery and downtime policy, and
+   checkpoint backup destination/custody/restore procedure. No backup is yet verified
+   by the scope decision; record actual evidence and any remaining action. Map superseded
    parent/branch requirements to explicit reduced-scope dispositions, citing the accepted
    amendment. Do not invent completed proxy runs, parent checkpoints or final-model hashes.
    Never edit the original frozen file to turn a pending field into evidence.
@@ -34,7 +39,10 @@ with the reduced scope that supersedes the original experiment campaign.
    endpoint eligibility/export checks and failure escalation. Confirm the baseline has
    no pilot/rehearsal initialization. Keep the execution flag out of the default command
    shown during this section; the reviewed executable form belongs in the G5 instructions.
-6. Record G4 PASS only if every applicable requirement is proven. Keep original canonical
+6. Record G4_PASS_UNDER_AMENDED_SCOPE only if every applicable requirement is proven.
+   The canonical operations validator remains unchanged and is not an amended-scope
+   assessor; use an explicit evidence matrix without fabricated takeover labels.
+   Keep original canonical
    gates unpassed where their scope is unmet. If blocked, finish the bundle and handoff
    anyway, with a precise owner/next action for each remaining item. Do not run G5 merely
    because the review documents are complete.

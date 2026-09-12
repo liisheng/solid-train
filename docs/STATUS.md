@@ -1,5 +1,45 @@
 # Project status
 
+2026-09-12T14:39+08:00: User states intent to proceed and requests publication of
+the G4 scope/budget/freeze package to `origin/codex/g4-selected-recipe`.
+All494 bound files and bundle digest reverified unchanged. Publication does not
+record a missing approval receipt, resolve the documented gaps or launch G5.
+Git attributes preserve the new hashed artifacts' bytes on checkout.
+
+2026-09-12T14:35+08:00: **G4 section7 package complete; amended G4 BLOCKED.**
+Root completed [freeze review](g4/FREEZE_REVIEW.md),494-file hashed bundle and
+[G5 handoff](g4/G5_HANDOFF.md). Bundle SHA256
+`e5d5e32c08547692d94a5e30463cd76d633558ebb6bd363a8a90984994a17462`.
+Branch `codex/g4-selected-recipe`, HEAD `d1080576789794cb35f8839d6789f540223b7653`;
+documentation/scope overlay uncommitted, production172-file source unchanged.
+Fresh custody462 unique files PASS; successful launch plan only, no G5 directory.
+User confirms continuous machine availability. Backup destination/custodian/restore,
+measured budget disposition and two actual matching human approvals remain blockers.
+Canonical G4/G5/G6 unpassed; no training/scoring/backup/commit/push or active script.
+Next: operator closes review blockers, then two humans approve the resulting bundle.
+This supersedes earlier section-next/availability entries below.
+
+2026-09-12T14:03+08:00: **G4 section 6 complete; budget conditional, section 7 NEXT.**
+[Budget](g4/BASELINE_BUDGET.md) and calculation project 4.406/4.753h training,
+53.702/54.057h with provisional reserves. One candidate; evaluation p90 NOT_RUN,
+measured fit BLOCKED. Availability, deadline conflict, backup custody and two-person
+approval remain. Sections 1–4 complete; 5 not applicable under g4_scope_v2.
+Branch `codex/g4-selected-recipe`, HEAD `d1080576789794cb35f8839d6789f540223b7653`;
+root completed planning. All 172 source hashes and 14 input hashes match; arithmetic
+passes. Prior 826-test/lint/build evidence applies. Docs uncommitted; no training,
+scoring, backup or publication. G4 incomplete; older next-section entries superseded.
+
+2026-09-12T13:54+08:00: **Single-machine scope approved; section 6 NEXT.**
+User chose remaining training, evaluation and export on the RTX 4070 SUPER.
+`configs/operations/g4_scope_v2.yaml` replaces active cross-machine takeover with
+verified local recovery; section 5 is NOT_APPLICABLE_UNDER_AMENDED_SCOPE.
+See [scope decision](g4/SINGLE_MACHINE_SCOPE.md). Sections 1–4 evidence remains;
+budget, evaluation-runtime evidence and two-person freeze approval remain outstanding.
+Original canonical G4/takeover remain unpassed. Branch `codex/g4-selected-recipe`,
+HEAD `d1080576789794cb35f8839d6789f540223b7653`; root owns this local scope/docs update.
+No training, backup, scoring, commit or push performed. Earlier next-section and
+target-machine blocker statements below are historical and superseded by this entry.
+
 2026-09-12T13:44+08:00: **G4 section 4 PASS — local recovery**. Exact CUDA BF16
 8 versus4+resume and checkpoint4/log8 rollback match; replay archive and retry,
 corruption and early-export rejection pass. Review20checksPASS,90artifact hashes
@@ -220,7 +260,7 @@ Frozen configs and the user's RULES are unchanged.
 | G1 | Reduced aggregate PASS, 69/69, 550,094,903 distinct stable tokens; original full-scale G1 unpassed. |
 | G2 | `REDUCED_SCOPE_G2_PASS` under any-machine amendment; canonical full-scale G2 NOT_RUN. |
 | G3 | Six sections implemented; local correctness PASS; historical blocked aggregate preserved, tool blockers superseded by G4 part 1; original G3 NOT_RUN. |
-| G4 | No gate PASS; sections 1–2 PASS. Sustained profile, applicable recovery/takeover, budget and teammate review remain. |
+| G4 | No gate PASS; sections 1–4 complete, 5 not applicable under g4_scope_v2, 6 conditional budget complete. Evaluation timing, availability, backup policy and two-person freeze remain. |
 | G5 | NOT_RUN; no main baseline launched. |
 | G6 | NOT_RUN; baseline full evaluation, verified release assets and human approvals remain. |
 

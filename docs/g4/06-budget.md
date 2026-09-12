@@ -3,7 +3,8 @@
 ## Goal and inputs
 
 Turn verified measurements into a realistic execution/recovery/evaluation budget for
-the existing 1B baseline. Read the common handoff, profile/recovery/takeover evidence,
+the existing 1B baseline. Read the common handoff, profile/recovery evidence and
+[single-machine amendment](SINGLE_MACHINE_SCOPE.md),
 the accepted scope, baseline recipe and operations `horizon` rules. No training or full
 benchmark scoring is included in this planning section.
 
@@ -26,8 +27,10 @@ benchmark scoring is included in this planning section.
    Retain complete costs for failed, interrupted and repeated work outside canonical
    progress counters. A GPU-hours or total-campaign claim needs those costs.
 4. Budget checkpoint storage/atomic-write transients, logs, verification copies and
-   export alongside training. Account for observed background workloads, target-machine
-   limitations, transfer time and the recovery scenario from sections 4–5.
+   export alongside training. Schedule training, evaluation and export sequentially
+   on this RTX 4070 SUPER. Account for background workloads, local recovery from
+   section 4, backup costs and downtime reserve. Section 5 and target-machine timing
+   are not prerequisites under g4_scope_v2; no alternate-machine capacity is assumed.
 5. Reserve evaluation using the contract's measured p90 evaluation runtime × exact
    candidate count × 1.25 when those measurements exist. The one-example CPU smoke is
    not full CUDA/BF16 timing. Do not export an early engineering checkpoint as a baseline
@@ -57,7 +60,8 @@ Pass the report and open prerequisites to section 7; no blanket claim that every
 
 ```text
 Execute only G4 section 6, docs/g4/06-budget.md. Read the common G4 handoff/index
-and measured profile/recovery/takeover evidence. Build a traceable dated budget
+and measured profile/recovery evidence plus configs/operations/g4_scope_v2.yaml.
+Skip section 5 under the approved single-machine scope. Build a traceable dated budget
 for the fixed 1B baseline, with full overhead, storage, recovery and evaluation
 reserve. Distinguish measurements, extrapolations and missing inputs. Do not
 train, score benchmarks, extend the horizon or start another section. Record

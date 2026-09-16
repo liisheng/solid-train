@@ -1,0 +1,52 @@
+{
+  "checked_at_utc": "2026-09-16T09:38:21.705596+00:00",
+  "release_url": "https://github.com/liisheng/solid-train/releases/tag/v1.0.0",
+  "source_commit": "a24a08b9af4309db8487595dd7f5fa9a524a663c",
+  "public_clone_source_hashes_matched": 177,
+  "public_clone_docker_build": "PASS",
+  "assets": [
+    {
+      "name": "baseline_export.pt",
+      "bytes": 199463993,
+      "sha256": "89438ee3165a64bd3c15b3ba1f4aa6658841a423a554164061c2d4c0ac95c288",
+      "github_digest_matches": true,
+      "anonymous_download_verified": true
+    },
+    {
+      "name": "evaluation-evidence.zip",
+      "bytes": 9560068,
+      "sha256": "579f94c2b876e5e367be88e5b7fb2a3886772ecb2e08063c23860ec6b322910b",
+      "github_digest_matches": true,
+      "anonymous_download_verified": true
+    },
+    {
+      "name": "final_49m.json",
+      "bytes": 260,
+      "sha256": "69db94fe2bd0fef99b7a8ee183678b3bc2fc8098a9cdea8fd71adf1149bb1782",
+      "github_digest_matches": true,
+      "anonymous_download_verified": true
+    },
+    {
+      "name": "MODEL_CARD.md",
+      "bytes": 1565,
+      "sha256": "12e6272b23a0545ac4ab069bf7b8d5481e0a98eecd815737b07948cc56398d4b",
+      "github_digest_matches": true,
+      "anonymous_download_verified": true
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 422,
+      "sha256": "82601d3a79d1a3f8d4c9fe0b40008344b0a62aacaec24fc01dfb2a175e465fbf",
+      "github_digest_matches": true,
+      "anonymous_download_verified": true
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 839306,
+      "sha256": "2103d520df7a23490054cff474f5c0e0f241bb56b51051284ab92889a683c635",
+      "github_digest_matches": true,
+      "anonymous_download_verified": true
+    }
+  ],
+  "model_download_and_generation": "PASS: anonymous model/tokenizer/config download into empty container volume; SHA-256 verified; 40-token CPU generation passed"
+}

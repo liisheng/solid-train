@@ -22,6 +22,6 @@
     "cache": "fresh named volume; public benchmark downloads"
   },
   "model_sha256": "89438ee3165a64bd3c15b3ba1f4aa6658841a423a554164061c2d4c0ac95c288",
-  "public_download_verification": "Pending publication; recorded separately after release",
+  "public_download_verification": "PASS; see results/public-access.json",
   "initial_suite_failure": "Distribution downloader was in production scripts; moved to release_tools, training guard unchanged, isolation regression added. Final full suite supersedes that failure."
 }

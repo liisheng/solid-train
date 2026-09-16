@@ -147,3 +147,9 @@ A task is done when:
   canonical gate passed.
 - Use a dedicated branch per milestone. Before committing, confirm the branch matches the
   active milestone recorded in `docs/STATUS.md`.
+
+## Submission release verification
+
+- 2026-09-16: The submission Docker image installs the complete measured constraints set for optional evaluation imports. Public release assets may be downloaded into named Docker volumes for judge rehearsal; never bake model or corpus files into the image. Training remains on the documented Windows CUDA environment.
+
+- Release download utilities live in `release_tools/`, outside the training/evaluation production path. Do not import them from production code. Include `release_tools` in release lint checks; the training eligibility scanner remains unchanged.

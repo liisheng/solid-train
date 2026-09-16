@@ -1,0 +1,32 @@
+{
+  "cap_headroom": 341632,
+  "code_identifier": {
+    "git_commit": "56b93aa596a4649cfb323de678e384708787e4ef",
+    "production_source_tree_sha256": "5146fabd4f9d179bf104b2c7817dfd22a2ed9af0a4a8563936500075b2c2d05e",
+    "torch_version": "2.5.1+cu124"
+  },
+  "config_path": "configs/final_49m.json",
+  "config_sha256": "69db94fe2bd0fef99b7a8ee183678b3bc2fc8098a9cdea8fd71adf1149bb1782",
+  "initialization": "random",
+  "model_config": {
+    "bias": false,
+    "d_ff": 1504,
+    "d_model": 512,
+    "dropout": 0.0,
+    "max_seq_len": 1024,
+    "n_heads": 8,
+    "n_kv_heads": 4,
+    "n_layers": 14,
+    "rms_norm_eps": 1e-05,
+    "rope_theta": 10000.0,
+    "tie_embeddings": true,
+    "vocab_size": 12288
+  },
+  "optimizer_steps_completed": 0,
+  "provenance_format_version": 1,
+  "seed": 1337,
+  "statement": "Weights come only from seeded random initialization: no pretrained initialization, no fine-tuning of an existing model, and no knowledge transfer from another model.",
+  "tied_embedding_output_storage": true,
+  "unique_parameter_count": 49658368,
+  "weight_sha256": "f650c23cfe4574c16cb4d705645263e9f38df83703b057721c9f64bb17eca78b"
+}

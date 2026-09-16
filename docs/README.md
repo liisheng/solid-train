@@ -1,8 +1,8 @@
 # Documentation index
 
 Use [project status](STATUS.md) for the current milestone, branch and next actions.
-The baseline is trained and its full provisional evaluation is complete. Release
-requirements remain pending; the proposed 3B candidate is not approved for execution.
+The baseline is trained and its full provisional evaluation is complete. The GitHub submission package is described in the [judge guide](SUBMISSION.md).
+The fresh 3B candidate was abandoned due to time constraints.
 
 ## Current reference
 

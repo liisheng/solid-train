@@ -1,5 +1,8 @@
 [PLANS]
 
+- 2026-09-16T17:05+08:00 [USER] Authorizes all GitHub submission preparation/publication and clear README; no authorship bylines. Fresh 3B run abandoned. [TOOL] Isolated runs/github-release-worktree on codex/github-submission from published cbae9d7 preserves dirty original work. Existing GitHub public/admin access verified; plan release v1.0.0 assets + fast-forward master, tested judge quick-start. Required factual AI assistance credit retained; no model modification/training. Publication does not assert canonical G6 PASS.
+
+
 - 2026-09-13T07:41+08:00 [USER] Commit and push pending package. [TOOL] Active milestone g6-release verified; origin https://github.com/liisheng/solid-train.git has no existing same-named remote branch. Package: G6sample-record fix/test, results/diagnostic, cleaned docs/index/status/history, unchanged user rules reference and next-run draft handoff. Source hashes match prior build/Ruff/76evaluation+17Windows test evidence. Exclude build/egg-info/ZIP/ignored raw evidence and models. Publication does not approve new3Btraining or G6modelrelease. Dry-run then normal push; verify remote exact commit.
 
 - 2026-09-13T06:00+08:00 [USER] Make docs comprehensive for next run. [TOOL] docs/next_run/{README,CANDIDATE_SPEC,PREPARATION,RUNBOOK}.md complete preparation handoff; draft/no training authorization. Exact11445updates/3000238080tokens/2929920sequences; WSD114/10186/1145; source quotas2050944/585984/205094/87898; distinct-position minimum1500119040 and max2reuse. Documented old5% expansion/v1-v2-only runner/exposure digest gaps, required implementation/data/freeze evidence, safeCLIhelp, observer/recovery/backup/selection/release workflows. NextP0/P1 scope+data preparation; runtime NOT_READY.203local links/4help commands/arithmetic+LRboundaries/13boundMDhashesPASS; runs/verification/next-run-docs/report.json. Source unchanged this task, no acquisition/training/commit/push. STATUS/index/proposal link handoff.
@@ -123,6 +126,9 @@
 - 2026-09-08T00:35:00+08:00 [CODE] Exposure plan6b1b747e47ea907810bf68f9ff941f61319ba7dbc7a034e3e2a746775666b0e3:976640sequences; quotas683648/195328/68365/29299; base537112 preserved plus439528 intentional cross-component reused refs;550094903distinct stable tokens. Internal dclm means general FineWeb. Cached identities/shared lazy mmap, finite absolute cursor, no per-batch integrity scan.
 
 [OUTCOMES]
+
+- 2026-09-16T09:33:53.110447+00:00 [TOOL] GitHub release candidate verified: original model/tokenizer hashes unchanged; Docker build, 831tests/123.21s, Ruff/pip,100environment checks,count49658368,CPU generation and fresh-download5task smoke/13bundle checks PASS. Downloader separated into release_tools after eligibility scan correctly rejected network fetch in scripts; training guard unchanged and new isolation regression PASS. Docker recovered by preserving stale run/secrets-engine runtime directories (no reset). Assets and source staged; publication/public-access checks next.
+
 
 - 2026-09-12T14:50:23+08:00 [USER] Explicitly authorizes readiness/approval payload to github.com/liisheng/solid-train branch codex/g4-selected-recipe after automatic review rejection. [TOOL] Dry-run and actual push succeed; remote56b93aa596a4649cfb323de678e384708787e4ef matches requested commit. Checkout independently moved to codex/g5-baseline at sameHEAD; left unchanged. No G5 execution in this publication task. This publication note is local/uncommitted.
 

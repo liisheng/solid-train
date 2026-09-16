@@ -1,0 +1,24 @@
+{
+  "tag": "v1.0.0",
+  "label": "PROVISIONAL_NOT_OFFICIAL",
+  "files": [
+    {
+      "name": "baseline_export.pt",
+      "bytes": 199463993,
+      "sha256": "89438ee3165a64bd3c15b3ba1f4aa6658841a423a554164061c2d4c0ac95c288",
+      "url": "https://github.com/liisheng/solid-train/releases/download/v1.0.0/baseline_export.pt"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 839306,
+      "sha256": "2103d520df7a23490054cff474f5c0e0f241bb56b51051284ab92889a683c635",
+      "url": "https://github.com/liisheng/solid-train/releases/download/v1.0.0/tokenizer.json"
+    },
+    {
+      "name": "final_49m.json",
+      "bytes": 260,
+      "sha256": "69db94fe2bd0fef99b7a8ee183678b3bc2fc8098a9cdea8fd71adf1149bb1782",
+      "url": "https://github.com/liisheng/solid-train/releases/download/v1.0.0/final_49m.json"
+    }
+  ]
+}

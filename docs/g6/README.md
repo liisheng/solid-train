@@ -1,5 +1,10 @@
 # G6 evaluation and release
 
+**2026-09-16 release update:** the owner authorized GitHub packaging of the completed
+baseline. See [judge setup and release contents](../SUBMISSION.md). The dated
+2026-09-13 account below describes pre-publication state; official scoring settings
+and canonical gate approval remain distinct from publishing a usable model.
+
 Full provisional evaluation completed on 2026-09-13. Coverage, artifact hashes and
 the saved bundle passed controller verification and a subsequent root review.
 **G6 release is still blocked.** See [results and timing](RESULTS.md) and

@@ -1,0 +1,10 @@
+{
+  "parameters": 49658368,
+  "loss_tokens": 1000079360,
+  "updates": 3815,
+  "training_command_seconds": 15767.193,
+  "optimizer_seconds": 15414.29,
+  "approximate_training_flops_6ND": 297973853328506880,
+  "scope": "Completed baseline only; excludes screening, profiling, failed preparation, evaluation and verification.",
+  "peak_allocated_vram_gib": 5.4454145431518555
+}

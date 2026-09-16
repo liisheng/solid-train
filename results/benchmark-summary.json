@@ -1,0 +1,129 @@
+{
+  "config": {
+    "batch_size": null,
+    "batch_sizes": [],
+    "bootstrap_iters": 1000,
+    "device": null,
+    "fewshot_seed": 1234,
+    "gen_kwargs": null,
+    "limit": null,
+    "model": "TinyBenchHarnessLM",
+    "model_args": null,
+    "numpy_seed": 1234,
+    "random_seed": 1234,
+    "torch_seed": 1234,
+    "use_cache": null
+  },
+  "date": 1789233565.6777272,
+  "git_hash": "5eebdad",
+  "group_subtasks": {},
+  "higher_is_better": {
+    "arc_easy": {
+      "acc": true,
+      "acc_norm": true
+    },
+    "hellaswag": {
+      "acc": true,
+      "acc_norm": true
+    },
+    "piqa": {
+      "acc": true,
+      "acc_norm": true
+    },
+    "wikitext103": {
+      "bits_per_byte": false,
+      "byte_perplexity": false,
+      "word_perplexity": false
+    },
+    "winogrande": {
+      "acc": true
+    }
+  },
+  "lm_eval_version": "0.4.12",
+  "n-samples": {
+    "arc_easy": {
+      "effective": 2376,
+      "original": 2376
+    },
+    "hellaswag": {
+      "effective": 10042,
+      "original": 10042
+    },
+    "piqa": {
+      "effective": 1838,
+      "original": 1838
+    },
+    "wikitext103": {
+      "effective": 2891,
+      "original": 2891
+    },
+    "winogrande": {
+      "effective": 1267,
+      "original": 1267
+    }
+  },
+  "n-shot": {
+    "arc_easy": 0,
+    "hellaswag": 0,
+    "piqa": 0,
+    "wikitext103": 0,
+    "winogrande": 0
+  },
+  "pretty_env_info": "PyTorch version: 2.5.1+cu124\nIs debug build: False\nCUDA used to build PyTorch: 12.4\nROCM used to build PyTorch: N/A\n\nOS: Could not collect\nGCC version: Could not collect\nClang version: Could not collect\nCMake version: Could not collect\nLibc version: N/A\n\nPython version: 3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)] (64-bit runtime)\nPython platform: Windows-11-10.0.26200-SP0\nIs CUDA available: True\nCUDA runtime version: Could not collect\nCUDA_MODULE_LOADING set to: LAZY\nGPU models and configuration: GPU 0: NVIDIA GeForce RTX 4070 SUPER\nNvidia driver version: 591.86\ncuDNN version: Could not collect\nHIP runtime version: N/A\nMIOpen runtime version: N/A\nIs XNNPACK available: True\n\nCPU:\n'wmic' is not recognized as an internal or external command,\r\noperable program or batch file.\n\nVersions of relevant libraries:\n[pip3] numpy==1.26.4\n[pip3] torch==2.5.1+cu124\n[conda] Could not collect",
+  "results": {
+    "arc_easy": {
+      "acc,none": 0.4132996632996633,
+      "acc_norm,none": 0.375,
+      "acc_norm_stderr,none": 0.009933992677987828,
+      "acc_stderr,none": 0.0101043617807475,
+      "alias": "arc_easy",
+      "name": "arc_easy",
+      "sample_len": 2376
+    },
+    "hellaswag": {
+      "acc,none": 0.2729535949014141,
+      "acc_norm,none": 0.27524397530372435,
+      "acc_norm_stderr,none": 0.0044572433366161755,
+      "acc_stderr,none": 0.004445667638734267,
+      "alias": "hellaswag",
+      "name": "hellaswag",
+      "sample_len": 10042
+    },
+    "piqa": {
+      "acc,none": 0.5865070729053319,
+      "acc_norm,none": 0.5810663764961915,
+      "acc_norm_stderr,none": 0.01151147311999497,
+      "acc_stderr,none": 0.011489895831821244,
+      "alias": "piqa",
+      "name": "piqa",
+      "sample_len": 1838
+    },
+    "wikitext103": {
+      "alias": "wikitext103",
+      "bits_per_byte,none": 1.4756568217499504,
+      "bits_per_byte_stderr,none": "N/A",
+      "byte_perplexity,none": 2.781102315478907,
+      "byte_perplexity_stderr,none": "N/A",
+      "name": "wikitext103",
+      "sample_len": 2891,
+      "word_perplexity,none": 235.1593106351619,
+      "word_perplexity_stderr,none": "N/A"
+    },
+    "winogrande": {
+      "acc,none": 0.4996053670086819,
+      "acc_stderr,none": 0.01405248130604961,
+      "alias": "winogrande",
+      "name": "winogrande",
+      "sample_len": 1267
+    }
+  },
+  "transformers_version": "4.46.3",
+  "upper_git_hash": null,
+  "versions": {
+    "arc_easy": 1.0,
+    "hellaswag": 1.0,
+    "piqa": 1.0,
+    "wikitext103": 1,
+    "winogrande": 1.0
+  }
+}

@@ -7,6 +7,28 @@ Every number here is taken from committed evidence in this repository; see
 
 ---
 
+## 00 | Tagline (Devpost pitch field, 200-character maximum)
+
+Recommended:
+
+> A language model that fits under 50M parameters and under your desk. Trained from random
+> noise on one RTX 4070 in 4h22m. No pretrained weights. No teacher. No API key. (167)
+
+Alternates:
+
+- Anyone can download a model. We built one from random noise — 49.6M parameters, 1B
+  tokens, 4h22m on a gaming PC — and published the hash of step zero to prove it. (162)
+- 341,632 parameters to spare. Trained from random noise on a gaming PC in 4h22m — and it
+  publishes the hash of its own starting weights, so "from scratch" is checkable. (167)
+- Everyone says "trained from scratch." We published the hash of our random weights so you
+  can check. 49.6M params, 1B tokens, 4 hours, one gaming GPU. (149)
+
+Do not use phrasing that claims the corpus is certified free of benchmark contamination.
+`configs/data/decontam_v3.yaml` records the opposite under `limitations`: paraphrases and
+short copied questions are outside the detector's guarantees.
+
+---
+
 ## 01 | Project Description
 
 ### TinyBench-LM — a 49,658,368-parameter language model trained from scratch, under a hard 50M cap

@@ -261,14 +261,29 @@ not before.
 
 ### Devpost tag list (paste into the "Built With" field)
 
+Devpost caps this field at **25 tags**, so it cannot hold the complete inventory the rules
+ask for; the full list below is the authoritative one and belongs in the project
+description. Exactly 25 tags:
+
 ```
 python, pytorch, cuda, docker, numpy, sqlite, hugging-face-datasets,
-hugging-face-tokenizers, safetensors, transformers, pyarrow,
-lm-evaluation-harness, pytest, hypothesis, ruff, git, github-releases,
-bfloat16, rope, rmsnorm, swiglu, grouped-query-attention, adamw, minhash,
-byte-level-bpe, fineweb-edu, fineweb, openwebmath, project-gutenberg,
-rtx-4070-super, openai-codex
+hugging-face-tokenizers, lm-evaluation-harness, pytest, hypothesis,
+bfloat16, rope, rmsnorm, swiglu, grouped-query-attention, adamw,
+minhash, byte-level-bpe, fineweb-edu, fineweb, openwebmath,
+project-gutenberg, rtx-4070-super, openai-codex
 ```
+
+Deliberately **not** tagged, verified 2026-09-20 against the source tree:
+
+- `safetensors` — zero references anywhere outside `constraints/`. The release asset is
+  `baseline_export.pt` (a torch pickle) and hashing is `hashlib.sha256` in
+  `release_tools/download_release.py`. Installed as a transitive dependency only.
+- `transformers` — appears only as test-fixture strings in `tests/test_eligibility.py` and
+  `tests/test_alignment_auditor.py`, which exist to prove the eligibility scanner *rejects*
+  `AutoModel.from_pretrained`. Tagging it would claim the opposite of what the code does.
+- `pyarrow`, `xxhash` — no direct imports; transitive under `datasets`.
+- `git`, `github-releases`, `ruff` — used, but near-zero differentiating signal; cut to fit
+  the 25-tag cap in favour of the hardware and AI-tool disclosures the rules require.
 
 ### Full inventory
 
@@ -287,15 +302,12 @@ rtx-4070-super, openai-codex
 | --- | --- | --- |
 | Hugging Face `datasets` | 3.2.0 | streaming the pinned public corpora |
 | Hugging Face `tokenizers` | 0.20.3 | training and loading the 12,288-token byte-level BPE |
-| `transformers` | 4.46.3 | transitive dependency of the evaluation harness |
-| `safetensors` | 0.8.0 | release weight serialization and hash verification |
 | NumPy | 1.26.4 | `uint16` token shard storage, deterministic bootstrap |
 | `lm-eval` (lm-evaluation-harness) | 0.4.12 | HellaSwag, ARC-Easy, PIQA, WinoGrande, WikiText scoring |
-| PyArrow | 25.0.1 | dataset I/O |
 | PyYAML | 6.0.2 | frozen protocol files |
 | `tqdm` | 4.67.1 | progress reporting |
 | SQLite | Python stdlib `sqlite3` | restartable corpus-pipeline state, filter/dedup/decontamination ledgers |
-| `xxhash` | 4.0.1 | fast content hashing in the pipeline |
+| `hashlib` | Python stdlib | SHA-256 over protocol files, shards, and release assets |
 | pytest | 8.3.5 | contract and unit tests |
 | Hypothesis | 6.130.5 | property-based tests |
 | Ruff | 0.11.13 | lint |
